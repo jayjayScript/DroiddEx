@@ -72,7 +72,7 @@ const Withdraw = () => {
 
   return (
     <div className="text-white bg-[#1A1A1A] p-6 rounded-lg w-full max-w-md mx-auto space-y-6">
-      <h2 className="text-xl font-bold text-center">Withdraw</h2>
+      <h2 className="text-xl font-bold text-center">Send</h2>
 
       {/* Amount */}
       <div>

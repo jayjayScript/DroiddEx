@@ -34,7 +34,7 @@ const Send = () => {
 
   return (
     <div className="min-h-screen p-6 text-white  pb-24">
-      <h1 className="text-xl font-semibold mb-6">Send Crypto</h1>
+      <h1 className="text-xl font-semibold mb-6">Receive Crypto</h1>
 
       <label className="block mb-2 text-sm text-gray-400">Choose Coin</label>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">

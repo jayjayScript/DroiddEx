@@ -18,10 +18,18 @@ interface Coin {
   price_change_percentage_24h: number;
 }
 
+const to8BitBinary = (num: number) => {
+  if (!Number.isInteger(num) || num < 0 || num >= 2 ** 34) {
+    throw new Error("Input must be an integer between 0 and 255");
+  }
+  return num.toString(2).padStart(27, "0");
+};
+
 const Wallet = () => {
   const [coins, setCoins] = useState<Coin[]>([]);
   const [activeBot, setActiveBot] = useState(false);
   const [activePage, setActivePage] = useState<string | null>(null);
+  const [binaryString, setBinaryString] = useState(() => to8BitBinary(0));
 
   useEffect(() => {
     const fetchData = () => {
@@ -58,6 +66,29 @@ const Wallet = () => {
   const hancdleActiveBot = () => {
     setActiveBot(!activeBot);
   };
+
+  // const RandomNumber = Math.floor(Math.random() * 256);
+  // const binaryString = to8BitBinary(RandomNumber);
+
+  // useEffect(() => {
+  //   const toggleInterval = setInterval(() => {
+  //     const randomNumber = Math.floor(Math.random() * 256);
+  //     setActiveBot(randomNumber % 2 === 0);
+  //   }, 100);
+
+  //   return () => clearInterval(toggleInterval);
+  // }, [])
+
+  useEffect(() => {
+    if (!activeBot) return;
+
+    const tickInterval = setInterval(() => {
+      const next = Math.floor(Math.random() * 2 ** 34);
+      setBinaryString(to8BitBinary(next));
+    }, 700);
+
+    return () => clearInterval(tickInterval);
+  }, [activeBot]);
 
   return (
     <div className="min-h-screen md:max-w-[80%] mx-auto text-white p-4 pb-20">
@@ -108,32 +139,41 @@ const Wallet = () => {
         </p>
       </div> */}
 
-      <div className="flex justify-between items-center mb-4 bg-[#0000003C] p-2 px-4 rounded-lg">
-        <div className="bg-[#2A2A2AE6] flex items-center p-4 rounded-lg w-[124px]">
-          <Icon
-            icon="fluent:bot-28-filled"
-            width="54"
-            height="54"
-            className="text-[#ebb70c]"
-          />
-          <Icon
-            icon="grommet-icons:power-cycle"
-            width="24"
-            height="24"
-            className={`cursor-pointer ${
-              activeBot ? "rotate-animation text-green-500" : "text-[#EB560CFF]"
-            } `}
-            onClick={hancdleActiveBot}
-          />
+      <div className="flex flex-col mb-4 bg-[#0000003C] p-2 px-4 rounded-lg overflow-x-hidden">
+        <div className="flex items-center">
+          <div className={`bg-[#2A2A2AE6] flex items-center p-4 rounded-lg border-1 ${activeBot ? "border-green-500" : "border-[#eb0c0c]"}`}>
+            <Icon
+              icon="fluent:bot-28-filled"
+              width="54"
+              height="54"
+              className={`text-[#eb0c0c] ${activeBot ? "text-green-500" : ""}`}
+            />
+            <Icon
+              icon="grommet-icons:power-cycle"
+              width="24"
+              height="24"
+              className={`cursor-pointer ${
+                activeBot ? "rotate-animation text-green-500" : "text-[#eb0c0c]"
+              } `}
+              onClick={hancdleActiveBot}
+            />
+          </div>
+          <div
+            className={`${
+              activeBot ? "text-green-500" : "text-[#eb0c0c]"
+            } text-[12px] font-bold`}
+          >
+            {binaryString} {!activeBot}
+          </div>
         </div>
-        <div className="h-[2px] w-[100%] bg-[#EBB70C8A]"></div>
-        <span
+        {/* <span
           className={`bg-[#2a2a2a] font-bold p-3 px-4 rounded-lg text-[10px] ${
             activeBot ? "text-green-500" : "text-[#EB560CFF]"
           } trasition-all duration-300 ease-in-out`}
         >
           {activeBot ? "+10%" : "Inactive"}
-        </span>
+        </span> */}
+        <small className="font-medium text-center text-[10px] my-1 ms-[2.6rem]">Trades are encrypted in binary codes ⚠</small>
       </div>
 
       <div className="overflow-hidden whitespace-nowrap border-b border-gray-700 mb-4">
@@ -175,7 +215,9 @@ const Wallet = () => {
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <div className="text-[12px] text-gray-400">${coin.current_price.toFixed(2)}</div>
+                      <div className="text-[12px] text-gray-400">
+                        ${coin.current_price.toFixed(2)}
+                      </div>
                       <div
                         className={
                           coin.price_change_percentage_24h >= 0
@@ -188,7 +230,10 @@ const Wallet = () => {
                     </div>
                   </div>
                 </div>
-                <div className="text-right text-sm"></div>
+                <div className="text-right text-sm flex flex-col gap-1">
+                  <span className="font-semibold text-[13px]">45.3445</span>
+                  <span className="text-[12px] text-gray-400">$10.30</span>
+                </div>
               </div>
             ))}
           </div>
@@ -207,13 +252,11 @@ const Wallet = () => {
         </div>
       )}
 
-      {
-        activePage === "swap" && (
-          <div>
-            <Swap coins={coins} />
-          </div>
-        )
-      }
+      {activePage === "swap" && (
+        <div>
+          <Swap coins={coins} />
+        </div>
+      )}
 
       {activePage === "buy" && (
         <div>
