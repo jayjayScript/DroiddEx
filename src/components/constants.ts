@@ -36,3 +36,14 @@ export const loginLogs = [
   { date: "2025-05-13", time: "09:10 PM", location: "Lagos, Nigeria" },
   { date: "2025-05-12", time: "08:01 AM", location: "Mobile Device" },
 ];
+
+
+// constants/walletCoins.ts
+export const walletCoins = [
+  { id: "btc-bitcoin", symbol: "BTC", name: "Bitcoin" },
+  { id: "bnb-binance-coin", symbol: "BNB", name: "Binance Coin" },
+  { id: "sol-solana", symbol: "SOL", name: "Solana" },
+  { id: "doge-dogecoin", symbol: "DOGE", name: "Dogecoin" },
+  { id: "trx-tron", symbol: "TRX", name: "Tron" },
+  { id: "xrp-xrp", symbol: "XRP", name: "Ripple" }
+];

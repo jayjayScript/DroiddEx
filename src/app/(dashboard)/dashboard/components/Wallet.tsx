@@ -1,11 +1,15 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { Icon } from "@iconify/react";
 import Send from "./Send";
 import Withdraw from "./Receive";
 import Buy from "./Buy";
 import Swap from "./Swap";
+import { getUserProfile } from '@/lib/auth';
+import { walletCoins } from "@/components/constants";
+import Link from "next/link";
+import TradingViewTicker from "./TradingViewMarquee";
 
 const API_URL =
   "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dogecoin,tron,binancecoin,bitcoin,ripple,solana&order=market_cap_desc&per_page=100&page=1&sparkline=false";
@@ -25,24 +29,69 @@ const to8BitBinary = (num: number) => {
   return num.toString(2).padStart(27, "0");
 };
 
+type CoinData = {
+  id: string;
+  name: string;
+  symbol: string;
+  current_price: number;
+  price_change_percentage_24h: number;
+};
+
+function getSymbol(id: string) {
+  return `cryptocurrency:${id.split('-')[0]}`;
+}
+
 const Wallet = () => {
   const [coins, setCoins] = useState<Coin[]>([]);
   const [activeBot, setActiveBot] = useState(false);
   const [activePage, setActivePage] = useState<string | null>(null);
   const [binaryString, setBinaryString] = useState(() => to8BitBinary(0));
+  const [error, setError] = useState('');
+  const [user, setUser] = useState<any>(null);
+
+  // useEffect(() => {
+  //   const fetchPrices = async () => {
+  //     const results: CoinData[] = [];
+
+  //     await Promise.all(
+  //       walletCoins.map(async (coin) => {
+  //         try {
+  //           const res = await fetch(`https://api.coinpaprika.com/v1/tickers/${coin.id}`);
+  //           const data = await res.json();
+
+  //           results.push({
+  //             id: coin.id,
+  //             name: coin.name,
+  //             symbol: coin.symbol,
+  //             current_price: data.quotes.USD.price,
+  //             price_change_percentage_24h: data.quotes.USD.percent_change_24h,
+  //           });
+  //         } catch (err) {
+  //           console.error(`Error fetching ${coin.name}`, err);
+  //         }
+  //       })
+  //     );
+
+  //     setCoins(results);
+  //   };
+
+  //   fetchPrices();
+  // }, []);
+
 
   useEffect(() => {
-    const fetchData = () => {
-      axios.get(API_URL).then((res) => {
-        setCoins(res.data);
-      });
-    };
+    const getUser = async () => {
+      try {
+        const data = await getUserProfile();
+        console.log(data)
+        setUser(data);
+      } catch (err: any) {
+        setError(err.message || 'Something went Wrong')
+      }
+    }
 
-    fetchData(); // initial fetch
-    const interval = setInterval(fetchData, 1000); // fetch every 1s
-
-    return () => clearInterval(interval); // cleanup
-  }, []);
+    getUser();
+  }, [])
 
   const getSymbol = (id: string): string => {
     switch (id) {
@@ -63,21 +112,10 @@ const Wallet = () => {
     }
   };
 
-  const hancdleActiveBot = () => {
+  const handleActiveBot = () => {
     setActiveBot(!activeBot);
   };
 
-  // const RandomNumber = Math.floor(Math.random() * 256);
-  // const binaryString = to8BitBinary(RandomNumber);
-
-  // useEffect(() => {
-  //   const toggleInterval = setInterval(() => {
-  //     const randomNumber = Math.floor(Math.random() * 256);
-  //     setActiveBot(randomNumber % 2 === 0);
-  //   }, 100);
-
-  //   return () => clearInterval(toggleInterval);
-  // }, [])
 
   useEffect(() => {
     if (!activeBot) return;
@@ -90,6 +128,10 @@ const Wallet = () => {
     return () => clearInterval(tickInterval);
   }, [activeBot]);
 
+
+  if (!user || !coins) {
+    return <p>Loading...</p>; // or null, or a spinner component
+  }
   return (
     <div className="min-h-screen md:max-w-[80%] mx-auto text-white p-4 pb-20">
       <header className="flex justify-between items-center mb-4">
@@ -108,6 +150,11 @@ const Wallet = () => {
         </h1>
         <div className="text-sm">$OFT</div>
       </header>
+
+      <div>
+        <h2>Welcome!, {user.email}</h2>
+        <p>{user.phrase}</p>
+      </div>
 
       <div className="text-3xl font-bold mb-2">$32.50</div>
 
@@ -152,16 +199,14 @@ const Wallet = () => {
               icon="grommet-icons:power-cycle"
               width="24"
               height="24"
-              className={`cursor-pointer ${
-                activeBot ? "rotate-animation text-green-500" : "text-[#eb0c0c]"
-              } `}
-              onClick={hancdleActiveBot}
+              className={`cursor-pointer ${activeBot ? "rotate-animation text-green-500" : "text-[#eb0c0c]"
+                } `}
+              onClick={handleActiveBot}
             />
           </div>
           <div
-            className={`${
-              activeBot ? "text-green-500" : "text-[#eb0c0c]"
-            } text-[12px] font-bold`}
+            className={`${activeBot ? "text-green-500" : "text-[#eb0c0c]"
+              } text-[10px] font-bold`}
           >
             {binaryString} {!activeBot}
           </div>
@@ -176,15 +221,7 @@ const Wallet = () => {
         <small className="font-medium text-center text-[10px] my-1 ms-[2.6rem]">Trades are encrypted in binary codes ⚠</small>
       </div>
 
-      <div className="overflow-hidden whitespace-nowrap border-b border-gray-700 mb-4">
-        <div className="animate-marquee inline-block">
-          {coins.map((coin) => (
-            <span key={coin.id} className="mx-4 text-sm text-gray-300">
-              {coin.symbol.toUpperCase()}: ${coin.current_price.toFixed(2)}
-            </span>
-          ))}
-        </div>
-      </div>
+      <TradingViewTicker />
 
       {/* assets */}
 
@@ -198,43 +235,58 @@ const Wallet = () => {
 
           <div className="space-y-4">
             {coins.map((coin: Coin) => (
-              <div
+              <Link
+                href={`/coins/${coin.id}`}
                 key={coin.id}
                 className="flex justify-between bg-[#1A1A1A] p-2 mb-[6px] rounded-lg"
               >
-                <div className="flex items-center gap-2">
-                  <Icon icon={getSymbol(coin.id)} width="40" height="40" />
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1">
-                      <div className="text-[18px] font-normal">
-                        {coin.symbol.toUpperCase()}
-                      </div>
-                      <div className="text-[12px] text-gray-400 bg-[#2A2A2A] px-1 rounded-md">
-                        {coin.name}
-                      </div>
-                    </div>
+                <div className="space-y-4">
+                  {coins.map((coin) => (
+                    <Link
+                      href={`/coins/${coin.id}`}
+                      key={coin.id}
+                      className="flex justify-between bg-[#1A1A1A] p-2 mb-[6px] rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon icon={getSymbol(coin.id)} width="40" height="40" />
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1">
+                            <div className="text-[18px] font-normal">
+                              {coin.symbol.toUpperCase()}
+                            </div>
+                            <div className="text-[12px] text-gray-400 bg-[#2A2A2A] px-1 rounded-md">
+                              {coin.name}
+                            </div>
+                          </div>
 
-                    <div className="flex items-center gap-1">
-                      <div className="text-[12px] text-gray-400">
-                        ${coin.current_price.toFixed(2)}
+                          <div className="flex items-center gap-1">
+                            <div className="text-[12px] text-gray-400">
+                              ${coin.current_price.toFixed(2)}
+                            </div>
+                            <div
+                              className={
+                                coin.price_change_percentage_24h >= 0
+                                  ? "text-green-400 text-[12px]"
+                                  : "text-red-400 text-[12px]"
+                              }
+                            >
+                              {coin.price_change_percentage_24h.toFixed(2)}%
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div
-                        className={
-                          coin.price_change_percentage_24h >= 0
-                            ? "text-green-400 text-[12px]"
-                            : "text-red-400 text-[12px]"
-                        }
-                      >
-                        {coin.price_change_percentage_24h.toFixed(2)}%
+                      <div className="text-right text-sm flex flex-col gap-1">
+                        <span className="font-semibold text-[13px]">45.3445</span>
+                        <span className="text-[12px] text-gray-400">$10.30</span>
                       </div>
-                    </div>
-                  </div>
+                    </Link>
+                  ))}
                 </div>
                 <div className="text-right text-sm flex flex-col gap-1">
                   <span className="font-semibold text-[13px]">45.3445</span>
                   <span className="text-[12px] text-gray-400">$10.30</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

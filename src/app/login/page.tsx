@@ -1,50 +1,64 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { loginWithSeed } from '@/lib/auth';
+import Cookies from 'js-cookie';
+
 
 const LoginPage = () => {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error] = useState('');
+  const [form, setForm] = useState({ email: '', phrase: '' });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleChange = (e: any) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
+  function handleLoginSuccess(token: string) {
+    Cookies.set('token', token, {
+      expires: 7, // days
+      secure: true,
+      sameSite: 'lax',
     });
+  }
 
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.message);
-      return;
-    }
 
-    if (data.role === "admin") {
-      router.push("/admin");
-    } else {
-      router.push("/dashboard");
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const data = await loginWithSeed(form.email, form.phrase); // treat password as phrase
+      handleLoginSuccess(data.token)
+      setLoading(false);
+
+      alert('Login successful!');
+      router.push('/dashboard');
+    } catch (err: any) {
+      setLoading(false);
+      alert(err.response?.data?.message || 'Login failed');
     }
   };
+
 
   return (
     <div className="min-h-screen bg-[#121212] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#1E1E1E] rounded-lg shadow-lg p-8">
         <h2 className="text-white text-2xl font-semibold mb-6 text-center">Login</h2>
 
-        {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
+        {/* {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>} */}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="text-sm text-gray-300 mb-1 block">Email</label>
             <input
               type="email"
+              name='email'
               className="w-full p-3 rounded bg-[#2A2A2A] text-white outline-none focus:ring-2 focus:ring-[#ebb70c]"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={form.email}
+              onChange={handleChange}
               placeholder="admin@example.com"
               required
             />
@@ -53,10 +67,11 @@ const LoginPage = () => {
           <div>
             <label className="text-sm text-gray-300 mb-1 block">Password</label>
             <input
-              type="password"
+              type="text"
+              name='phrase'
               className="w-full p-3 rounded bg-[#2A2A2A] text-white outline-none focus:ring-2 focus:ring-[#ebb70c]"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={form.phrase}
+              onChange={handleChange}
               placeholder="••••••••"
               required
             />
@@ -68,6 +83,9 @@ const LoginPage = () => {
           >
             Log In
           </button>
+
+          <div className='text-[#fff]'>Don&apos;t have an account? <Link href='./create-wallet' className='text-[#ebb70c] cursor-pointer'>signup</Link></div>
+
         </form>
       </div>
     </div>

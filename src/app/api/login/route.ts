@@ -1,33 +1,17 @@
-import { NextResponse } from "next/server";
+// src/app/api/login/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import axios from 'axios';
 
-export async function POST(req: Request) {
-  const { email, password } = await req.json();
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
 
-  if (email === "admin@example.com" && password === "admin123") {
-    const response = NextResponse.json({
-      success: true,
-      message: "Admin Login successful",
-    });
+    const res = await axios.post('http://localhost:4000/auth/login', body);
 
-    response.cookies.set("token", "mock-token", { httpOnly: true, path: "/" });
-    response.cookies.set("role", "admin", { httpOnly: true, path: "/" });
-
-    return response;
+    return NextResponse.json({ message: 'Login Successful', data: res.data });
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Login failed';
+    const statusCode = error.response?.status || 500;
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
-
-  if(email === "user@example.com" && password === "user123") {
-    const response = NextResponse.json({
-      success: true,
-      message: "User Login successful",
-    });
-
-    response.cookies.set("token", "mock-token", { httpOnly: true, path: "/" });
-    response.cookies.set("role", "user", { httpOnly: true, path: "/" });
-
-    return response;
-  }
-
-  return NextResponse.json({
-    success: false, message: "Not authorized",
-  }, { status: 401 });
 }
