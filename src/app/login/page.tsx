@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loginWithSeed } from '@/lib/auth';
 import Cookies from 'js-cookie';
+import { useTranslation } from 'react-i18next';
 
 
 const LoginPage = () => {
   const router = useRouter();
   const [form, setForm] = useState({ email: '', phrase: '' });
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const handleChange = (e: any) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -45,27 +47,27 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-[#121212] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-[#1E1E1E] rounded-lg shadow-lg p-8">
-        <h2 className="text-white text-2xl font-semibold mb-6 text-center">Login</h2>
+      <div className="w-full max-w-md bg-[#1E1E1E] rounded-lg shadow-lg p-6">
+        <h2 className="text-white text-2xl font-semibold mb-6 text-center">{t('login.title')}</h2>
 
         {/* {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>} */}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="text-sm text-gray-300 mb-1 block">Email</label>
+            <label className="text-sm text-gray-300 mb-1 block">{t('login.email')}</label>
             <input
               type="email"
               name='email'
               className="w-full p-3 rounded bg-[#2A2A2A] text-white outline-none focus:ring-2 focus:ring-[#ebb70c]"
               value={form.email}
               onChange={handleChange}
-              placeholder="admin@example.com"
+              placeholder={t("login.placeholder.email")}
               required
             />
           </div>
 
           <div>
-            <label className="text-sm text-gray-300 mb-1 block">Password</label>
+            <label className="text-sm text-gray-300 mb-1 block">{t('login.password')}</label>
             <input
               type="text"
               name='phrase'
@@ -81,10 +83,10 @@ const LoginPage = () => {
             type="submit"
             className="w-full bg-[#ebb70c] hover:scale-105 transition-all duration-300 ease-in-out text-black font-semibold py-3 rounded cursor-pointer"
           >
-            Log In
+            {t('login.button')}
           </button>
 
-          <div className='text-[#fff]'>Don&apos;t have an account? <Link href='./create-wallet' className='text-[#ebb70c] cursor-pointer'>signup</Link></div>
+          <div className='text-[#fff]'>{t('login.signupPrompt')} <Link href='./create-wallet' className='text-[#ebb70c] cursor-pointer'>{t('login.signupLink')}</Link></div>
 
         </form>
       </div>

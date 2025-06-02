@@ -6,7 +6,7 @@ import Send from "./Send";
 import Withdraw from "./Receive";
 import Buy from "./Buy";
 import Swap from "./Swap";
-import { getUserProfile } from '@/lib/auth';
+// import { getUserProfile } from '@/lib/auth';
 import { walletCoins } from "@/components/constants";
 import Link from "next/link";
 import TradingViewTicker from "./TradingViewMarquee";
@@ -79,19 +79,19 @@ const Wallet = () => {
   // }, []);
 
 
-  useEffect(() => {
-    const getUser = async () => {
-      try {
-        const data = await getUserProfile();
-        console.log(data)
-        setUser(data);
-      } catch (err: any) {
-        setError(err.message || 'Something went Wrong')
-      }
-    }
+  // useEffect(() => {
+  //   const getUser = async () => {
+  //     try {
+  //       const data = await getUserProfile();
+  //       console.log(data)
+  //       setUser(data);
+  //     } catch (err: any) {
+  //       setError(err.message || 'Something went Wrong')
+  //     }
+  //   }
 
-    getUser();
-  }, [])
+  //   getUser();
+  // }, [])
 
   const getSymbol = (id: string): string => {
     switch (id) {

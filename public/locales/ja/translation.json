@@ -1,0 +1,14 @@
+{
+  "login": {
+    "title": "ログイン",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "placeholder": {
+      "email": "admin@例.com",
+      "password": "パスワード"
+    },
+    "button": "ログイン",
+    "signupPrompt": "アカウントをお持ちでないですか？",
+    "signupLink": "サインアップ"
+  }
+}

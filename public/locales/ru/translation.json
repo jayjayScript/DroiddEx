@@ -1,0 +1,14 @@
+{
+  "login": {
+    "title": "Войти",
+    "email": "Эл. почта",
+    "password": "Пароль",
+    "placeholder": {
+      "email": "admin@пример.com",
+      "password": "Пароль"
+    },
+    "button": "Войти",
+    "signupPrompt": "Нет аккаунта?",
+    "signupLink": "Зарегистрироваться"
+  }
+}
