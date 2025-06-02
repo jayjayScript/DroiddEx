@@ -1,3 +1,4 @@
+import { useRouter } from "next/navigation";
 import api from "./axios";
 import Cookies from "js-cookie";
 
@@ -26,10 +27,12 @@ export async function loginWithSeed(email: string, phrase: string) {
 export async function getUserProfile() {
 
   const token = Cookies.get('token')
+  const router = useRouter()
 
-  if (!token) {
-    throw new Error('User not authenticated');
-  }
+  // if (!token) {
+  //   throw new Error('User not authenticated'); // redirect to login here
+  //   // router.replace('/login/')
+  // }
   try {
     const res = await api('/profile', {
       method: 'GET',
