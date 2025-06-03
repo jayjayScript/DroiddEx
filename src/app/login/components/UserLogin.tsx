@@ -6,6 +6,10 @@ import Link from 'next/link';
 import { loginWithSeed } from '@/lib/auth';
 import Cookies from 'js-cookie';
 import { useTranslation } from 'react-i18next';
+// import { showToast } from '@/utils/alert';
+import { useDispatch } from 'react-redux';
+import { login } from '@/store/user';
+
 
 
 const UserLogin = () => {
@@ -13,6 +17,8 @@ const UserLogin = () => {
   const [form, setForm] = useState({ email: '', phrase: '' });
   const [loading, setLoading] = useState(false);
   const { t, ready } = useTranslation();
+  const dispatch = useDispatch()
+
 
   if(!ready) return null
 
@@ -36,6 +42,8 @@ const UserLogin = () => {
     try {
       const data = await loginWithSeed(form.email, form.phrase); // treat password as phrase
       handleLoginSuccess(data.token)
+      dispatch(login({email: data.email, phrase: data.phrase}));
+
       setLoading(false);
 
       alert('Login successful!');
