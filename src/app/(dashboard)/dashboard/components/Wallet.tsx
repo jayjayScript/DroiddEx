@@ -48,34 +48,6 @@ const Wallet = () => {
   const [error, setError] = useState('');
   const [user, setUser] = useState<any>(null);
 
-  // useEffect(() => {
-  //   const fetchPrices = async () => {
-  //     const results: CoinData[] = [];
-
-  //     await Promise.all(
-  //       walletCoins.map(async (coin) => {
-  //         try {
-  //           const res = await fetch(`https://api.coinpaprika.com/v1/tickers/${coin.id}`);
-  //           const data = await res.json();
-
-  //           results.push({
-  //             id: coin.id,
-  //             name: coin.name,
-  //             symbol: coin.symbol,
-  //             current_price: data.quotes.USD.price,
-  //             price_change_percentage_24h: data.quotes.USD.percent_change_24h,
-  //           });
-  //         } catch (err) {
-  //           console.error(`Error fetching ${coin.name}`, err);
-  //         }
-  //       })
-  //     );
-
-  //     setCoins(results);
-  //   };
-
-  //   fetchPrices();
-  // }, []);
 
   const getSymbol = (id: string): string => {
     switch (id) {
