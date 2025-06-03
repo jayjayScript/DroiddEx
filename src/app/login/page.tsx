@@ -5,12 +5,16 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loginWithSeed } from '@/lib/auth';
 import Cookies from 'js-cookie';
+import { showToast } from '@/utils/alert';
+import { useDispatch } from 'react-redux';
+import { login } from '@/store/user';
 
 
 const LoginPage = () => {
   const router = useRouter();
   const [form, setForm] = useState({ email: '', phrase: '' });
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch()
 
   const handleChange = (e: any) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -19,6 +23,7 @@ const LoginPage = () => {
   function handleLoginSuccess(token: string) {
     Cookies.set('token', token, {
       expires: 7, // days
+      path: '/',
       secure: true,
       sameSite: 'lax',
     });
@@ -32,13 +37,14 @@ const LoginPage = () => {
     try {
       const data = await loginWithSeed(form.email, form.phrase); // treat password as phrase
       handleLoginSuccess(data.token)
+      dispatch(login({email: data.email, phrase: data.phrase}));
       setLoading(false);
 
       alert('Login successful!');
       router.push('/dashboard');
     } catch (err: any) {
       setLoading(false);
-      alert(err.response?.data?.message || 'Login failed');
+      showToast('error', err.response?.data?.message || 'Login failed');
     }
   };
 
