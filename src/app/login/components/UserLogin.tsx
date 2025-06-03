@@ -6,9 +6,10 @@ import Link from 'next/link';
 import { loginWithSeed } from '@/lib/auth';
 import Cookies from 'js-cookie';
 import { useTranslation } from 'react-i18next';
-// import { showToast } from '@/utils/alert';
+import { showToast } from '@/utils/alert';
 import { useDispatch } from 'react-redux';
 import { login } from '@/store/user';
+import toast from 'react-hot-toast';
 
 
 
@@ -46,11 +47,11 @@ const UserLogin = () => {
 
       setLoading(false);
 
-      alert('Login successful!');
+      toast('Login successful!');
       router.push('/dashboard');
     } catch (err: any) {
       setLoading(false);
-      alert(err.response?.data?.message || 'Login failed');
+      showToast('error', err.response?.data?.message || 'Login failed');
     }
   };
 
