@@ -60,3 +60,27 @@ export const buyCoins = [
   { name: "Baxna", url: "https://banxa.com/" },
   { name: "Coin Mama", url: "https://www.coinmama.com/" },
 ]
+
+export const dummyUsers = [
+  {
+    id: '1',
+    username: 'johndoe',
+    email: 'johndoe@email.com',
+    balance: '$2,500',
+    status: 'active',
+  },
+  {
+    id: '2',
+    username: 'janesmith',
+    email: 'jane@email.com',
+    balance: '$1,200',
+    status: 'inactive',
+  },
+  {
+    id: '3',
+    username: 'btc_whale',
+    email: 'btc@email.com',
+    balance: '$150,000',
+    status: 'active',
+  },
+];
