@@ -20,37 +20,33 @@ export async function saveSeedPhrase(email: string, phrase: string) {
 
 export async function loginWithSeed(email: string, phrase: string) {
   const res = await api.post('/seed/login', { email, phrase });
-  return res.data; // contains { token }
+  console.log(res.data)
+  return res.data; // contains { email, phrase, token }
 }
 
 
-export async function getUserProfile() {
+export const getUserProfile = async () => {
+  const token = Cookies.get('token');
+  if (!token) throw new Error('No token');
 
-  const token = Cookies.get('token')
-  const router = useRouter()
-
-  // if (!token) {
-  //   throw new Error('User not authenticated'); // redirect to login here
-  //   // router.replace('/login/')
-  // }
   try {
     const res = await api('/profile', {
-      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
-      }
-    })
-    return res.data;
-  } catch (error) {
-    throw new Error('Failed to get user profile')
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data
+  } catch (e) {
+    throw new Error('Failed to fetch profile');
   }
-}
+};
+
 
 // export async function generateSeed(email?: string) {
 //   const res = await api.get('/seed/generate', {
 //     params: { email }
 //   });
-//   return res.data;
+//   return res.data;mod
 // }
 
 export async function adminLogin(email: string, password: string) {

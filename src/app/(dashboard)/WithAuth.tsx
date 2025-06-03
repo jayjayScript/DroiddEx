@@ -8,40 +8,33 @@ import Cookies from "js-cookie";
 
 const WithAuth = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
-  const { value } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch<AppDispatch>();
+  const { email, phrase } = useSelector((state: RootState) => state.user.value);
   const [checked, setChecked] = useState(false);
 
-  const token = Cookies.get('token')
-  if (!token) {
-    router.replace('/login/')
-  }
-
   useEffect(() => {
-    let isMounted = true;
+    const token = Cookies.get('token');
+    if (!token) {
+      router.replace('/login/');
+      return;
+    }
 
     const checkAuth = async () => {
-      if (!value?.email || !value?.phrase) {
-        try {
-          const data = await getUserProfile();
-          if (isMounted) {
-            dispatch(login(data));
-            setChecked(true);
-          }
-        } catch (error) {
-          if (isMounted) router.replace('/login/');
+      try {
+        // Only fetch if missing state
+        if (!email || !phrase) {
+          const data = await getUserProfile(); // should handle token
+          dispatch(login({ email: data.email, phrase: data.phrase }));
         }
-      } else {
         setChecked(true);
+      } catch (error) {
+        Cookies.remove('token'); // clear invalid token
+        router.replace('/login/');
       }
     };
 
     checkAuth();
-
-    return () => {
-      isMounted = false; // prevent state updates after unmount
-    };
-  }, [value, dispatch, router]);
+  }, [dispatch, email, phrase, router]);
 
   if (!checked) return null;
 
@@ -49,4 +42,3 @@ const WithAuth = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default WithAuth;
-
