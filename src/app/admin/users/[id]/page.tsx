@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { dummyUsers } from "@/components/constants";
 
 interface Transaction {
   id: string;
@@ -12,24 +13,12 @@ interface Transaction {
 
 interface User {
   id: string;
-  name: string;
+  username: string;
   email: string;
-  balance: number;
+  balance: string;
   status: "active" | "suspended" | "banned";
   recentTransactions: Transaction[];
 }
-
-// const dummyUserData: User = {
-//   id: "u123",
-//   name: "John Doe",
-//   email: "john@example.com",
-//   balance: 1200,
-//   status: "active",
-//   recentTransactions: [
-//     { id: "tx01", amount: "$200", type: "Deposit", date: "2025-05-10" },
-//     { id: "tx02", amount: "$100", type: "Withdrawal", date: "2025-05-12" },
-//   ],
-// };
 
 export default function UserDetailPage() {
   const { id } = useParams();
@@ -39,24 +28,25 @@ export default function UserDetailPage() {
   const [adjustmentReason, setAdjustmentReason] = useState("");
 
   useEffect(() => {
-    async function fetchUser() {
-      try {
-        const res = await fetch(`admin/users/${id}`);
-        if (!res.ok) throw new Error("User not found");
-        const data = await res.json();
-        setUser(data);
-      } catch (err) {
-        setUser(null);
-      }
+    // Find the user by id from dummyUsers
+    const foundUser = dummyUsers.find((u) => u.id === id);
+    if (foundUser) {
+      setUser({
+        ...foundUser,
+        balance: typeof foundUser.balance === "string" ? foundUser.balance : String(foundUser.balance),
+        status: foundUser.status as "active" | "suspended" | "banned",
+        recentTransactions: (foundUser as any).recentTransactions ?? [],
+      });
+    } else {
+      setUser(null);
     }
-    fetchUser();
   }, [id]);
 
-  if (!user) return <div className="text-white p-6">Loading...</div>;
+  if (!user) return <div className="text-white p-6">User not found</div>;
 
   return (
     <div className="p-6 text-white">
-      <h1 className="text-2xl font-bold mb-4">User Detail: {user.name}</h1>
+      <h1 className="text-2xl font-bold mb-4">User Detail: {user.username}</h1>
 
       <div className="bg-[#2A2A2A] p-4 rounded mb-6">
         <p>
@@ -80,12 +70,13 @@ export default function UserDetailPage() {
             const amount = parseFloat(adjustAmount);
             if (isNaN(amount)) return alert("Enter a valid amount");
 
+            const currentBalance = parseFloat(user.balance);
             const newBalance =
               adjustType === "Credit"
-                ? user.balance + amount
-                : user.balance - amount;
+                ? currentBalance + amount
+                : currentBalance - amount;
 
-            setUser({ ...user, balance: newBalance });
+            setUser({ ...user, balance: newBalance.toString() });
             setAdjustAmount("");
             setAdjustmentReason("");
             alert(
@@ -134,7 +125,7 @@ export default function UserDetailPage() {
       <div>
         <h2 className="text-lg font-semibold mb-2">Recent Transactions</h2>
         <ul className="space-y-2">
-          {user.recentTransactions.map((tx) => (
+          {user.recentTransactions?.map((tx) => (
             <li key={tx.id} className="bg-[#1F1F1F] p-3 rounded">
               <p>
                 <strong>{tx.type}</strong> - {tx.amount}

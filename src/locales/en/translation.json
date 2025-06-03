@@ -1,0 +1,14 @@
+{
+  "login": {
+    "title": "Login",
+    "email": "Email",
+    "password": "Password",
+    "placeholder": {
+      "email": "admin@example.com",
+      "password": "Password"
+    },
+    "button": "Log In",
+    "signupPrompt": "Don't have an account?",
+    "signupLink": "Sign up"
+  }
+}

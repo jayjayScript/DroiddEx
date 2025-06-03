@@ -1,0 +1,14 @@
+{
+  "login": {
+    "title": "تسجيل الدخول",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "placeholder": {
+      "email": "admin@مثال.com",
+      "password": "كلمة المرور"
+    },
+    "button": "تسجيل الدخول",
+    "signupPrompt": "ليس لديك حساب؟",
+    "signupLink": "سجّل"
+  }
+}

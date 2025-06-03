@@ -1,0 +1,14 @@
+{
+  "login": {
+    "title": "लॉगिन करें",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "placeholder": {
+      "email": "admin@उदाहरण.com",
+      "password": "पासवर्ड"
+    },
+    "button": "लॉगिन",
+    "signupPrompt": "क्या आपके पास खाता नहीं है?",
+    "signupLink": "साइन अप करें"
+  }
+}

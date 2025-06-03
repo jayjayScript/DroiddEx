@@ -1,0 +1,14 @@
+{
+  "login": {
+    "title": "登录",
+    "email": "电子邮件",
+    "password": "密码",
+    "placeholder": {
+      "email": "admin@例子.com",
+      "password": "密码"
+    },
+    "button": "登录",
+    "signupPrompt": "没有账户？",
+    "signupLink": "注册"
+  }
+}

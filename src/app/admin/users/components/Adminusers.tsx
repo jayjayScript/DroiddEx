@@ -4,30 +4,8 @@
 
 import Link from 'next/link';
 import React, { useState } from 'react';
+import { dummyUsers } from '@/components/constants';
 
-const dummyUsers = [
-  {
-    id: '1',
-    username: 'johndoe',
-    email: 'johndoe@email.com',
-    balance: '$2,500',
-    status: 'active',
-  },
-  {
-    id: '2',
-    username: 'janesmith',
-    email: 'jane@email.com',
-    balance: '$1,200',
-    status: 'inactive',
-  },
-  {
-    id: '3',
-    username: 'btc_whale',
-    email: 'btc@email.com',
-    balance: '$150,000',
-    status: 'active',
-  },
-];
 
 const AdminUsers = () => {
   const [search, setSearch] = useState('');
