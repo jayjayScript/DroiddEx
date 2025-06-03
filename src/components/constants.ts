@@ -7,8 +7,8 @@ export const navLinks = [
     },
     {
         name: "Browser",
-        url: "https://www.blockchain.com/explorer",
-        icon: "fluent:globe-16-filled",
+        url: "https://coinmarketcap.com/",
+        icon: "simple-icons:coinmarketcap",
     },
     {
         name: "FAQ",
@@ -47,3 +47,16 @@ export const walletCoins = [
   { id: "trx-tron", symbol: "TRX", name: "Tron" },
   { id: "xrp-xrp", symbol: "XRP", name: "Ripple" }
 ];
+
+
+export const buyCoins = [
+  { name: "Exchange Mercuryo", url: "https://exchange.mercuryo.io/" },
+  { name: "Paybis", url: "https://paybis.com/" },
+  { name: "Moonpay", url: "https://www.moonpay.com/buy/btc" },
+  { name: "Ramp", url: "https://ramp.network/buy" },
+  { name: "Buy Bitcoin", url: "https://buy.bitcoin.com/" },
+  { name: "Global Transak", url: "https://global.transak.com/" },
+  { name: "Alchemy Pay", url: "https://alchemypay.org/" },
+  { name: "Baxna", url: "https://banxa.com/" },
+  { name: "Coin Mama", url: "https://www.coinmama.com/" },
+]

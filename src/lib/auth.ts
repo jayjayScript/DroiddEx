@@ -52,3 +52,8 @@ export async function getUserProfile() {
 //   });
 //   return res.data;
 // }
+
+export async function adminLogin(email: string, password: string) {
+  const res = await api.post('/admin/auth/login', { email, password });
+  return res.data;
+}

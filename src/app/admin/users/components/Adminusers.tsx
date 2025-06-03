@@ -2,6 +2,7 @@
 
 'use client';
 
+import Link from 'next/link';
 import React, { useState } from 'react';
 
 const dummyUsers = [
@@ -70,19 +71,20 @@ const AdminUsers = () => {
                 <td className="p-3">{user.balance}</td>
                 <td className="p-3">
                   <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      user.status === 'active'
+                    className={`px-2 py-1 rounded text-xs ${user.status === 'active'
                         ? 'bg-green-600'
                         : 'bg-red-600'
-                    }`}
+                      }`}
                   >
                     {user.status}
                   </span>
                 </td>
                 <td className="p-3">
-                  <button className="text-blue-400 hover:underline text-xs mr-2">
-                    View
-                  </button>
+                  <Link href={`/admin/users/${user.id}`}>
+                    <button className="text-blue-400 hover:underline text-xs mr-2">
+                      View
+                    </button>
+                  </Link>
                   <button className="text-yellow-400 hover:underline text-xs">
                     Update Balance
                   </button>
