@@ -7,18 +7,27 @@ import Withdraw from "./Receive";
 import Buy from "./Buy";
 import Swap from "./Swap";
 import { walletCoins } from "@/components/constants";
-import Link from "next/link";
-import TradingViewTicker from "./TradingViewMarquee";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/user";
 
-const API_URL =
-  "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dogecoin,tron,binancecoin,bitcoin,ripple,solana&order=market_cap_desc&per_page=100&page=1&sparkline=false";
+import Link from "next/link";
+import SellPage from "./Sell";
+import { getCoins } from '@/lib/getCoins';
+import toast from "react-hot-toast";
+
+// const API_URL =
+//   "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dogecoin,tron,binancecoin,bitcoin,ripple,solana&order=market_cap_desc&per_page=100&page=1&sparkline=false";
 
 interface Coin {
   id: string;
-  symbol: string;
   name: string;
-  current_price: number;
-  price_change_percentage_24h: number;
+  symbol: string;
+  quotes: {
+    USD: {
+      price: number;
+      percent_change_24h: number;
+    };
+  };
 }
 
 const to8BitBinary = (num: number) => {
@@ -28,50 +37,64 @@ const to8BitBinary = (num: number) => {
   return num.toString(2).padStart(27, "0");
 };
 
-type CoinData = {
-  id: string;
-  name: string;
-  symbol: string;
-  current_price: number;
-  price_change_percentage_24h: number;
-};
+// type CoinData = {
+//   id: string;
+//   name: string;
+//   symbol: string;
+//   current_price: number;
+//   price_change_percentage_24h: number;
+// };
 
-function getSymbol(id: string) {
-  return `cryptocurrency:${id.split('-')[0]}`;
-}
+// function getSymbol(id: string) {
+//   return `cryptocurrency:${id.split('-')[0]}`;
+// }
 
 const Wallet = () => {
   const [coins, setCoins] = useState<Coin[]>([]);
   const [activeBot, setActiveBot] = useState(false);
   const [activePage, setActivePage] = useState<string | null>(null);
   const [binaryString, setBinaryString] = useState(() => to8BitBinary(0));
-  const [error, setError] = useState('');
-  const [user, setUser] = useState<any>(null);
+  const { email, phrase } = useSelector((state: RootState) => state.user.value);
+  const [showFullPhrase, setShowFullPhrase] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  const includedSymbols = ["ETH", "BTC", "SOL", "BNB", "XRP", "LTC", "XLM", "TRX", "DOGE", "PEPE"];  
 
-  const getSymbol = (id: string): string => {
-    switch (id) {
-      case "dogecoin":
-        return "cryptocurrency-color:doge";
-      case "tron":
-        return "cryptocurrency-color:trx";
-      case "binancecoin":
-        return "cryptocurrency-color:bnb";
-      case "bitcoin":
-        return "cryptocurrency-color:btc";
-      case "ripple":
-        return "cryptocurrency-color:xrp";
-      case "solana":
-        return "token-branded:solana";
-      default:
-        return "/icons/default.png";
-    }
+  const handleCopyPhrase = () => {
+    navigator.clipboard.writeText(phrase);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
+
+
+  const getSymbol = (id: string) => {
+    // Quick fallback logic, you may map icons more accurately
+    return `cryptocurrency:color-${id.split("-")[0]}`;
+  };
+
 
   const handleActiveBot = () => {
     setActiveBot(!activeBot);
   };
 
+  useEffect(() => {
+    const fetchCoins = async () => {
+      try {
+        const res = await fetch("https://api.coinpaprika.com/v1/tickers");
+        const data = await res.json();
+        const filtered = data.filter((coin: Coin) =>
+          includedSymbols.includes(coin.symbol)
+        );
+        setCoins(filtered); // get top 12 coins
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCoins();
+  }, []);
 
   useEffect(() => {
     if (!activeBot) return;
@@ -85,9 +108,6 @@ const Wallet = () => {
   }, [activeBot]);
 
 
-  if (!user || !coins) {
-    return <p>Loading...</p>; // or null, or a spinner component
-  }
   return (
     <div className="min-h-screen md:max-w-[80%] mx-auto text-white p-4 pb-20">
       <header className="flex justify-between items-center mb-4">
@@ -107,9 +127,25 @@ const Wallet = () => {
         <div className="text-sm">$OFT</div>
       </header>
 
-      <div>
-        <h2>Welcome!, {user.email}</h2>
-        <p>{user.phrase}</p>
+      <div className="my-2">
+        <h2>Welcome! {email}</h2>
+        <div className="flex flex-inline items-center justify-between gap-2 border border-[#313130] px-1 py-2 rounded-lg mt-2">
+          <div className={`overflow-x-auto ${showFullPhrase ? "w-auto" : "w-[140px]"}`}>
+            <p className="text-[12px] whitespace-nowrap p-1">
+              {phrase}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Icon onClick={handleCopyPhrase} icon="solar:copy-bold-duotone" width="20" height="20" />
+            {/* <button
+            onClick={() => setShowFullPhrase((v) => !v)}
+            className="text-xs underline"
+          >
+            {showFullPhrase ? "Hide" : "Show"}
+          </button> */}
+            <Icon onClick={() => setShowFullPhrase((v) => !v)} icon="bx:show-alt" width="20" height="20" />
+          </div>
+        </div>
       </div>
 
       <div className="text-3xl font-bold mb-2">$32.50</div>
@@ -144,11 +180,11 @@ const Wallet = () => {
 
       <div className="flex flex-col mb-4 bg-[#0000003C] p-2 px-4 rounded-lg overflow-x-hidden">
         <div className="flex items-center">
-          <div className={`bg-[#2A2A2AE6] flex items-center p-4 rounded-lg border-1 ${activeBot ? "border-green-500" : "border-[#eb0c0c]"}`}>
+          <div className={`bg-[#2A2A2AE6] flex items-center p-3 rounded-lg border-1 ${activeBot ? "border-green-500" : "border-[#eb0c0c]"}`}>
             <Icon
               icon="fluent:bot-28-filled"
-              width="54"
-              height="54"
+              width="50"
+              height="50"
               className={`text-[#eb0c0c] ${activeBot ? "text-green-500" : ""}`}
             />
             <Icon
@@ -162,7 +198,7 @@ const Wallet = () => {
           </div>
           <div
             className={`${activeBot ? "text-green-500" : "text-[#eb0c0c]"
-              } text-[10px] font-bold`}
+              } text-[11.4px] font-bold`}
           >
             {binaryString} {!activeBot}
           </div>
@@ -176,9 +212,6 @@ const Wallet = () => {
         </span> */}
         <small className="font-medium text-center text-[10px] my-1 ms-[2.6rem]">Trades are encrypted in binary codes ⚠</small>
       </div>
-
-      <TradingViewTicker />
-
       {/* assets */}
 
       {activePage === null && (
@@ -190,61 +223,53 @@ const Wallet = () => {
           </div>
 
           <div className="space-y-4">
-            {coins.map((coin: Coin) => (
-              <Link
-                href={`/coins/${coin.id}`}
-                key={coin.id}
-                className="flex justify-between bg-[#1A1A1A] p-2 mb-[6px] rounded-lg"
-              >
-                <div className="space-y-4">
-                  {coins.map((coin) => (
-                    <Link
-                      href={`/coins/${coin.id}`}
-                      key={coin.id}
-                      className="flex justify-between bg-[#1A1A1A] p-2 mb-[6px] rounded-lg"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Icon icon={getSymbol(coin.id)} width="40" height="40" />
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-1">
-                            <div className="text-[18px] font-normal">
-                              {coin.symbol.toUpperCase()}
-                            </div>
-                            <div className="text-[12px] text-gray-400 bg-[#2A2A2A] px-1 rounded-md">
-                              {coin.name}
-                            </div>
-                          </div>
+      {loading && <p>Loading...</p>}
+      {!loading &&
+        coins.map((coin) => (
+          <Link
+            href={`/coins/${coin.id}`}
+            key={coin.id}
+            className="flex justify-between bg-[#1A1A1A] p-2 mb-[6px] rounded-lg"
+          >
+            <div className="flex items-center gap-2">
+              <Icon icon={getSymbol(coin.id)} width="40" height="40" />
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1">
+                  <div className="text-[18px] font-normal">
+                    {coin.symbol.toUpperCase()}
+                  </div>
+                  <div className="text-[12px] text-gray-400 bg-[#2A2A2A] px-1 rounded-md">
+                    {coin.name}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="text-[12px] text-gray-400">
+                    ${coin.quotes.USD.price.toFixed(2)}
+                  </div>
+                  <div
+                    className={
+                      coin.quotes.USD.percent_change_24h >= 0
+                        ? "text-green-400 text-[12px]"
+                        : "text-red-400 text-[12px]"
+                    }
+                  >
+                    {coin.quotes.USD.percent_change_24h.toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                          <div className="flex items-center gap-1">
-                            <div className="text-[12px] text-gray-400">
-                              ${coin.current_price.toFixed(2)}
-                            </div>
-                            <div
-                              className={
-                                coin.price_change_percentage_24h >= 0
-                                  ? "text-green-400 text-[12px]"
-                                  : "text-red-400 text-[12px]"
-                              }
-                            >
-                              {coin.price_change_percentage_24h.toFixed(2)}%
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right text-sm flex flex-col gap-1">
-                        <span className="font-semibold text-[13px]">45.3445</span>
-                        <span className="text-[12px] text-gray-400">$10.30</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                <div className="text-right text-sm flex flex-col gap-1">
-                  <span className="font-semibold text-[13px]">45.3445</span>
-                  <span className="text-[12px] text-gray-400">$10.30</span>
-                </div>
-              </Link>
-            ))}
-          </div>
+            {/* Hardcoded right-hand info — replace with real portfolio logic later */}
+            <div className="text-right text-sm flex flex-col gap-1">
+              <span className="font-semibold text-[13px]">0.3103</span>
+              <span className="text-[12px] text-gray-400">
+                ${(coin.quotes.USD.price * 0.3103).toFixed(2)}
+              </span>
+            </div>
+          </Link>
+        ))}
+    </div>
+
         </div>
       )}
 
@@ -269,6 +294,12 @@ const Wallet = () => {
       {activePage === "buy" && (
         <div>
           <Buy />
+        </div>
+      )}
+
+      {activePage === "sell" && (
+        <div>
+          <SellPage />
         </div>
       )}
     </div>

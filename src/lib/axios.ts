@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:4000', // your NestJS backend
+  baseURL: 'https://droid4-backend.onrender.com', // your NestJS backend
   headers: {
     'Content-Type': 'application/json',
   },

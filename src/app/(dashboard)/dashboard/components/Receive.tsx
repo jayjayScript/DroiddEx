@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { ChevronDown, Check } from "lucide-react";
+import toast from "react-hot-toast";
 
 const coinOptions = [
   { id: "btc", name: "Bitcoin", networks: ["Bitcoin"] },
@@ -63,11 +64,11 @@ const Withdraw = () => {
 
   const handleWithdraw = () => {
     if (!amount || isNaN(+amount) || +amount <= 0) {
-      alert("Enter a valid amount");
+      toast("Enter a valid amount");
       return;
     }
 
-    alert(`Withdrawing ${amount} ${selectedCoin.name} via ${selectedNetwork}`);
+    toast(`Withdrawing ${amount} ${selectedCoin.name} via ${selectedNetwork}`);
   };
 
   return (

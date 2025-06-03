@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
+import toast from "react-hot-toast";
 
 const coins = [
   { id: "bitcoin", name: "Bitcoin", symbol: "BTC", icon: "/icons/btc.png" },
@@ -16,14 +17,22 @@ const walletAddress = "0x92e3...f91a7d";
 const Send = () => {
   const [selected, setSelected] = useState(coins[0]);
   const [amount, setAmount] = useState("");
+  const [fileName, setFileName] = useState('');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFileName(file.name);
+    }
+  };
 
   const handleSend = () => {
     if (amount) {
-      alert(`You marked $${amount} as sent.`);
+      toast(`You marked $${amount} as sent.`);
       // You can also trigger API calls or state updates here
       setAmount("");
     } else {
-      alert("Please enter an amount.");
+      toast("Please enter an amount.");
     }
   };
 
@@ -82,6 +91,32 @@ const Send = () => {
           </button>
         </div>
       </div>
+
+      <div className="mb-5">
+      <label htmlFor="screenshot" className="block text-sm text-gray-400 mb-2">
+        Upload Transaction Screenshot
+      </label>
+
+      <div className="relative flex items-center justify-center bg-[#2a2a2a] border border-[#444] rounded-lg p-4 hover:bg-[#333] transition cursor-pointer">
+        <input
+          type="file"
+          id="screenshot"
+          name="screenshot"
+          accept="image/*"
+          className="absolute inset-0 opacity-0 cursor-pointer"
+          onChange={handleFileChange}
+        />
+
+        <div className="flex items-center gap-3 text-white pointer-events-none">
+          <Icon icon="ic:baseline-photo" className="text-[#ebb70c]" width="54" height="54" />
+          <span className="block text-sm text-gray-400 mb-2">{fileName || 'Click to select a screenshot (PNG, JPG, JPEG)'}</span>
+        </div>
+      </div>
+
+      {fileName && (
+        <p className="text-xs text-green-400 mt-2">✔ {fileName} selected</p>
+      )}
+    </div>
 
       <button className="w-full bg-[#ebb70c] hover:bg-[#ffcc3f] text-black py-3 rounded-lg font-semibold transition mt-6">
         Continue

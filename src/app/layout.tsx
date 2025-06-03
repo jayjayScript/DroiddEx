@@ -6,6 +6,7 @@ import userStore, { UserProvider } from "@/store/user";
 import ClientI18nProvider from "@/components/ClientI18nProvider";
 import I18nProvider from "@/components/ClientI18nProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import Waker from "@/Waker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +36,9 @@ export default function RootLayout({
         <UserProvider>
           <I18nProvider>
             <LanguageSwitcher />
-            {children}
+            <Waker>
+              {children}
+            </Waker>
           </I18nProvider>
           <Toaster position="top-center" />
         </UserProvider>

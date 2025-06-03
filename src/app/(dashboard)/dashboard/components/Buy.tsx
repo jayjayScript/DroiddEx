@@ -31,7 +31,7 @@ const Buy = () => {
   };
 
   return (
-    <div className="text-white relative">
+    <div className="text-white relative mt-5">
       <h2 className="text-xl font-bold mb-4">Buy Crypto</h2>
 
       <div className="space-y-4">

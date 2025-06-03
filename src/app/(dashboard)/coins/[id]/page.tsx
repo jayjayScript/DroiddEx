@@ -1,97 +1,49 @@
-// src/app/coins/[coinId]/page.tsx
-import { getCoinData } from "@/lib/getCoinData";
-import Image from "next/image";
+'use client';
 
-// interface CoinPageProps {
-//   params: {
-//     coinId: string;
-//   };
-// }
 
-// Your symbol utility (if not already shared)
-const getSymbol = (id: string): string => {
-  switch (id) {
-    case "dogecoin":
-      return "cryptocurrency-color:doge";
-    case "tron":
-      return "cryptocurrency-color:trx";
-    case "binancecoin":
-      return "cryptocurrency-color:bnb";
-    case "bitcoin":
-      return "cryptocurrency-color:btc";
-    case "ripple":
-      return "cryptocurrency-color:xrp";
-    case "solana":
-      return "token-branded:solana";
-    default:
-      return "/icons/default.png";
-  }
-};
+import React from 'react';
+import { getCoins } from '@/lib/getCoins';
+import { walletAddresses } from '@/lib/wallet';
+import Link from 'next/link';
 
-export default async function CoinPage({ params }: { params: { id: string } }) {
-  const coinId = params.id;
-  const data = await getCoinData(coinId);
-  const iconClass = getSymbol(coinId);
+export default function CoinPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params); // ✅ Properly unwrap the promise
+
+  const [coin, setCoin] = React.useState<any>(null);
+  
+  React.useEffect(() => {
+    const fetch = async () => {
+      const coins = await getCoins();
+      const match = coins.find((c: any) => c.id === id);
+      setCoin(match);
+    };
+    fetch();
+  }, [id]);
+
+  if (!coin) return <div className="text-white p-6">Loading...</div>;
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-10">
-      {/* Title & Icon */}
-      <div className="flex items-center gap-4 mb-8">
-        {iconClass.startsWith("/") ? (
-          <Image
-            src={iconClass}
-            alt={`${coinId} icon`}
-            width={40}
-            height={40}
-            className="rounded"
-          />
-        ) : (
-          <span className={`iconify text-4xl`} data-icon={iconClass}></span>
-        )}
-        <h1 className="text-3xl font-bold capitalize">{coinId}</h1>
+    <div className="p-6 text-white max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">{coin.name} ({coin.symbol})</h1>
+      <p>Price: ${coin.quotes.USD.price.toFixed(2)}</p>
+      <p>Market Cap: ${coin.quotes.USD.market_cap.toLocaleString()}</p>
+      <p>24h %: {coin.quotes.USD.percent_change_24h.toFixed(2)}%</p>
+
+      <div className="mt-6 flex gap-4">
+        <Link href="">
+          <button
+          className="px-4 py-2 bg-green-600 rounded hover:bg-green-700"
+        >
+          Deposit
+        </button>
+        </Link>
+        <button
+          className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+        >
+          Withdraw
+        </button>
       </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-900 shadow-md rounded-xl p-5">
-          <p className="text-gray-500 dark:text-gray-400">Current Price</p>
-          <p className="text-xl font-semibold">${data.currentPrice.toLocaleString()}</p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 shadow-md rounded-xl p-5">
-          <p className="text-gray-500 dark:text-gray-400">24h Change</p>
-          <p
-            className={`text-xl font-semibold ${
-              data.priceChange >= 0 ? "text-green-500" : "text-red-500"
-            }`}
-          >
-            {data.priceChange.toFixed(2)}%
-          </p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 shadow-md rounded-xl p-5">
-          <p className="text-gray-500 dark:text-gray-400">24h High</p>
-          <p className="text-xl font-semibold">${data.high24h.toLocaleString()}</p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 shadow-md rounded-xl p-5">
-          <p className="text-gray-500 dark:text-gray-400">24h Low</p>
-          <p className="text-xl font-semibold">${data.low24h.toLocaleString()}</p>
-        </div>
-      </div>
-
-      {/* Optional Volume Info */}
-      <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-900 shadow-md rounded-xl p-5">
-          <p className="text-gray-500 dark:text-gray-400">Volume (BTC)</p>
-          <p className="text-xl font-semibold">{data.volumeBTC.toLocaleString()}</p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 shadow-md rounded-xl p-5">
-          <p className="text-gray-500 dark:text-gray-400">Volume (USDT)</p>
-          <p className="text-xl font-semibold">${data.volumeUSDT.toLocaleString()}</p>
-        </div>
-      </div>
-    </main>
+      
+    </div>
   );
 }
