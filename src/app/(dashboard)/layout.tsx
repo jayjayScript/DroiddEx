@@ -5,6 +5,7 @@ import React from "react";
 import SideNav from "@/components/Nav/Sidenav";
 import Footer from "@/components/Footer";
 import WithAuth from "./WithAuth";
+import ClientI18nProvider from "@/components/ClientI18nProvider";
 
 const inter = Inter({ subsets: ["latin"], weight: "400" });
 
@@ -18,7 +19,9 @@ export default function RootLayout({
       <SideNav />
       <main className="flex-1 ml-0 md:ml-[220px]">
         <WithAuth>
-          {children}
+          <ClientI18nProvider>
+            {children}
+          </ClientI18nProvider>
         </WithAuth>
         <Footer />
       </main>

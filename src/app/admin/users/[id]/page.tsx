@@ -19,17 +19,17 @@ interface User {
   recentTransactions: Transaction[];
 }
 
-const dummyUserData: User = {
-  id: "u123",
-  name: "John Doe",
-  email: "john@example.com",
-  balance: 1200,
-  status: "active",
-  recentTransactions: [
-    { id: "tx01", amount: "$200", type: "Deposit", date: "2025-05-10" },
-    { id: "tx02", amount: "$100", type: "Withdrawal", date: "2025-05-12" },
-  ],
-};
+// const dummyUserData: User = {
+//   id: "u123",
+//   name: "John Doe",
+//   email: "john@example.com",
+//   balance: 1200,
+//   status: "active",
+//   recentTransactions: [
+//     { id: "tx01", amount: "$200", type: "Deposit", date: "2025-05-10" },
+//     { id: "tx02", amount: "$100", type: "Withdrawal", date: "2025-05-12" },
+//   ],
+// };
 
 export default function UserDetailPage() {
   const { id } = useParams();
@@ -39,8 +39,17 @@ export default function UserDetailPage() {
   const [adjustmentReason, setAdjustmentReason] = useState("");
 
   useEffect(() => {
-    // Simulate fetching from DB
-    setUser({ ...dummyUserData, id: id as string });
+    async function fetchUser() {
+      try {
+        const res = await fetch(`admin/users/${id}`);
+        if (!res.ok) throw new Error("User not found");
+        const data = await res.json();
+        setUser(data);
+      } catch (err) {
+        setUser(null);
+      }
+    }
+    fetchUser();
   }, [id]);
 
   if (!user) return <div className="text-white p-6">Loading...</div>;

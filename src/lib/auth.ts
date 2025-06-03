@@ -48,3 +48,8 @@ export const getUserProfile = async () => {
 //   });
 //   return res.data;mod
 // }
+
+export async function adminLogin(email: string, password: string) {
+  const res = await api.post('/admin/auth/login', { email, password });
+  return res.data;
+}

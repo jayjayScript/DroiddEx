@@ -1,6 +1,8 @@
 "use client";
 import React, { useState } from "react";
 import { Icon } from "@iconify/react";
+import { buyCoins } from "@/components/constants";
+import Link from "next/link";
 
 const Buy = () => {
   const [coin, setCoin] = useState("Bitcoin");
@@ -16,12 +18,12 @@ const Buy = () => {
 
   const coinList = Object.keys(walletAddresses);
 
-  const purchaseLinks = [
-    { name: "Binance", url: "https://www.binance.com/" },
-    { name: "Coinbase", url: "https://www.coinbase.com/" },
-    { name: "Kraken", url: "https://www.kraken.com/" },
-    { name: "KuCoin", url: "https://www.kucoin.com/" },
-  ];
+  // const purchaseLinks = [
+  //   { name: "Binance", url: "https://www.binance.com/" },
+  //   { name: "Coinbase", url: "https://www.coinbase.com/" },
+  //   { name: "Kraken", url: "https://www.kraken.com/" },
+  //   { name: "KuCoin", url: "https://www.kucoin.com/" },
+  // ];
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(walletAddresses[coin]);
@@ -90,10 +92,10 @@ const Buy = () => {
 
         {/* Purchase Links */}
         <div className="mt-6">
-          <h3 className="text-sm mb-2">Buy from:</h3>
+          <h3 className="text-sm font-bold text-[#fff] mb-2">Buy from:</h3>
           <div className="grid grid-cols-2 gap-4">
-            {purchaseLinks.map((site) => (
-              <a
+            {buyCoins.map((site) => (
+              <Link
                 key={site.name}
                 href={site.url}
                 target="_blank"
@@ -101,7 +103,7 @@ const Buy = () => {
                 className="bg-[#2A2A2A] hover:bg-[#333] text-center p-3 rounded-lg text-sm"
               >
                 {site.name}
-              </a>
+              </Link>
             ))}
           </div>
         </div>

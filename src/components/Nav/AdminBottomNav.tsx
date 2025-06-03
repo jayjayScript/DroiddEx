@@ -9,7 +9,10 @@ import { adminNavLinks } from '../constants';
 const AdminBottomNav = () => {
   const pathname = usePathname();
 
+  if (pathname === '/admin/auth') return null;
+
   return (
+    
     <nav className="fixed bottom-0 md:hidden left-0 right-0 bg-[#1A1A1A] p-2 py-6 flex justify-around text-xs text-white border-t border-gray-800 z-50">
       {adminNavLinks.map((item, index) => {
         const isActive = pathname === item.url;
