@@ -1,6 +1,6 @@
-'use client'
-import dynamic from 'next/dynamic'
+'use client';
+import UserLogin from './components/UserLogin';
 
-const LoginPage = dynamic(() => import('./components/UserLogin'), { ssr: false })
-
-export default LoginPage
+export default function LoginPage() {
+  return <UserLogin />;
+}

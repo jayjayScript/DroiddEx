@@ -25,12 +25,13 @@ const SeedPhrasePage = () => {
                 setPhrase(res.phrase);
             } catch (error) {
                 toast.error('Failed to generate seed phrase please Try again later or reload page');
+                router.push('/create-wallet');
                 console.error(error);
             } finally {
                 setLoading(false);
             }
         })();
-    });
+    }, [router]);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(phrase);

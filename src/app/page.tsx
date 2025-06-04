@@ -10,11 +10,6 @@ const page = () => {
           Create Wallet
         </button>
       </Link>
-      {/* <Link href="/login" className="mt-4">
-        <button className="bg-[#ebb70c] text-[#fff] text-[18px] px-7 py-4 font-semibold rounded-lg cursor-pointer hover:bg-[#f0c200] transition duration-300 ease-in-out">
-          Go to Admin
-        </button>
-      </Link> */}
     </div>
   );
 };

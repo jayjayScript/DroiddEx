@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect } from 'react'
-import api from './lib/axios';
+import api from '../lib/axios';
 
 
 const Waker = ({ children }: { children: React.ReactNode }) => {
@@ -14,7 +14,6 @@ const Waker = ({ children }: { children: React.ReactNode }) => {
                 console.log(error)
             }
         }
-
         greet()
     }, [])
   return (

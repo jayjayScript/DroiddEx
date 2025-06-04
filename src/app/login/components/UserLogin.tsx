@@ -21,9 +21,9 @@ const UserLogin = () => {
   const dispatch = useDispatch()
 
 
-  if(!ready) return null
+  if (!ready) return null
 
-  const handleChange = (e:React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -36,14 +36,14 @@ const UserLogin = () => {
   }
 
 
-  const handleSubmit = async (e:React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const data = await loginWithSeed(form.email, form.phrase); // treat password as phrase
       handleLoginSuccess(data.token)
-      dispatch(login({email: data.email, phrase: data.phrase}));
+      dispatch(login({ email: data.email, phrase: data.phrase }));
 
       setLoading(false);
 
@@ -90,10 +90,13 @@ const UserLogin = () => {
               required
             />
           </div>
-          {loading && 'Loading...'}
+          {loading && (
+            <div className="text-yellow-400 text-sm text-center animate-pulse">Authenticating...</div>
+          )}
 
           <button
             type="submit"
+            disabled={loading}
             className="w-full bg-[#ebb70c] hover:scale-105 transition-all duration-300 ease-in-out text-black font-semibold py-3 rounded cursor-pointer"
           >
             {t('login.button')}

@@ -1,6 +1,14 @@
-'use client'
-import dynamic from 'next/dynamic'
+'use client';
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 
-const LoginPage = dynamic(() => import('./components/LoginComponent'), { ssr: false })
+const LoginComponent = dynamic(() => import('./components/LoginComponent'), { ssr: false });
 
-export default LoginPage
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="text-white text-center p-8">Loading login page...</div>}>
+      <LoginComponent />
+    </Suspense>
+  );
+}
+

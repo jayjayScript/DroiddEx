@@ -93,6 +93,7 @@ const LoginComponent = () => {
 
           <button
             type="submit"
+            disabled={loading}
             className="w-full bg-[#ebb70c] hover:scale-105 transition-all duration-300 ease-in-out text-black font-semibold py-3 rounded cursor-pointer"
           >
             {t('login.button')}
