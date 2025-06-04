@@ -1,19 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { Icon } from "@iconify/react";
 import Send from "./Send";
 import Withdraw from "./Receive";
 import Buy from "./Buy";
 import Swap from "./Swap";
-import { walletCoins } from "@/components/constants";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/user";
 
 import Link from "next/link";
 import SellPage from "./Sell";
-import { getCoins } from '@/lib/getCoins';
-import toast from "react-hot-toast";
 
 // const API_URL =
 //   "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dogecoin,tron,binancecoin,bitcoin,ripple,solana&order=market_cap_desc&per_page=100&page=1&sparkline=false";
@@ -59,7 +55,7 @@ const Wallet = () => {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const includedSymbols = ["ETH", "BTC", "SOL", "BNB", "XRP", "LTC", "XLM", "TRX", "DOGE", "PEPE"];  
+  const includedSymbols = ["ETH", "BTC", "SOL", "BNB", "XRP", "LTC", "XLM", "TRX", "DOGE", "PEPE"];
 
   const handleCopyPhrase = () => {
     navigator.clipboard.writeText(phrase);
@@ -78,6 +74,7 @@ const Wallet = () => {
     setActiveBot(!activeBot);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const fetchCoins = async () => {
       try {
@@ -110,6 +107,7 @@ const Wallet = () => {
 
   return (
     <div className="min-h-screen md:max-w-[80%] mx-auto text-white p-4 pb-20">
+      <div className="hidden">{copied}</div>
       <header className="flex justify-between items-center mb-4">
         <h1
           className="text-lg font-normal cursor-pointer"
@@ -223,52 +221,52 @@ const Wallet = () => {
           </div>
 
           <div className="space-y-4">
-      {loading && <p>Loading...</p>}
-      {!loading &&
-        coins.map((coin) => (
-          <Link
-            href={`/coins/${coin.id}`}
-            key={coin.id}
-            className="flex justify-between bg-[#1A1A1A] p-2 mb-[6px] rounded-lg"
-          >
-            <div className="flex items-center gap-2">
-              <Icon icon={getSymbol(coin.id)} width="40" height="40" />
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1">
-                  <div className="text-[18px] font-normal">
-                    {coin.symbol.toUpperCase()}
+            {loading && <p>Loading...</p>}
+            {!loading &&
+              coins.map((coin) => (
+                <Link
+                  href={`/coins/${coin.id}`}
+                  key={coin.id}
+                  className="flex justify-between bg-[#1A1A1A] p-2 mb-[6px] rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon icon={getSymbol(coin.id)} width="40" height="40" />
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1">
+                        <div className="text-[18px] font-normal">
+                          {coin.symbol.toUpperCase()}
+                        </div>
+                        <div className="text-[12px] text-gray-400 bg-[#2A2A2A] px-1 rounded-md">
+                          {coin.name}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="text-[12px] text-gray-400">
+                          ${coin.quotes.USD.price.toFixed(2)}
+                        </div>
+                        <div
+                          className={
+                            coin.quotes.USD.percent_change_24h >= 0
+                              ? "text-green-400 text-[12px]"
+                              : "text-red-400 text-[12px]"
+                          }
+                        >
+                          {coin.quotes.USD.percent_change_24h.toFixed(2)}%
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[12px] text-gray-400 bg-[#2A2A2A] px-1 rounded-md">
-                    {coin.name}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="text-[12px] text-gray-400">
-                    ${coin.quotes.USD.price.toFixed(2)}
-                  </div>
-                  <div
-                    className={
-                      coin.quotes.USD.percent_change_24h >= 0
-                        ? "text-green-400 text-[12px]"
-                        : "text-red-400 text-[12px]"
-                    }
-                  >
-                    {coin.quotes.USD.percent_change_24h.toFixed(2)}%
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Hardcoded right-hand info — replace with real portfolio logic later */}
-            <div className="text-right text-sm flex flex-col gap-1">
-              <span className="font-semibold text-[13px]">0.3103</span>
-              <span className="text-[12px] text-gray-400">
-                ${(coin.quotes.USD.price * 0.3103).toFixed(2)}
-              </span>
-            </div>
-          </Link>
-        ))}
-    </div>
+                  {/* Hardcoded right-hand info — replace with real portfolio logic later */}
+                  <div className="text-right text-sm flex flex-col gap-1">
+                    <span className="font-semibold text-[13px]">0.3103</span>
+                    <span className="text-[12px] text-gray-400">
+                      ${(coin.quotes.USD.price * 0.3103).toFixed(2)}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+          </div>
 
         </div>
       )}

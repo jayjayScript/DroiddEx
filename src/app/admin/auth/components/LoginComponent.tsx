@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { adminLogin, loginWithSeed } from '@/lib/auth';
+import { adminLogin} from '@/lib/auth';
 import Cookies from 'js-cookie';
 import { useTranslation } from 'react-i18next'; 
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 
 
@@ -20,7 +19,12 @@ const LoginComponent = () => {
   if(!ready) return null;
 
 
-  const handleChange = (e: any) => {
+  interface LoginForm {
+    email: string;
+    password: string;
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -53,6 +57,7 @@ const LoginComponent = () => {
 
   return (
     <div className="min-h-screen bg-[#121212] flex items-center justify-center px-4">
+      <div className='hidden'>{loading}</div>
       <div className="w-full max-w-md bg-[#1E1E1E] rounded-lg shadow-lg p-6">
         <h2 className="text-white text-2xl font-semibold mb-6 text-center">{t('login.title')}</h2>
 

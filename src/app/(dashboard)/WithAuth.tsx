@@ -28,6 +28,7 @@ const WithAuth = ({ children }: { children: React.ReactNode }) => {
         }
         setChecked(true);
       } catch (error) {
+        console.log(error)
         Cookies.remove('token'); // clear invalid token
         router.replace('/login/');
       }
