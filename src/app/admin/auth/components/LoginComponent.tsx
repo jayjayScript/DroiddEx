@@ -8,21 +8,21 @@ import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
 
-
+interface LoginForm {
+    email: string;
+    password: string;
+  }
 
 const LoginComponent = () => {
   const router = useRouter();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState<LoginForm>({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const { t, ready } = useTranslation('common');
 
   if(!ready) return null;
 
 
-  interface LoginForm {
-    email: string;
-    password: string;
-  }
+  
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -37,7 +37,7 @@ const LoginComponent = () => {
   }
 
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
@@ -48,9 +48,10 @@ const LoginComponent = () => {
 
       toast.success('Login Successful!')
       router.push('/admin');
-    } catch (err: any) {
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } }
       setLoading(false);
-      toast.error(err.response?.data?.message || 'Login failed');
+      toast.error(error.response?.data?.message || 'Login failed');
     }
   };
 

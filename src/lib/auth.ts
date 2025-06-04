@@ -1,11 +1,10 @@
-import { useRouter } from "next/navigation";
 import api from "./axios";
 import Cookies from "js-cookie";
 
-export async function createWallet(data: any) {
-  const res = await api.post('/users', data);
-  return res.data;
-}
+// export async function createWallet(data: any) {
+//   const res = await api.post('/users', data);
+//   return res.data;
+// }
 
 export async function generateSeedPhrase() {
   const res = await api.get('/seed');
@@ -37,6 +36,7 @@ export const getUserProfile = async () => {
     });
     return res.data
   } catch (e) {
+    console.warn(e)
     throw new Error('Failed to fetch profile');
   }
 };

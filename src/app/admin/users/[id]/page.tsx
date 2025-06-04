@@ -29,13 +29,13 @@ export default function UserDetailPage() {
 
   useEffect(() => {
     // Find the user by id from dummyUsers
-    const foundUser = dummyUsers.find((u) => u.id === id);
+    const foundUser = dummyUsers.find((u) => u.id === id) as User;
     if (foundUser) {
       setUser({
         ...foundUser,
         balance: typeof foundUser.balance === "string" ? foundUser.balance : String(foundUser.balance),
         status: foundUser.status as "active" | "suspended" | "banned",
-        recentTransactions: (foundUser as any).recentTransactions ?? [],
+        recentTransactions: foundUser.recentTransactions ?? [],
       });
     } else {
       setUser(null);

@@ -30,7 +30,7 @@ const SeedPhrasePage = () => {
                 setLoading(false);
             }
         })();
-    }, []);
+    });
 
     const handleCopy = () => {
         navigator.clipboard.writeText(phrase);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loginWithSeed } from '@/lib/auth';
@@ -23,7 +23,7 @@ const UserLogin = () => {
 
   if(!ready) return null
 
-  const handleChange = (e: any) => {
+  const handleChange = (e:React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -36,7 +36,7 @@ const UserLogin = () => {
   }
 
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e:React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
@@ -49,9 +49,10 @@ const UserLogin = () => {
 
       toast('Login successful!');
       router.push('/dashboard');
-    } catch (err: any) {
+    } catch (err: unknown) {
       setLoading(false);
-      showToast('error', err.response?.data?.message || 'Login failed');
+      const error = err as { response?: { data?: { message?: string } } };
+      showToast('error', error.response?.data?.message || 'Login failed');
     }
   };
 
@@ -89,6 +90,7 @@ const UserLogin = () => {
               required
             />
           </div>
+          {loading && 'Loading...'}
 
           <button
             type="submit"

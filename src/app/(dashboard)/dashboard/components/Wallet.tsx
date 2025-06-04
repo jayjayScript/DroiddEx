@@ -74,7 +74,6 @@ const Wallet = () => {
     setActiveBot(!activeBot);
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const fetchCoins = async () => {
       try {
@@ -91,7 +90,7 @@ const Wallet = () => {
       }
     };
     fetchCoins();
-  }, []);
+  });
 
   useEffect(() => {
     if (!activeBot) return;
