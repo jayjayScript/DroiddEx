@@ -1,7 +1,7 @@
 // lib/getCoins.ts
 import { walletAddresses, coinIdMap } from "./wallet";
 
-interface CoinGeckoCoin {
+export interface CoinGeckoCoin {
   id: string;
   symbol: string;
   name: string;

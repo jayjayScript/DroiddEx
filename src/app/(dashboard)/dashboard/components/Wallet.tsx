@@ -7,6 +7,7 @@ import Swap from "./Swap";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/user";
 import { getCoins } from "@/lib/getCoins";
+import { CoinGeckoCoin } from "@/lib/getCoins";
 
 import Link from "next/link";
 import SellPage from "./Sell";
@@ -66,18 +67,18 @@ const Wallet = () => {
       try {
         const data = await getCoins();
         // Map CoinGeckoCoin[] to Coin[]
-        const mappedCoins: Coin[] = data.map((coin: any) => ({
+        const mappedCoins: Coin[] = data.map((coin: CoinGeckoCoin) => ({
           id: coin.id,
           name: coin.name,
           symbol: coin.symbol,
           market_data: {
             current_price: {
-              usd: coin.market_data?.current_price?.usd ?? coin.current_price?.usd ?? 0,
+              usd: coin.current_price,
             },
             market_cap: {
-              usd: coin.market_data?.market_cap?.usd ?? coin.market_cap?.usd ?? 0,
+              usd: coin.market_cap,
             },
-            price_change_percentage_24h: coin.market_data?.price_change_percentage_24h ?? coin.price_change_percentage_24h ?? 0,
+            price_change_percentage_24h: coin.price_change_percentage_24h,
           },
         }));
         setCoins(mappedCoins);
