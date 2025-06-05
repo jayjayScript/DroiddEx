@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+// import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import Modal from './components/Modal';
 import { walletAddresses } from '@/lib/wallet';
 import { Icon } from '@iconify/react/dist/iconify.js';
@@ -17,20 +18,32 @@ type CoinData = {
   };
 };
 
+type PriceData = {
+  time: string;
+  price: number;
+};
+
 export default function CoinPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = React.use(params);
   const [coin, setCoin] = React.useState<CoinData | null>(null);
+  const [priceHistory, setPriceHistory] = React.useState<PriceData[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [copied, setCopied] = React.useState(false);
 
   const [isDepositOpen, setDepositOpen] = React.useState(false);
   const [isWithdrawOpen, setWithdrawOpen] = React.useState(false);
 
   const [amount, setAmount] = React.useState('');
+  const [recipientAddress, setRecipientAddress] = React.useState('');
   const [fileName, setFileName] = React.useState('');
+  
   const walletEntry = coin ? (walletAddresses[coin.symbol.toUpperCase()] || [])[0] || '' : '';
   const walletAddress = typeof walletEntry === 'string' ? walletEntry : walletEntry?.address || '';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(walletAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,183 +54,353 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
   };
 
   const handleSend = () => {
-    // TODO: handle backend submission
-    if (coin) {
-      toast(`You sent ${amount} ${coin.symbol.toUpperCase()} with screenshot ${fileName}`);
+    if (coin && amount && fileName) {
+      toast.success(`You sent ${amount} ${coin.symbol.toUpperCase()} with screenshot ${fileName}`);
+      setDepositOpen(false);
+      setAmount('');
+      setFileName('');
+    } else {
+      toast.error('Please fill all required fields');
     }
+  };
+
+  const handleWithdraw = () => {
+    if (coin && amount && recipientAddress) {
+      toast.success(`Withdrawal of ${amount} ${coin.symbol.toUpperCase()} submitted`);
+      setWithdrawOpen(false);
+      setAmount('');
+      setRecipientAddress('');
+    } else {
+      toast.error('Please fill all required fields');
+    }
+  };
+
+  // Generate mock price data for chart
+  const generatePriceHistory = (currentPrice: number) => {
+    const data: PriceData[] = [];
+    const basePrice = currentPrice;
+    
+    for (let i = 23; i >= 0; i--) {
+      const variation = (Math.random() - 0.5) * 0.1; // 10% variation
+      const price = basePrice * (1 + variation);
+      data.push({
+        time: `${i}h`,
+        price: price
+      });
+    }
+    return data;
   };
 
   React.useEffect(() => {
     const fetchCoin = async () => {
       try {
-        const { id } = unwrappedParams
+        setLoading(true);
+        const { id } = unwrappedParams;
         const res = await fetch(`https://api.coingecko.com/api/v3/coins/${id}`);
         const data = await res.json();
         setCoin(data);
+        
+        // Generate price history
+        const history = generatePriceHistory(data.market_data.current_price.usd);
+        setPriceHistory(history);
       } catch (err) {
         console.error('Error fetching coin:', err);
+        toast.error('Failed to load coin data');
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchCoin();
   }, [unwrappedParams]);
 
-  if (!coin) return <div className="text-white p-6">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <div className="text-white text-lg">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
-  // const addressList = walletAddresses[coin.symbol.toUpperCase()] || [];
+  if (!coin) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-lg">Failed to load coin data</div>
+      </div>
+    );
+  }
+
+  const actionButtons = [
+    { 
+      label: "Send", 
+      icon: "dashicons:arrow-up-alt", 
+      onClick: () => setDepositOpen(true),
+      color: "from-green-600 to-green-700"
+    },
+    { 
+      label: "Receive", 
+      icon: "dashicons:arrow-down-alt", 
+      onClick: () => setWithdrawOpen(true),
+      color: "from-blue-600 to-blue-700"
+    },
+    { 
+      label: "Swap", 
+      icon: "tdesign:swap",
+      color: "from-purple-600 to-purple-700"
+    },
+    { 
+      label: "AI", 
+      icon: "fluent:bot-28-filled",
+      color: "from-orange-600 to-orange-700"
+    },
+  ];
 
   return (
-    <div className="p-6 text-white max-w-xl mx-auto">
+    <div className="min-h-screen bg-black text-white">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+            {coin.name}
+          </h1>
+          <p className="text-gray-400 text-lg">
+            ({coin.symbol.toUpperCase()})
+          </p>
+        </div>
 
-      <h1 className="text-2xl font-bold mb-4">
-        {coin.name} ({coin.symbol.toUpperCase()})
-      </h1>
-
-      <div className="grid grid-cols-4 sm:grid-cols-5 gap-4 text-center text-sm mt-8 mb-2 px-1">
-        {[
-          { label: "Send", icon: "dashicons:arrow-up-alt", onClick: () => setDepositOpen(true) },
-          { label: "Receive", icon: "dashicons:arrow-down-alt", onClick: () => setWithdrawOpen(true) },
-          { label: "Swap", icon: "tdesign:swap" },
-          { label: "AI", icon: "fluent:bot-28-filled" },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className="flex flex-col items-center cursor-pointer"
-            onClick={item.onClick}
-          >
-            <div className="bg-[#2A2A2A] p-[10.1px] px-[10.1px] rounded-full mb-1">
-              <Icon icon={item.icon} width="27" height="27" className="" />
+        {/* Price Chart */}
+        <div className="bg-[#1A1A1A] rounded-2xl p-6 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <h2 className="text-xl font-semibold mb-2 sm:mb-0">Price Chart (24h)</h2>
+            <div className="text-2xl font-bold">
+              ${coin.market_data.current_price.usd.toFixed(2)}
             </div>
-            <div className="text-white text-[13px] mt-2">{item.label}</div>
           </div>
-        ))}
-      </div>
+          
+          <div className="h-64 sm:h-80">
+            {/* <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={priceHistory}>
+                <XAxis 
+                  dataKey="time" 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                  domain={['dataMin - 50', 'dataMax + 50']}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#2A2A2A', 
+                    border: 'none', 
+                    borderRadius: '8px',
+                    color: 'white'
+                  }}
+                  formatter={(value: any) => [`$${value.toFixed(2)}`, 'Price']}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="price" 
+                  stroke="#ebb70c" 
+                  strokeWidth={3}
+                  dot={false}
+                  activeDot={{ r: 6, fill: '#ebb70c' }}
+                />
+              </LineChart>
+            </ResponsiveContainer> */}
+          </div>
+        </div>
 
-      <div className='mt-5 grid grid-cols-2 bg-[#2a2a2a] p-2 px-4 rounded'>
-        <p className='text-[12px] font-bold'>Price: ${coin.market_data.current_price.usd.toFixed(2)}</p>
-        <p className='text-[12px] font-bold'>Market Cap: ${coin.market_data.market_cap.usd.toLocaleString()}</p>
-        <p
-          className={
-          `text-[12px]`
-          }
-        >
-          24h %: <span className={
-            coin.market_data.price_change_percentage_24h >= 0
-              ? "text-green-400 text-[12px] font-bold"
-              : "text-red-400 text-[12px] font-bold"
-          }>{coin.market_data.price_change_percentage_24h}</span>
-        </p>
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          {actionButtons.map((item, index) => (
+            <div
+              key={item.label}
+              className="group cursor-pointer transform transition-all duration-300 hover:scale-105 active:scale-95"
+              onClick={item.onClick}
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div className="bg-[#2A2A2A] hover:bg-[#3A3A3A] rounded-2xl p-6 text-center transition-all duration-300">
+                <div className="bg-[#1A1A1A] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
+                  <Icon icon={item.icon} className="text-3xl text-[#ebb70c]" />
+                </div>
+                <div className="text-white font-medium">{item.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Market Data */}
+        <div className="bg-[#2A2A2A] rounded-2xl p-6">
+          <h3 className="text-xl font-semibold mb-4">Market Data</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-[#1A1A1A] rounded-xl p-4">
+              <div className="text-gray-400 text-sm mb-1">Current Price</div>
+              <div className="text-white text-xl font-bold">
+                ${coin.market_data.current_price.usd.toFixed(2)}
+              </div>
+            </div>
+            
+            <div className="bg-[#1A1A1A] rounded-xl p-4">
+              <div className="text-gray-400 text-sm mb-1">Market Cap</div>
+              <div className="text-white text-xl font-bold">
+                ${coin.market_data.market_cap.usd.toLocaleString()}
+              </div>
+            </div>
+            
+            <div className="bg-[#1A1A1A] rounded-xl p-4">
+              <div className="text-gray-400 text-sm mb-1">24h Change</div>
+              <div className={`text-xl font-bold ${
+                coin.market_data.price_change_percentage_24h >= 0
+                  ? "text-green-400"
+                  : "text-red-400"
+              }`}>
+                {coin.market_data.price_change_percentage_24h >= 0 ? '+' : ''}
+                {coin.market_data.price_change_percentage_24h.toFixed(2)}%
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Deposit Modal */}
         <Modal isOpen={isDepositOpen} onCloseAction={() => setDepositOpen(false)}>
-          <h2 className="text-xl font-bold mb-4">Deposit {coin.name}</h2>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-center">Send {coin.name}</h2>
 
-          <div className="text-white space-y-4 bg-[#1A1A1A] rounded-lg my-4">
-            <label className="block text-sm text-gray-400 mb-1 p-1">
-              {coin.symbol.toUpperCase()} Amount
-            </label>
-            <input
-              type="number"
-              placeholder="Enter amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full p-3 rounded-lg bg-[#2A2A2A] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ebb70c]"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm text-gray-400 mb-1">Wallet Address</label>
-            <div className="flex items-center justify-between bg-[#1A1A1A] border border-[#2A2A2A] px-4 py-3 rounded-lg">
-              <span className="truncate">{walletAddress}</span>
-              <button onClick={handleCopy}>
-                <Icon
-                  icon="tabler:copy"
-                  className="text-xl text-gray-300 hover:text-white transition cursor-pointer"
-                />
-              </button>
-            </div>
-          </div>
-
-          <div className="mb-5">
-            <label htmlFor="screenshot" className="block text-sm text-gray-400 mb-2">
-              Upload Transaction Screenshot
-            </label>
-
-            <div className="relative flex items-center justify-center bg-[#2a2a2a] border border-[#444] rounded-lg p-4 hover:bg-[#333] transition cursor-pointer">
+            <div>
+              <label className="block text-sm font-medium text-white mb-3">
+                {coin.symbol.toUpperCase()} Amount
+              </label>
               <input
-                type="file"
-                id="screenshot"
-                name="screenshot"
-                accept="image/*"
-                className="absolute inset-0 opacity-0 cursor-pointer"
-                onChange={handleFileChange}
+                type="number"
+                placeholder="Enter amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full p-4 rounded-xl bg-[#2A2A2A] text-white text-lg
+                         placeholder-gray-400 outline-none
+                         hover:bg-[#333333] focus:bg-[#333333]
+                         transition-all duration-200"
               />
+            </div>
 
-              <div className="flex items-center gap-3 text-white pointer-events-none">
-                <Icon icon="ic:baseline-photo" className="text-[#ebb70c]" width="54" height="54" />
-                <span className="block text-sm text-gray-400 mb-2">
-                  {fileName || 'Click to select a screenshot (PNG, JPG, JPEG)'}
-                </span>
+            <div>
+              <label className="block text-sm font-medium text-white mb-3">
+                Wallet Address
+              </label>
+              <div className="flex items-center bg-[#2A2A2A] rounded-xl p-4">
+                <code className="flex-1 text-sm text-gray-300 break-all font-mono">
+                  {walletAddress}
+                </code>
+                <button 
+                  onClick={handleCopy}
+                  className={`ml-4 p-2 rounded-lg transition-all duration-300 ${
+                    copied 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-[#3A3A3A] hover:bg-[#4A4A4A] text-gray-300'
+                  }`}
+                >
+                  <Icon 
+                    icon={copied ? "mdi:check" : "tabler:copy"} 
+                    className="text-xl" 
+                  />
+                </button>
               </div>
             </div>
 
-            {fileName && (
-              <p className="text-xs text-green-400 mt-2">✔ {fileName} selected</p>
-            )}
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-white mb-3">
+                Upload Transaction Screenshot
+              </label>
+              
+              <div className="relative bg-[#2A2A2A] hover:bg-[#333333] border-2 border-dashed border-[#4A4A4A] rounded-xl p-8 text-center transition-all duration-300 cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={handleFileChange}
+                />
+                
+                <Icon icon="ic:baseline-photo" className="text-[#ebb70c] text-6xl mx-auto mb-4" />
+                <div className="text-white">
+                  {fileName ? (
+                    <div>
+                      <div className="text-green-400 font-medium mb-2">✓ File Selected</div>
+                      <div className="text-sm text-gray-400">{fileName}</div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="font-medium mb-2">Click to upload screenshot</div>
+                      <div className="text-sm text-gray-400">PNG, JPG, JPEG supported</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
 
-          <button className="w-full bg-[#ebb70c] hover:bg-[#ffcc3f] text-black py-3 rounded-lg font-semibold transition mt-6">
-            Continue
-          </button>
-          <button
-            onClick={handleSend}
-            className="w-full my-2 bg-[#ebb70c] text-black font-semibold py-3 rounded-lg hover:bg-yellow-500 transition-all"
-          >
-            I’ve sent this amount of {coin.symbol.toUpperCase()}
-          </button>
+            <button
+              onClick={handleSend}
+              className="w-full bg-[#ebb70c] hover:bg-[#d4a50b] text-black font-bold py-4 rounded-xl text-lg
+                       transform hover:scale-105 active:scale-95
+                       transition-all duration-200"
+            >
+              I've sent this amount of {coin.symbol.toUpperCase()}
+            </button>
+          </div>
         </Modal>
 
-
-        {/* Withdraw Modal */}
         {/* Withdraw Modal */}
         <Modal isOpen={isWithdrawOpen} onCloseAction={() => setWithdrawOpen(false)}>
-          <h2 className="text-xl font-bold mb-4">Withdraw {coin.name}</h2>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-center">Receive {coin.name}</h2>
 
-          <div className="text-white space-y-4 bg-[#1A1A1A] rounded-lg my-4">
-            <label className="block text-sm text-gray-400 mb-1 p-1">
-              {coin.symbol.toUpperCase()} Amount
-            </label>
-            <input
-              type="number"
-              placeholder="Enter amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full p-3 rounded-lg bg-[#2A2A2A] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ebb70c]"
-            />
+            <div>
+              <label className="block text-sm font-medium text-white mb-3">
+                {coin.symbol.toUpperCase()} Amount
+              </label>
+              <input
+                type="number"
+                placeholder="Enter amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full p-4 rounded-xl bg-[#2A2A2A] text-white text-lg
+                         placeholder-gray-400 outline-none
+                         hover:bg-[#333333] focus:bg-[#333333]
+                         transition-all duration-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-3">
+                Recipient Address
+              </label>
+              <input
+                type="text"
+                placeholder="Paste recipient address"
+                value={recipientAddress}
+                onChange={(e) => setRecipientAddress(e.target.value)}
+                className="w-full p-4 rounded-xl bg-[#2A2A2A] text-white text-lg
+                         placeholder-gray-400 outline-none
+                         hover:bg-[#333333] focus:bg-[#333333]
+                         transition-all duration-200"
+              />
+            </div>
+
+            <button
+              onClick={handleWithdraw}
+              className="w-full bg-[#ebb70c] hover:bg-[#d4a50b] text-black font-bold py-4 rounded-xl text-lg
+                       transform hover:scale-105 active:scale-95
+                       transition-all duration-200"
+            >
+              Confirm Withdrawal
+            </button>
           </div>
-
-          <div className="mb-4">
-            <label className="block text-sm text-gray-400 mb-1">Recipient Address</label>
-            <input
-              type="text"
-              placeholder="Paste recipient address"
-              className="w-full p-3 rounded-lg bg-[#2A2A2A] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ebb70c]"
-            />
-          </div>
-
-          <button
-            onClick={() => {
-              if (!amount) {
-                toast.error("Please enter amount");
-                return;
-              }
-              toast.success(`Withdrawal of ${amount} ${coin.symbol.toUpperCase()} submitted`);
-              setWithdrawOpen(false);
-            }}
-            className="w-full my-2 bg-[#ebb70c] text-black font-semibold py-3 rounded-lg hover:bg-yellow-500 transition-all"
-          >
-            Confirm Withdraw
-          </button>
         </Modal>
 
       </div>
