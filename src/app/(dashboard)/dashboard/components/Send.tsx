@@ -7,6 +7,26 @@ import toast from "react-hot-toast";
 import { walletAddresses } from "@/lib/wallet";
 import { coinIdMap} from "@/lib/wallet";
 
+// Define proper types
+type WalletAddress = {
+  address: string;
+  name?: string;
+};
+
+type CoinData = {
+  id: string;
+  symbol: string;
+  name: string;
+  icon: string;
+  addresses: WalletAddress[];
+};
+
+type CoinDropdownProps = {
+  coins: CoinData[];
+  selected: CoinData;
+  onSelect: (coin: CoinData) => void;
+};
+
 // Use Iconify coin set
 const iconMap: Record<string, string> = {
   BTC: "cryptocurrency:btc",
@@ -25,14 +45,10 @@ const iconMap: Record<string, string> = {
   PEPE: "cryptocurrency:pepe",
 };
 
-const CoinDropdown = ({ coins, selected, onSelect }: { 
-  coins: any[], 
-  selected: any, 
-  onSelect: (coin: any) => void 
-}) => {
+const CoinDropdown = ({ coins, selected, onSelect }: CoinDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSelect = (coin: any) => {
+  const handleSelect = (coin: CoinData) => {
     onSelect(coin);
     setIsOpen(false);
   };
@@ -97,20 +113,22 @@ const CoinDropdown = ({ coins, selected, onSelect }: {
 };
 
 const Deposit = () => {
-  const coins = Object.keys(walletAddresses).map((symbol) => {
+  const coins: CoinData[] = Object.keys(walletAddresses).map((symbol) => {
     const typedSymbol = symbol as keyof typeof coinIdMap;
+    const walletData = walletAddresses[symbol as keyof typeof walletAddresses];
+    
     return {
       id: coinIdMap[typedSymbol],
       symbol,
-      name: walletAddresses[symbol][0]?.name || symbol,
+      name: (Array.isArray(walletData) ? (walletData[0] as WalletAddress)?.name : (walletData as WalletAddress)?.name) || symbol,
       icon: iconMap[symbol] || "cryptocurrency:question",
-      addresses: walletAddresses[symbol],
+      addresses: Array.isArray(walletData) ? walletData : [walletData],
     };
   });
 
-  const [selected, setSelected] = useState(coins[0]);
-  const [amount, setAmount] = useState("");
-  const [fileName, setFileName] = useState("");
+  const [selected, setSelected] = useState<CoinData>(coins[0]);
+  const [amount, setAmount] = useState<string>("");
+  const [fileName, setFileName] = useState<string>("");
 
   const handleCopy = (address: string) => {
     navigator.clipboard.writeText(address);
@@ -264,7 +282,7 @@ const Deposit = () => {
             onClick={handleSend}
             className="w-full bg-[#ebb70c] hover:bg-[#ffcc3f] text-black font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] text-lg shadow-lg"
           >
-            I've sent {amount || '0'} {selected.symbol}
+            I&apos;ve sent {amount || '0'} {selected.symbol}
           </button>
           
           <button className="w-full bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 border border-[#444] hover:border-[#555]">

@@ -305,7 +305,7 @@ const Settings = () => {
               <div className="border-l-4 border-[#ebb70c] pl-4">
                 <h4 className="font-semibold text-white mb-2">Step 2: Document Verification</h4>
                 <p className="text-gray-400 text-sm mb-3">
-                  Upload a clear photo of your Passport or Driver's License to complete verification.
+                  Upload a clear photo of your Passport or Driver&apos;s License to complete verification.
                 </p>
               </div>
               

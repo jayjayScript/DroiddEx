@@ -125,7 +125,8 @@ const Withdraw = () => {
       const text = await navigator.clipboard.readText();
       setAddress(text);
       toast.success("Address pasted from clipboard");
-    } catch (err) {
+    } catch (error) {
+      console.log(error)
       toast.error("Failed to paste from clipboard");
     }
   };
@@ -286,7 +287,7 @@ const Withdraw = () => {
                 <p className="font-medium text-gray-300 mb-1">Security Notice:</p>
                 <ul className="space-y-1 list-disc list-inside">
                   <li>Double-check the recipient address before sending</li>
-                  <li>Ensure you're using the correct network</li>
+                  <li>Ensure you&apos;re using the correct network</li>
                   <li>Transactions are irreversible once confirmed</li>
                   <li>Start with a small test amount for new addresses</li>
                 </ul>

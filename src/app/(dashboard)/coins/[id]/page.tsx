@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-// import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import Modal from './components/Modal';
 import { walletAddresses } from '@/lib/wallet';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import toast from 'react-hot-toast';
+import { useRef, useEffect } from 'react';
 
 type CoinData = {
   id: string;
@@ -18,15 +18,79 @@ type CoinData = {
   };
 };
 
-type PriceData = {
-  time: string;
-  price: number;
+interface Props {
+  symbol: string; // e.g. 'btc'
+  locale?: string;
+}
+
+// TradingView Widget Component
+const TradingViewWidget = ({ symbol, locale = 'en' }: Props, ) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.async = true;
+    script.type = 'text/javascript';
+
+    const widgetConfig = {
+      autosize: true,
+      symbol: `BINANCE:${symbol.toUpperCase()}USDT`,
+      interval: '1',
+      timezone: 'Etc/UTC',
+      theme: 'dark',
+      style: '1',
+      locale: locale,
+      enable_publishing: false,
+      hide_top_toolbar: false,
+      hide_legend: false,
+      container_id: 'tradingview-widget',
+      backgroundColor: '#1A1A1A',
+      studies: [],
+      overrides: {
+        'paneProperties.background': '#1A1A1A',
+        'paneProperties.vertGridProperties.color': '#2A2A2A',
+        'paneProperties.horzGridProperties.color': '#2A2A2A',
+        'symbolWatermarkProperties.transparency': 90,
+        'scalesProperties.textColor': '#B0B3B8',
+        'mainSeriesProperties.candleStyle.upColor': '#00C896',
+        'mainSeriesProperties.candleStyle.downColor': '#FF6B6B',
+        'mainSeriesProperties.candleStyle.drawWick': true,
+        'mainSeriesProperties.candleStyle.drawBorder': true,
+        'mainSeriesProperties.candleStyle.borderUpColor': '#00C896',
+        'mainSeriesProperties.candleStyle.borderDownColor': '#FF6B6B',
+        'mainSeriesProperties.candleStyle.wickUpColor': '#00C896',
+        'mainSeriesProperties.candleStyle.wickDownColor': '#FF6B6B',
+      },
+    };
+
+    script.innerHTML = JSON.stringify(widgetConfig);
+
+    const container = ref.current;
+    if (container) {
+      container.innerHTML = '';
+      container.appendChild(script);
+    }
+
+    return () => {
+      if (container) container.innerHTML = '';
+    };
+  }, [symbol, locale]);
+
+  return (
+    <div
+      id="tradingview-widget"
+      ref={ref}
+      className="w-full h-[340px] bg-[#1A1A1A]" // ✅ container background must also be set
+    />
+  );
 };
 
 export default function CoinPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = React.use(params);
   const [coin, setCoin] = React.useState<CoinData | null>(null);
-  const [priceHistory, setPriceHistory] = React.useState<PriceData[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [copied, setCopied] = React.useState(false);
 
@@ -75,22 +139,6 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
     }
   };
 
-  // Generate mock price data for chart
-  const generatePriceHistory = (currentPrice: number) => {
-    const data: PriceData[] = [];
-    const basePrice = currentPrice;
-    
-    for (let i = 23; i >= 0; i--) {
-      const variation = (Math.random() - 0.5) * 0.1; // 10% variation
-      const price = basePrice * (1 + variation);
-      data.push({
-        time: `${i}h`,
-        price: price
-      });
-    }
-    return data;
-  };
-
   React.useEffect(() => {
     const fetchCoin = async () => {
       try {
@@ -99,10 +147,6 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
         const res = await fetch(`https://api.coingecko.com/api/v3/coins/${id}`);
         const data = await res.json();
         setCoin(data);
-        
-        // Generate price history
-        const history = generatePriceHistory(data.market_data.current_price.usd);
-        setPriceHistory(history);
       } catch (err) {
         console.error('Error fetching coin:', err);
         toast.error('Failed to load coin data');
@@ -116,7 +160,7 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-[#2a2a2a] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <div className="text-white text-lg">Loading...</div>
@@ -159,8 +203,8 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#1a1a1a] text-white">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
         
         {/* Header */}
         <div className="text-center mb-8">
@@ -172,54 +216,7 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
           </p>
         </div>
 
-        {/* Price Chart */}
-        <div className="bg-[#1A1A1A] rounded-2xl p-6 mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-            <h2 className="text-xl font-semibold mb-2 sm:mb-0">Price Chart (24h)</h2>
-            <div className="text-2xl font-bold">
-              ${coin.market_data.current_price.usd.toFixed(2)}
-            </div>
-          </div>
-          
-          <div className="h-64 sm:h-80">
-            {/* <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={priceHistory}>
-                <XAxis 
-                  dataKey="time" 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                />
-                <YAxis 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                  domain={['dataMin - 50', 'dataMax + 50']}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#2A2A2A', 
-                    border: 'none', 
-                    borderRadius: '8px',
-                    color: 'white'
-                  }}
-                  formatter={(value: any) => [`$${value.toFixed(2)}`, 'Price']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="price" 
-                  stroke="#ebb70c" 
-                  strokeWidth={3}
-                  dot={false}
-                  activeDot={{ r: 6, fill: '#ebb70c' }}
-                />
-              </LineChart>
-            </ResponsiveContainer> */}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-4 sm:grid-cols-4 gap-4 mb-8">
           {actionButtons.map((item, index) => (
             <div
               key={item.label}
@@ -227,15 +224,46 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
               onClick={item.onClick}
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <div className="bg-[#2A2A2A] hover:bg-[#3A3A3A] rounded-2xl p-6 text-center transition-all duration-300">
-                <div className="bg-[#1A1A1A] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
+              <div>
+                <div className="bg-[#2A2A2A] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
                   <Icon icon={item.icon} className="text-3xl text-[#ebb70c]" />
                 </div>
-                <div className="text-white font-medium">{item.label}</div>
+                <div className="text-white font-medium text-center">{item.label}</div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Price Chart */}
+        <div className="bg-[#1A1A1A] rounded-2xl p-3 py-6 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <h2 className="text-xl font-semibold mb-2 sm:mb-0">Live Trading Chart</h2>
+            <div className="flex items-center gap-4">
+              <div className="text-2xl font-bold">
+                ${coin.market_data.current_price.usd.toFixed(2)}
+              </div>
+              <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                coin.market_data.price_change_percentage_24h >= 0
+                  ? "bg-green-500/20 text-green-400"
+                  : "bg-red-500/20 text-red-400"
+              }`}>
+                {coin.market_data.price_change_percentage_24h >= 0 ? '+' : ''}
+                {coin.market_data.price_change_percentage_24h.toFixed(2)}%
+              </div>
+            </div>
+          </div>
+          
+          {/* TradingView Chart */}
+          <div className="h-[350px] sm:h-[500px] bg-[#1A1A1A] rounded-xl overflow-hidden">
+            <TradingViewWidget symbol={coin.symbol} />
+          </div>
+          
+          {/* Chart Info */}
+          <div className="mt-4 text-xs text-gray-500 text-center">
+            Powered by TradingView • Real-time data from Binance
+          </div>
+        </div>
+
 
         {/* Market Data */}
         <div className="bg-[#2A2A2A] rounded-2xl p-6">
@@ -350,7 +378,7 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
                        transform hover:scale-105 active:scale-95
                        transition-all duration-200"
             >
-              I've sent this amount of {coin.symbol.toUpperCase()}
+              I&apos;ve sent this amount of {coin.symbol.toUpperCase()}
             </button>
           </div>
         </Modal>
