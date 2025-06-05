@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
-import Send from "./Send";
 import Withdraw from "./Receive";
 import Buy from "./Buy";
 import Swap from "./Swap";
@@ -13,18 +12,6 @@ import Link from "next/link";
 import SellPage from "./Sell";
 import Deposit from "./Send";
 
-
-// interface Coin {
-//   id: string;
-//   name: string;
-//   symbol: string;
-//   quotes: {
-//     USD: {
-//       price: number;
-//       percent_change_24h: number;
-//     };
-//   };
-// }
 interface Coin {
   id: string;
   name: string;
@@ -56,8 +43,6 @@ const Wallet = () => {
   const [showFullPhrase, setShowFullPhrase] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const includedSymbols = ["ETH", "BTC", "SOL", "BNB", "XRP", "LTC", "XLM", "TRX", "DOGE"];
 
   const handleCopyPhrase = () => {
     navigator.clipboard.writeText(phrase);

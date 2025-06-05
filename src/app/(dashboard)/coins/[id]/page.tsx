@@ -23,7 +23,6 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
 
   const [isDepositOpen, setDepositOpen] = React.useState(false);
   const [isWithdrawOpen, setWithdrawOpen] = React.useState(false);
-  const [activeModal, setActiveModal] = React.useState('')
 
   const [amount, setAmount] = React.useState('');
   const [fileName, setFileName] = React.useState('');

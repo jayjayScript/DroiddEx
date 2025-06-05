@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { walletAddresses } from "@/lib/wallet";
-import { coinIdMap, coins as supportedCoins } from "@/lib/wallet";
+import { coinIdMap} from "@/lib/wallet";
 
 // Use Iconify coin set
 const iconMap: Record<string, string> = {
