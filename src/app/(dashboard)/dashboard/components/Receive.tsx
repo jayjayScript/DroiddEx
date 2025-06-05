@@ -59,6 +59,7 @@ const Dropdown = ({
 
 const Withdraw = () => {
   const [amount, setAmount] = useState("");
+  const [address, setAddress] = useState("")
   const [selectedCoin, setSelectedCoin] = useState(coinOptions[0]);
   const [selectedNetwork, setSelectedNetwork] = useState(coinOptions[0].networks[0]);
 
@@ -84,6 +85,18 @@ const Withdraw = () => {
           placeholder="Enter amount"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
+          className="w-full p-3 rounded-lg bg-[#2A2A2A] text-white"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-2 text-sm text-gray-300">Address</label>
+        <input
+          type="number"
+          min="0"
+          placeholder="Enter Address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
           className="w-full p-3 rounded-lg bg-[#2A2A2A] text-white"
         />
       </div>

@@ -37,8 +37,8 @@ const Page = () => {
   };
 
   return (
-    <div className="bg-[#121212] h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-[#1E1E1E] rounded-lg shadow-lg p-8">
+    <div className="bg-[#121212] h-[94.5vh] flex items-center justify-center px-4">
+      <div className="w-full max-w-md bg-[#1E1E1E] rounded-lg shadow-lg p-8 translate-y-[-10%]">
         <h2 className="text-white text-2xl font-semibold mb-6 text-center">Sign Up</h2>
 
         {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}

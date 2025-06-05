@@ -22,3 +22,41 @@ export const walletAddresses: { [symbol: string]: { name: string; address: strin
   SHIBA: [{ name: "SHIBA", address: "0x464B0007a2A4C29912f0fb3EB8A15831961890CF" }],
   PEPE: [{ name: "PEPE", address: "0x464B0007a2A4C29912f0fb3EB8A15831961890CF" }],
 };
+
+
+// lib/walletAddresses.ts (example mapping of correct CoinGecko IDs)
+export const coinIdMap = {
+  BTC: "bitcoin",
+  ETH: "ethereum",
+  SOL: "solana",
+  BNB: "binancecoin",
+  XRP: "ripple",
+  LTC: "litecoin",
+  XLM: "stellar",
+  TRX: "tron",
+  DOGE: "dogecoin",
+  POLYGON: "polygon",
+  LUNC: "terra-luna",
+  ADA: "cardano",
+  USDT: "tether",
+  USDC: "usd-coin",
+  SHIBA: "shiba-inu",
+  PEPE: "pepe"
+};
+
+export const coins = [
+  { symbol: "BTC", name: "Bitcoin", icon: "cryptocurrency:btc" },
+  { symbol: "ETH", name: "Ethereum", icon: "cryptocurrency:eth" },
+  { symbol: "SOL", name: "Solana", icon: "cryptocurrency:sol" },
+  { symbol: "BNB", name: "BNB", icon: "cryptocurrency:bnb" },
+  { symbol: "XRP", name: "XRP", icon: "cryptocurrency:xrp" },
+  { symbol: "LTC", name: "Litecoin", icon: "cryptocurrency:ltc" },
+  { symbol: "XLM", name: "Stellar", icon: "cryptocurrency:xlm" },
+  { symbol: "TRX", name: "Tron", icon: "cryptocurrency:trx" },
+  { symbol: "DOGE", name: "Dogecoin", icon: "cryptocurrency:doge" },
+  { symbol: "ADA", name: "Cardano", icon: "cryptocurrency:ada" },
+  { symbol: "USDT", name: "Tether", icon: "cryptocurrency:usdt" },
+  { symbol: "USDC", name: "USD Coin", icon: "cryptocurrency:usdc" },
+  { symbol: "SHIBA", name: "Shiba Inu", icon: "cryptocurrency:shib" },
+  { symbol: "PEPE", name: "Pepe", icon: "cryptocurrency:pepe" }, // may not exist in Iconify
+];

@@ -1,51 +1,41 @@
 // lib/getCoins.ts
+import { walletAddresses, coinIdMap } from "./wallet";
 
-interface Coin {
+interface CoinGeckoCoin {
   id: string;
-  name: string;
   symbol: string;
-  rank: number;
-  circulating_supply: number;
-  total_supply: number;
-  max_supply: number | null;
-  beta_value: number;
-  first_data_at: string;
-  last_updated: string;
-  quotes: {
-    USD: {
-      price: number;
-      volume_24h: number;
-      volume_24h_change_24h: number;
-      market_cap: number;
-      market_cap_change_24h: number;
-      percent_change_15m: number;
-      percent_change_30m: number;
-      percent_change_1h: number;
-      percent_change_6h: number;
-      percent_change_12h: number;
-      percent_change_24h: number;
-      percent_change_7d: number;
-      percent_change_30d: number;
-      percent_change_1y: number;
-      ath_price: number;
-      ath_date: string;
-      percent_from_price_ath: number;
-    };
-  };
+  name: string;
+  image: string;
+  current_price: number;
+  market_cap: number;
+  market_cap_rank: number;
+  total_volume: number;
+  high_24h: number;
+  low_24h: number;
+  price_change_percentage_24h: number;
+  addresses?: { name: string; address: string }[]; 
 }
 
-export async function getCoins(): Promise<Coin[]> {
-  const res = await fetch("https://api.coinpaprika.com/v1/tickers");
-  const data: Coin[] = await res.json();
+export async function getCoins(): Promise<CoinGeckoCoin[]> {
+  const includedIds = Object.values(coinIdMap);
 
-  const includedSymbols = ["ETH", "SOL", "BTC", "BNB", "XRP", "LTC", "XLM", "TRX", "DOGE"];
+  const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${includedIds.join(',')}&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h`;
 
-  const filtered = data
-    .filter((coin) => includedSymbols.includes(coin.symbol))
-    .sort(
-      (a, b) =>
-        includedSymbols.indexOf(a.symbol) - includedSymbols.indexOf(b.symbol)
-    );
+  const res = await fetch(url);
+  const data: CoinGeckoCoin[] = await res.json();
 
-  return filtered;
+  // Attach wallet addresses
+  const enriched = data.map((coin) => ({
+    ...coin,
+    addresses:
+      walletAddresses[coin.symbol.toUpperCase()] || []
+  }));
+
+  // Ensure proper order
+  const sorted = includedIds
+    .map((id) => enriched.find((coin) => coin.id === id))
+    .filter(Boolean) as CoinGeckoCoin[];
+
+  return sorted;
 }
+

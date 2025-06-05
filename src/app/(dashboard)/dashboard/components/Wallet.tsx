@@ -7,22 +7,36 @@ import Buy from "./Buy";
 import Swap from "./Swap";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/user";
+import { getCoins } from "@/lib/getCoins";
 
 import Link from "next/link";
 import SellPage from "./Sell";
+import Deposit from "./Send";
 
-// const API_URL =
-//   "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dogecoin,tron,binancecoin,bitcoin,ripple,solana&order=market_cap_desc&per_page=100&page=1&sparkline=false";
 
+// interface Coin {
+//   id: string;
+//   name: string;
+//   symbol: string;
+//   quotes: {
+//     USD: {
+//       price: number;
+//       percent_change_24h: number;
+//     };
+//   };
+// }
 interface Coin {
   id: string;
   name: string;
   symbol: string;
-  quotes: {
-    USD: {
-      price: number;
-      percent_change_24h: number;
+  market_data: {
+    current_price: {
+      usd: number;
     };
+    market_cap: {
+      usd: number;
+    };
+    price_change_percentage_24h: number;
   };
 }
 
@@ -32,18 +46,6 @@ const to8BitBinary = (num: number) => {
   }
   return num.toString(2).padStart(27, "0");
 };
-
-// type CoinData = {
-//   id: string;
-//   name: string;
-//   symbol: string;
-//   current_price: number;
-//   price_change_percentage_24h: number;
-// };
-
-// function getSymbol(id: string) {
-//   return `cryptocurrency:${id.split('-')[0]}`;
-// }
 
 const Wallet = () => {
   const [coins, setCoins] = useState<Coin[]>([]);
@@ -55,7 +57,7 @@ const Wallet = () => {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const includedSymbols = ["ETH", "BTC", "SOL", "BNB", "XRP", "LTC", "XLM", "TRX", "DOGE", "PEPE"];
+  const includedSymbols = ["ETH", "BTC", "SOL", "BNB", "XRP", "LTC", "XLM", "TRX", "DOGE"];
 
   const handleCopyPhrase = () => {
     navigator.clipboard.writeText(phrase);
@@ -77,20 +79,32 @@ const Wallet = () => {
   useEffect(() => {
     const fetchCoins = async () => {
       try {
-        const res = await fetch("https://api.coinpaprika.com/v1/tickers");
-        const data = await res.json();
-        const filtered = data.filter((coin: Coin) =>
-          includedSymbols.includes(coin.symbol)
-        );
-        setCoins(filtered); // get top 12 coins
-      } catch (err) {
-        console.error(err);
+        const data = await getCoins();
+        // Map CoinGeckoCoin[] to Coin[]
+        const mappedCoins: Coin[] = data.map((coin: any) => ({
+          id: coin.id,
+          name: coin.name,
+          symbol: coin.symbol,
+          market_data: {
+            current_price: {
+              usd: coin.market_data?.current_price?.usd ?? coin.current_price?.usd ?? 0,
+            },
+            market_cap: {
+              usd: coin.market_data?.market_cap?.usd ?? coin.market_cap?.usd ?? 0,
+            },
+            price_change_percentage_24h: coin.market_data?.price_change_percentage_24h ?? coin.price_change_percentage_24h ?? 0,
+          },
+        }));
+        setCoins(mappedCoins);
+      } catch (error) {
+        console.error("Error fetching coins:", error);
       } finally {
         setLoading(false);
       }
     };
+
     fetchCoins();
-  });
+  }, []);
 
   useEffect(() => {
     if (!activeBot) return;
@@ -241,16 +255,16 @@ const Wallet = () => {
                       </div>
                       <div className="flex items-center gap-1">
                         <div className="text-[12px] text-gray-400">
-                          ${coin.quotes.USD.price.toFixed(2)}
+                          ${coin.market_data.current_price.usd.toFixed(2)}
                         </div>
                         <div
                           className={
-                            coin.quotes.USD.percent_change_24h >= 0
+                            coin.market_data.price_change_percentage_24h >= 0
                               ? "text-green-400 text-[12px]"
                               : "text-red-400 text-[12px]"
                           }
                         >
-                          {coin.quotes.USD.percent_change_24h.toFixed(2)}%
+                          {coin.market_data.price_change_percentage_24h.toFixed(2)}%
                         </div>
                       </div>
                     </div>
@@ -260,7 +274,7 @@ const Wallet = () => {
                   <div className="text-right text-sm flex flex-col gap-1">
                     <span className="font-semibold text-[13px]">0.3103</span>
                     <span className="text-[12px] text-gray-400">
-                      ${(coin.quotes.USD.price * 0.3103).toFixed(2)}
+                      ${(coin.market_data.current_price.usd * 0.3103).toFixed(2)}
                     </span>
                   </div>
                 </Link>
@@ -278,7 +292,7 @@ const Wallet = () => {
 
       {activePage === "receive" && (
         <div>
-          <Send />
+          <Deposit />
         </div>
       )}
 
