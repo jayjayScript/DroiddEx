@@ -12,6 +12,7 @@ import { CoinGeckoCoin } from "@/lib/getCoins";
 import Link from "next/link";
 import SellPage from "./Sell";
 import Deposit from "./Send";
+import TransactionHistory from "@/components/TransactionHistory";
 
 interface Coin {
   id: string;
@@ -121,13 +122,13 @@ const Wallet = () => {
             "Home"
           )}
         </h1>
-        <div className="text-sm">$OFT</div>
+        <div className="text-sm text-gray-400">WEB4</div>
       </header>
 
       <div className="my-2">
-        <h2>Welcome! {email}</h2>
+        <h2 className="text-[14px] text-gray-400 font-semibold">{email}</h2>
         <div className="relative group my-4">
-          <div className="flex items-center justify-between gap-3 border border-[#2a2a2a] hover:border-gray-600 transition-colors duration-300 px-3 py-3 rounded-xl bg-gradient-to-r from-[#1a1a1a] to-[#2a2a2a] backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3 border border-[#ebb70c] hover:border-gray-600 transition-colors duration-300 px-3 rounded bg-gradient-to-r from-[#1a1a1a] to-[#ebb70c] backdrop-blur-sm">
             <div className={`overflow-auto transition-all duration-500 ease-in-out ${showFullPhrase ? "w-auto max-w-none" : "w-[200px] sm:w-40"
               }`}>
               <p className="text-[14px] sm:text-sm whitespace-nowrap p-1 font-mono text-gray-300">
@@ -144,7 +145,7 @@ const Wallet = () => {
                   icon={copied ? "solar:check-circle-bold" : "solar:copy-bold-duotone"}
                   width="20"
                   height="20"
-                  className={`transition-colors duration-200 ${copied ? "text-green-400" : "text-gray-400 group-hover/copy:text-white"
+                  className={`transition-colors duration-200 ${copied ? "text-green-400" : "text-gray-800 group-hover/copy:text-white"
                     }`}
                 />
               </button>
@@ -157,7 +158,7 @@ const Wallet = () => {
                   icon={showFullPhrase ? "bx:hide" : "bx:show-alt"}
                   width="20"
                   height="20"
-                  className="text-gray-400 group-hover/show:text-white transition-colors duration-200"
+                  className="text-gray-800 group-hover/show:text-white transition-colors duration-200"
                 />
               </button>
             </div>
@@ -187,22 +188,14 @@ const Wallet = () => {
           ))}
         </div>
 
-        {/* <div className="bg-[#2A2A2A] p-4 rounded-lg mb-4 text-sm">
-        <p>
-          Swap Solana tokens via Jupiter enabled by Rango.{" "}
-          <span className="text-[#ebb70c] underline">Start swapping →</span>
-        </p>
-      </div> */}
-
-        <div className="flex flex-col mb-4 bg-[#0000003C] hover:bg-[#00000050] p-2 px-4 rounded-lg overflow-x-hidden transition-all duration-300 border border-transparent hover:border-[#313130]">
+        <div className="flex flex-col my-4 bg-[#0000003C] hover:bg-[#00000050] p-1 px-3 rounded-lg overflow-x-hidden transition-all duration-300 border border-transparent hover:border-[#313130]">
           <div className="flex items-center">
-            <div className={`bg-[#2A2A2AE6] hover:bg-[#353535] flex items-center p-3 rounded-lg border-1 transition-all duration-500 ${activeBot ? "border-green-500 shadow-green-500/20 shadow-lg" : "border-[#eb0c0c]"
-              }`}>
+            <div className={`flex items-center p-1 rounded-lg transition-all duration-500 `}>
               <Icon
                 icon="fluent:bot-28-filled"
                 width="50"
                 height="50"
-                className={`transition-all duration-500 ${activeBot ? "text-green-500" : "text-[#eb0c0c]"
+                className={`transition-all duration-500 ${activeBot ? "text-green-500" : "text-[#ebb70c]"
                   }`}
               />
               <button
@@ -214,14 +207,14 @@ const Wallet = () => {
                   width="24"
                   height="24"
                   className={`cursor-pointer transition-all duration-300 ${activeBot
-                      ? "rotate-animation text-green-500 animate-spin"
-                      : "text-[#eb0c0c] hover:text-[#ff1a1a]"
+                    ? "rotate-animation text-green-500 animate-spin"
+                    : "text-[#ebb70c] hover:text-[#ffba1a]"
                     }`}
                 />
               </button>
             </div>
             <div
-              className={`ml-3 font-mono text-[11.4px] font-bold p-2 rounded transition-all duration-300 ${activeBot ? "text-green-500 bg-green-500/10" : "text-[#eb0c0c] bg-[#eb0c0c]/10"
+              className={`ml-3 font-mono text-[11.4px] font-bold p-2 rounded transition-all duration-300 ${activeBot ? "text-green-500 bg-green-500/10" : "text-[#ebb70c] bg-[#ebb70c]/10"
                 }`}
             >
               {binaryString}
@@ -322,6 +315,24 @@ const Wallet = () => {
             <SellPage />
           </div>
         )}
+      </div>
+      <div>
+        <div className="p-4 py-6 border-b" style={{ borderColor: '#3a3a3a' }}>
+          <div className="flex items-center space-x-3">
+            <div className="w-14 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#ebb70c' }}>
+              <Icon icon="cryptocurrency:btc" className="w-6 h-6" style={{ color: '#1a1a1a' }} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Crypto Wallet History</h1>
+              <p className="text-gray-400 mt-1">Track your crypto transactions and portfolio activity</p>
+            </div>  
+          </div>
+        </div>
+        <TransactionHistory
+          isAdmin={false}
+          pendingTransactions={[]}
+          completedTransactions={[]}
+        />
       </div>
     </div>
   );

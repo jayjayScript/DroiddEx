@@ -4,7 +4,6 @@ import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 import { UserProvider } from "@/store/user";
 import I18nProvider from "@/components/ClientI18nProvider";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 import Waker from "@/components/Waker";
 
 const geistSans = Geist({
@@ -34,7 +33,6 @@ export default function RootLayout({
       >
         <UserProvider>
           <I18nProvider>
-            <LanguageSwitcher />
             <Waker>
               {children}
             </Waker>

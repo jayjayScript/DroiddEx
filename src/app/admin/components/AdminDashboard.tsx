@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { Icon } from '@iconify/react';
+import TransactionHistory from '@/components/TransactionHistory';
 
 const cards = [
   {
@@ -32,27 +33,10 @@ const cards = [
   },
 ];
 
-const recentActivity = [
-  {
-    user: 'johndoe',
-    action: 'Requested a withdrawal',
-    time: '2 hours ago',
-  },
-  {
-    user: 'janesmith',
-    action: 'Swapped BTC to ETH',
-    time: '4 hours ago',
-  },
-  {
-    user: 'btc_whale',
-    action: 'Deposited 2 BTC',
-    time: 'Today, 9:30 AM',
-  },
-];
 
 const AdminDashboard = () => {
   return (
-    <div className="p-6 text-white">
+    <div className="p-4 text-white">
       <h1 className="text-2xl font-semibold mb-6">Admin Overview</h1>
 
       {/* Cards */}
@@ -72,22 +56,13 @@ const AdminDashboard = () => {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-[#2A2A2A] rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
-        <ul className="space-y-4">
-          {recentActivity.map((item, index) => (
-            <li
-              key={index}
-              className="flex justify-between items-center border-b border-white/10 pb-2"
-            >
-              <div>
-                <p className="font-medium">{item.user}</p>
-                <p className="text-sm text-white/70">{item.action}</p>
-              </div>
-              <span className="text-xs text-white/50">{item.time}</span>
-            </li>
-          ))}
-        </ul>
+      <div className="bg-[#1A1A1A] rounded-lg">
+        <h2 className="text-lg font-semibold mb-2 p-4">Recent Activity</h2>
+        <TransactionHistory
+          isAdmin={true}
+          pendingTransactions={[]}
+          completedTransactions={[]}
+        />
       </div>
     </div>
   );

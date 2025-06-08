@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { ChevronDown, Check, Send, Info, Copy, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
+// import Cookies from "js-cookie";
+import { Withdrawal } from "@/lib/transaction"; // Adjust path as needed
 
 const coinOptions = [
   { id: "btc", name: "Bitcoin", networks: ["Bitcoin"], icon: "₿" },
@@ -34,6 +36,7 @@ const Dropdown = ({
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex justify-between items-center p-4 rounded-xl bg-[#2A2A2A] text-white border border-[#3A3A3A] hover:border-[#ebb70c] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ebb70c]/50"
+        type="button"
       >
         <div className="flex items-center space-x-3">
           {coinData && (
@@ -89,7 +92,7 @@ const Dropdown = ({
   );
 };
 
-const Withdraw = () => {
+const Receive = () => {
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
   const [selectedCoin, setSelectedCoin] = useState(coinOptions[0]);
@@ -97,27 +100,28 @@ const Withdraw = () => {
   const [showAddress, setShowAddress] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleWithdraw = async () => {
+  const handleWithdraw = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!amount || isNaN(+amount) || +amount <= 0) {
       toast.error("Enter a valid amount");
       return;
     }
-
     if (!address.trim()) {
       toast.error("Enter a valid address");
       return;
     }
-
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      toast.success(`Withdrawing ${amount} ${selectedCoin.name} via ${selectedNetwork}`);
-      setIsLoading(false);
-      // Reset form
+    try {
+      await Withdrawal(address, +amount, selectedCoin.id, selectedNetwork);
+      toast.success(`Sent ${amount} ${selectedCoin.name} via ${selectedNetwork}`);
       setAmount("");
       setAddress("");
-    }, 2000);
+    } catch (error) {
+      toast.error("Failed to send");
+      console.log(error)
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const pasteFromClipboard = async () => {
@@ -126,8 +130,8 @@ const Withdraw = () => {
       setAddress(text);
       toast.success("Address pasted from clipboard");
     } catch (error) {
-      console.log(error)
       toast.error("Failed to paste from clipboard");
+      console.error(error, 'Failed to paste from clipboard')
     }
   };
 
@@ -150,8 +154,10 @@ const Withdraw = () => {
         </div>
 
         {/* Main Form */}
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-6 md:p-8 space-y-6">
-          
+        <form
+          className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-6 md:p-8 space-y-6"
+          onSubmit={handleWithdraw}
+        >
           {/* Amount Input */}
           <div>
             <label className="block mb-3 text-sm font-medium text-gray-300">
@@ -215,6 +221,7 @@ const Withdraw = () => {
               />
               <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
                 <button
+                  type="button"
                   onClick={() => setShowAddress(!showAddress)}
                   className="p-2 hover:bg-[#3A3A3A] rounded-lg transition-colors"
                   title={showAddress ? "Hide address" : "Show address"}
@@ -222,6 +229,7 @@ const Withdraw = () => {
                   {showAddress ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
                 <button
+                  type="button"
                   onClick={pasteFromClipboard}
                   className="p-2 hover:bg-[#3A3A3A] rounded-lg transition-colors"
                   title="Paste from clipboard"
@@ -262,7 +270,7 @@ const Withdraw = () => {
 
           {/* Send Button */}
           <button
-            onClick={handleWithdraw}
+            type="submit"
             disabled={isLoading || !amount || !address}
             className="w-full bg-[#ebb70c] hover:bg-[#ffc107] disabled:bg-[#ebb70c]/50 disabled:cursor-not-allowed text-black font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] text-lg shadow-lg flex items-center justify-center space-x-2"
           >
@@ -294,10 +302,10 @@ const Withdraw = () => {
               </div>
             </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
 };
 
-export default Withdraw;
+export default Receive;
