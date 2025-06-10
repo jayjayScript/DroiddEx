@@ -69,3 +69,36 @@ export async function getAllUsers(): Promise<user[]> {
         return [];
     }
 }
+
+export async function getUserById(id: string): Promise<user | null> {
+  try {
+    const adminToken = Cookies.get('adminToken');
+    if (!adminToken) throw new Error("Admin Token missing");
+    const response = await api.get(`/admin/users/${id}`, {
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error, 'Failed to get user');
+    return null;
+  }
+}
+
+export const updateUser = async (email: string, updateData: Record<string, unknown>) => {
+
+  try {
+    const adminToken = Cookies.get('adminToken');
+    if (!adminToken) throw new Error("Admin Token missing");
+    const response = await api.patch(`/admin/users/${email}`, updateData, {
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw error;
+  }
+};

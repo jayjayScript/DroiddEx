@@ -2,9 +2,11 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import TransactionHistory from '@/components/TransactionHistory';
+import Cookies from 'js-cookie';
+
 
 const cards = [
   {
@@ -35,6 +37,10 @@ const cards = [
 
 
 const AdminDashboard = () => {
+  useEffect(() => {
+    const token = Cookies.get('adminToken')
+    console.log(token);
+  })
   return (
     <div className="p-4 text-white">
       <h1 className="text-2xl font-semibold mb-6">Admin Overview</h1>

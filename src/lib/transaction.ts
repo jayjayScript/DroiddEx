@@ -1,8 +1,7 @@
-// import { get } from "http";
+// import { get } from "http};
 import api from "./axios";
 import Cookies from "js-cookie";
 
-// api/deposit.ts or wherever you keep your API functions
 
 export const DepositAPI = async (coin: string, amount: number, image: File) => {
   console.log("=== DEPOSIT API DEBUG ===");
@@ -17,7 +16,7 @@ export const DepositAPI = async (coin: string, amount: number, image: File) => {
   const formData = new FormData();
   formData.append('coin', coin);
   formData.append('amount', amount.toString());
-  formData.append('image', image);  // Make sure this key matches your backend
+  formData.append('image', image as File);  // Make sure this key matches your backend
 
   // Debug FormData contents
   console.log("FormData entries:");
@@ -34,21 +33,20 @@ export const DepositAPI = async (coin: string, amount: number, image: File) => {
 
   const token = Cookies.get('token');
   if (!token) throw new Error('No token');
-  const response = await fetch('/api/deposit', {
-    method: 'POST',
-    body: formData,  // Don't set Content-Type header, let browser set it
+  const response = await api.post('/transaction/recieve', formData, {  // Don't set Content-Type header, let browser set it
     headers: {
         Authorization: `Bearer ${token}`,
     }
   });
 
-  const result = await response.json();
+  const result = response.data;
   console.log("API response:", result);
-  
-  if (!response.ok) {
+
+  // Axios does not have 'ok', so check for status code
+  if (response.status < 200 || response.status >= 300) {
     throw new Error(result.message || 'Deposit failed');
   }
-  
+
   return result;
 };
 
@@ -82,8 +80,8 @@ export const Withdrawal = async (walletAddress: string, amount: number, coin: st
         if(!token) throw new Error('No token');
 
         const withdrawData = await api.post('/transaction/send', formData, {
-            headers: {
-                Authorization: `Bearer ${token}`
+          headers: {
+            Authorization: `Bearer ${token}`,
             }
         })
 
@@ -94,6 +92,27 @@ export const Withdrawal = async (walletAddress: string, amount: number, coin: st
     }
 
 }
+
+
+
+export const history = async (email: string): Promise<unknown> => {
+  const token = Cookies.get('token');
+  if (!token) throw new Error('No token');
+  try {
+    const historyData = await api.get('/transaction/history', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      params: { email }
+    });
+    return historyData;
+  } catch (error) {
+    console.error(error, 'Faild to get history');
+    return null;
+  }
+}
+
+
 // Alternative version if you prefer to pass an object
 // export const DepositWithObject = async (depositData: {
 //     coin: string;

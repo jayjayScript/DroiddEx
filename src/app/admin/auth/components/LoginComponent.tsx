@@ -22,7 +22,7 @@ const LoginComponent = () => {
   };
 
   function handleLoginSuccess(token: string) {
-    Cookies.set('token', token, {
+    Cookies.set('adminToken', token, {
       expires: 7, // days
       secure: true,
       sameSite: 'lax',
@@ -36,7 +36,8 @@ const LoginComponent = () => {
 
     try {
       const data = await adminLogin(form.email, form.password); // treat password as phrase
-      handleLoginSuccess(data.token)
+      handleLoginSuccess(data.adminToken)
+      console.log(data)
       setLoading(false);
 
       toast.success('Login Successful!')

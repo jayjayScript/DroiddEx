@@ -1,12 +1,11 @@
 // app/deposit/page.tsx
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, ChangeEvent, FormEvent } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { walletAddresses } from "@/lib/wallet";
 import { coinIdMap } from "@/lib/wallet";
-import { DepositAPI } from "@/lib/transaction";
 
 // Types
 type WalletAddress = {
@@ -27,6 +26,15 @@ type CoinDropdownProps = {
   selected: CoinData;
   onSelect: (coin: CoinData) => void;
 };
+
+// Form data interface
+interface DepositFormData {
+  amount: string;
+  coin: string;
+  image: File | null;
+  email: string;
+  note: string;
+}
 
 // Icon map
 const iconMap: Record<string, string> = {
@@ -87,8 +95,8 @@ const CoinDropdown = ({ coins, selected, onSelect }: CoinDropdownProps) => {
                   type="button"
                   onClick={() => handleSelect(coin)}
                   className={`w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors duration-150 ${selected.symbol === coin.symbol
-                      ? "bg-[#2A2A2A] border-r-2 border-[#ebb70c]"
-                      : ""
+                    ? "bg-[#2A2A2A] border-r-2 border-[#ebb70c]"
+                    : ""
                     }`}
                 >
                   <Icon icon={coin.icon} width={24} height={24} />
@@ -130,12 +138,20 @@ const Deposit = () => {
     };
   });
 
-  // All hooks at the top
+  // State for selected coin and UI
   const [selected, setSelected] = useState<CoinData>(coins[0]);
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState<string>("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Form data state
+  const [myFormData, setMyFormData] = useState<DepositFormData>({
+    amount: "",
+    coin: "",
+    image: null,
+    email: "",
+    note: "",
+  });
 
   // Copy address handler
   const handleCopy = (address: string) => {
@@ -143,10 +159,18 @@ const Deposit = () => {
     toast.success("Wallet address copied!");
   };
 
+  // Handle amount input change
+  const handleAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setMyFormData(prev => ({
+      ...prev,
+      amount: e.target.value
+    }));
+  };
+
   // File input handler
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>): void {
-    const file = event.target.files?.[0];
-    
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+
     console.log("=== FILE SELECTION DEBUG ===");
     console.log("Raw file from event:", file);
     console.log("File details:", file ? {
@@ -155,116 +179,120 @@ const Deposit = () => {
       type: file.type,
       lastModified: file.lastModified
     } : "No file");
-    
-    if (file) {
-      setFileName(file.name);
-      setSelectedFile(file);
-      console.log("File stored in state successfully");
-    } else {
-      setFileName("");
-      setSelectedFile(null);
-      console.log("No file selected");
-    }
-  }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    if (file) {
+      setMyFormData(prev => ({
+        ...prev,
+        image: file,
+      }));
+      setFileName(file.name);
+      console.log("✅ File stored in form data successfully");
+    } else {
+      setMyFormData(prev => ({
+        ...prev,
+        image: null,
+      }));
+      setFileName("");
+      console.log("❌ No file selected");
+    }
+  };
+
+  // Handle coin selection change
+  const handleCoinSelect = (coin: CoinData) => {
+    setSelected(coin);
+    setMyFormData(prev => ({
+      ...prev,
+      coin: coin.symbol
+    }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setIsLoading(true);
 
     console.log("=== FORM SUBMISSION DEBUG ===");
-    
-    // Get form data
-    const formData = new FormData(e.currentTarget);
-    const amount = formData.get('amount') as string;
-    
-    // Try multiple methods to get the file
-    let imageFile: File | null = null;
-    
-    // Method 1: FormData
-    const formDataFile = formData.get('image') as File;
-    console.log("1. FormData file:", formDataFile);
-    console.log("   - instanceof File:", formDataFile instanceof File);
-    console.log("   - size:", formDataFile?.size);
-    console.log("   - name:", formDataFile?.name);
-    
-    if (formDataFile && formDataFile instanceof File && formDataFile.size > 0) {
-      imageFile = formDataFile;
-      console.log("✅ Using FormData file");
-    }
-    
-    // Method 2: React state
-    if (!imageFile && selectedFile) {
-      console.log("2. State file:", selectedFile);
-      imageFile = selectedFile;
-      console.log("✅ Using state file");
-    }
-    
-    // Method 3: Direct DOM access
-    if (!imageFile && fileInputRef.current?.files?.[0]) {
-      console.log("3. Ref file:", fileInputRef.current.files[0]);
-      imageFile = fileInputRef.current.files[0];
-      console.log("✅ Using ref file");
-    }
-    
-    console.log("Final imageFile:", imageFile);
-    
+    console.log("Form data state:", myFormData);
+
     // Validation
-    if (!amount || parseFloat(amount) <= 0) {
+    if (!myFormData.amount || parseFloat(myFormData.amount) <= 0) {
       toast.error("Please enter a valid amount.");
       setIsLoading(false);
       return;
     }
 
-    if (!imageFile) {
+    if (!myFormData.image) {
       toast.error("Please select an image file.");
       setIsLoading(false);
       return;
     }
 
-    if (imageFile.size === 0) {
+    if (myFormData.image.size === 0) {
       toast.error("Selected file is empty.");
       setIsLoading(false);
       return;
     }
 
-    // File type validation
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-    if (!validTypes.includes(imageFile.type)) {
+    if (!validTypes.includes(myFormData.image.type)) {
       toast.error("Please upload a valid image file (PNG, JPG, JPEG)");
       setIsLoading(false);
       return;
     }
 
-    if (imageFile.size > 5 * 1024 * 1024) {
+    if (myFormData.image.size > 5 * 1024 * 1024) {
       toast.error("File size must be less than 5MB");
       setIsLoading(false);
       return;
     }
 
+    // Create FormData object for API submission
+    const formData = new FormData();
+    formData.append('amount', myFormData.amount);
+    formData.append('coin', selected.symbol);
+    formData.append('image', myFormData.image);
+    formData.append('email', myFormData.email);
+    formData.append('note', myFormData.note);
+
     console.log("=== API CALL DEBUG ===");
-    console.log("Calling API with:", {
+    console.log("Submitting FormData with:", {
+      amount: myFormData.amount,
       coin: selected.symbol,
-      amount: parseFloat(amount),
-      imageFile: {
-        name: imageFile.name,
-        size: imageFile.size,
-        type: imageFile.type
-      }
+      image: myFormData.image?.name,
+      email: myFormData.email,
+      note: myFormData.note
     });
 
     try {
-      // Make sure your DepositAPI function receives the File object correctly
-      const result = await DepositAPI(selected.symbol, parseFloat(amount), imageFile);
-      
+      // Replace with your actual API endpoint
+      const response = await fetch('/api/deposit', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const result = await response.json();
       console.log("API result:", result);
       toast.success("Deposit request submitted successfully!");
 
-      // Reset form
-      e.currentTarget.reset();
+      // Clear form data
+      setMyFormData({
+        amount: "",
+        coin: "",
+        image: null,
+        email: "",
+        note: "",
+      });
       setFileName("");
-      setSelectedFile(null);
-      
-      return result;
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
     } catch (error) {
       console.error('Deposit API Error:', error);
       toast.error("Failed to submit deposit request. Please try again.");
@@ -297,7 +325,7 @@ const Deposit = () => {
                 <CoinDropdown
                   coins={coins}
                   selected={selected}
-                  onSelect={setSelected}
+                  onSelect={handleCoinSelect}
                 />
               </div>
 
@@ -311,6 +339,8 @@ const Deposit = () => {
                     type="number"
                     id="amount"
                     name="amount"
+                    value={myFormData.amount}
+                    onChange={handleAmountChange}
                     placeholder="0.00"
                     min="0"
                     step="any"
@@ -355,7 +385,7 @@ const Deposit = () => {
 
               {/* File Upload */}
               <div className="bg-[#1A1A1A] rounded-xl p-6 border border-[#2A2A2A]">
-                <label className="block text-sm font-medium text-gray-300 mb-3">
+                <label htmlFor="image" className="block text-sm font-medium text-gray-300 mb-3">
                   Transaction Proof
                 </label>
                 <div className="relative">
@@ -366,14 +396,20 @@ const Deposit = () => {
                     name="image"
                     accept="image/png, image/jpeg, image/jpg"
                     className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                    onChange={handleFileChange}
+                    onChange={handleImageChange}
                   />
-                  <div className={`flex flex-col items-center justify-center bg-[#2A2A2A] border-2 border-dashed rounded-lg p-8 transition-all duration-200 cursor-pointer hover:bg-[#333] ${fileName ? 'border-green-500 bg-green-500/5' : 'border-[#444] hover:border-[#ebb70c]'
-                    }`}>
+                  <label
+                    htmlFor="image"
+                    className={`flex flex-col items-center justify-center bg-[#2A2A2A] border-2 border-dashed rounded-lg p-8 transition-all duration-200 cursor-pointer hover:bg-[#333] ${fileName
+                        ? 'border-green-500 bg-green-500/5'
+                        : 'border-[#444] hover:border-[#ebb70c]'
+                      }`}
+                  >
                     <div className="mb-4">
                       <Icon
                         icon={fileName ? "ic:baseline-check-circle" : "ic:baseline-photo"}
-                        className={`text-6xl ${fileName ? 'text-green-400' : 'text-[#ebb70c]'}`}
+                        className={`text-6xl ${fileName ? 'text-green-400' : 'text-[#ebb70c]'
+                          }`}
                       />
                     </div>
                     <div className="text-center">
@@ -384,13 +420,16 @@ const Deposit = () => {
                         {fileName || 'Click to select a screenshot (PNG, JPG, JPEG)'}
                       </p>
                     </div>
-                  </div>
+                  </label>
                 </div>
                 {fileName && (
                   <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                     <div className="flex items-center space-x-2">
                       <Icon icon="ic:baseline-check" className="text-green-400" />
-                      <span className="text-green-400 text-sm font-medium">
+                      <span
+                        className="text-green-400 text-sm font-medium truncate max-w-xs"
+                        title={fileName}
+                      >
                         {fileName}
                       </span>
                     </div>

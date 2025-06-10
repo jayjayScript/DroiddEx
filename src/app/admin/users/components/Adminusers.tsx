@@ -5,6 +5,7 @@ import { Search, Users, Eye, DollarSign, UserCheck, UserX, Filter, Edit, Trash2 
 import { useRouter } from 'next/navigation';
 import { getAllUsers } from '@/lib/admin';
 import toast from 'react-hot-toast';
+// import Cookies from 'js-cookie';
 
 const AdminUsers = () => {
   const [search, setSearch] = useState('');
@@ -32,91 +33,27 @@ const AdminUsers = () => {
   };
 
   useEffect(() => {
-  const fetchUsers = async () => {
-    try {
-      const getusers = await getAllUsers();
-      const usersList = getusers?.map(user => ({
-        fullname: user.fullname,
-        email: user.email,
-        balance: user.balance,
-        status: user.isVerified, // Make sure this matches your filter values
-        joinDate: user.joinDate,
-        username: user.fullname,
-        id: user._id,
-      }));
-      setUsers(usersList);
-    } catch (error) {
-      // handle error
-      toast.error('Failed to get users')
-      console.log(error)
-    }
-  };
-  fetchUsers();
-}, []);
+    const fetchUsers = async () => {
+      try {
+        const getusers = await getAllUsers();
+        const usersList = getusers?.map(user => ({
+          fullname: user.fullname,
+          email: user.email,
+          balance: user.balance,
+          status: user.isVerified, // Make sure this matches your filter values
+          joinDate: user.joinDate,
+          id: user._id,
+        }));
+        setUsers(usersList);
+      } catch (error) {
+        // handle error
+        toast.error('Failed to get users')
+        console.log(error)
+      }
+    };
+    fetchUsers();
+  }, []);
 
-  // Sample user data
-  // const usersList = [
-  //   {
-  //     id: 1,
-  //     username: 'john_crypto',
-  //     email: 'john@example.com',
-  //     balance: '$12,450.80',
-  //     status: 'verified',
-  //     joinDate: '2024-01-15',
-  //     lastActive: '2 hours ago',
-  //     avatar: 'JC'
-  //   },
-  //   {
-  //     id: 2,
-  //     username: 'sarah_trader',
-  //     email: 'sarah@example.com',
-  //     balance: '$8,750.25',
-  //     status: 'verified',
-  //     joinDate: '2024-02-08',
-  //     lastActive: '1 day ago',
-  //     avatar: 'ST'
-  //   },
-  //   {
-  //     id: 3,
-  //     username: 'mike_hodl',
-  //     email: 'mike@example.com',
-  //     balance: '$25,890.50',
-  //     status: 'unverified',
-  //     joinDate: '2023-11-22',
-  //     lastActive: '1 week ago',
-  //     avatar: 'MH'
-  //   },
-  //   {
-  //     id: 4,
-  //     username: 'crypto_alice',
-  //     email: 'alice@example.com',
-  //     balance: '$5,620.75',
-  //     status: 'verified',
-  //     joinDate: '2024-03-10',
-  //     lastActive: '5 minutes ago',
-  //     avatar: 'CA'
-  //   },
-  //   {
-  //     id: 5,
-  //     username: 'btc_bob',
-  //     email: 'bob@example.com',
-  //     balance: '$0.00',
-  //     status: 'suspended',
-  //     joinDate: '2024-01-05',
-  //     lastActive: '2 weeks ago',
-  //     avatar: 'BB'
-  //   },
-  //   {
-  //     id: 6,
-  //     username: 'eth_emma',
-  //     email: 'emma@example.com',
-  //     balance: '$18,920.30',
-  //     status: 'verified',
-  //     joinDate: '2023-12-18',
-  //     lastActive: '30 minutes ago',
-  //     avatar: 'EE'
-  //   }
-  // ];
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch = (user.fullname ?? '').toLowerCase().includes(search.toLowerCase()) ||
@@ -255,13 +192,16 @@ const AdminUsers = () => {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-white font-medium text-lg">{user.username}</h3>
+                      <div className='flex items-center justify-between'>
+                        <h3 className="text-white font-medium text-lg">{user.fullname ? user.fullname : ''}</h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(user.status)}`}>
+                          {getStatusIcon(user.status)}
+                          <span>{user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Unknown'}</span>
+                        </span>
+                      </div>
                       <p className="text-gray-400 text-sm">{user.email}</p>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(user.status)}`}>
-                      {getStatusIcon(user.status)}
-                      <span>{user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Unknown'}</span>
-                    </span>
+
                   </div>
 
                   {/* User Details */}

@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, User, Calendar, Clock, DollarSign,Edit3, AlertCircle, Eye, EyeOff, Copy, Coins } from "lucide-react";
+import { ArrowLeft, User, Calendar, Clock, DollarSign, Edit3, AlertCircle, Eye, EyeOff, Copy } from "lucide-react";
 import TransactionHistory from "@/components/TransactionHistory";
-
-// Mock useParams hook for demonstration
-const useParams = () => ({ id: "1" });
+import { useParams } from "next/navigation";
+import { getAllUsers } from "@/lib/admin";
+import type { user as BackendUser } from "@/lib/admin";
+import Link from "next/link";
+import { updateUser } from "@/lib/updateUser";
 
 interface Transaction {
   id: string;
@@ -20,7 +22,7 @@ interface Transaction {
 interface CoinHolding {
   symbol: string;
   name: string;
-  amount: string;
+  amount: string | UsdtWallet | UsdtWallet[];
 }
 
 interface User {
@@ -33,11 +35,17 @@ interface User {
   joinDate?: string;
   lastActive?: string;
   avatar?: string;
-  seedPhrase: string;
+  phrase: string;
   coinHoldings: CoinHolding[];
 }
 
-// Coin mapping
+// Define USDT wallet type
+interface UsdtWallet {
+  address: string;
+  name: string;
+  amount: string;
+}
+
 const COINS = {
   BTC: "bitcoin",
   ETH: "ethereum",
@@ -57,32 +65,23 @@ const COINS = {
   PEPE: "pepe"
 };
 
-// Mock dummy users data
-const dummyUsers = [
-  {
-    id: "1",
-    username: "john_crypto",
-    email: "john@example.com",
-    balance: "12450.80",
-    status: "active",
-    joinDate: "2024-01-15",
-    lastActive: "2 hours ago",
-    avatar: "JC",
-    seedPhrase: "abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve",
-    coinHoldings: [
-      { symbol: "BTC", name: "bitcoin", amount: "0.25" },
-      { symbol: "ETH", name: "ethereum", amount: "5.8" },
-      { symbol: "SOL", name: "solana", amount: "120.5" },
-      { symbol: "USDT", name: "tether", amount: "1000.0" }
-    ],
-    recentTransactions: [
-      { id: "1", amount: "$500.00", type: "Deposit", date: "2024-06-05" },
-      { id: "2", amount: "0.05 BTC", type: "Buy", date: "2024-06-04", coin: "BTC" },
-      { id: "3", amount: "2.5 ETH", type: "Sell", date: "2024-06-03", coin: "ETH" },
-      { id: "4", amount: "50 SOL", type: "Swap", date: "2024-06-02", fromCoin: "USDT", toCoin: "SOL" },
-    ]
-  }
-];
+// API function to update user
+// const updateUser = async (email: string, updateData: any) => {
+
+//   try {
+//     const adminToken = Cookies.get('adminToken');
+//     if (!adminToken) throw new Error("Admin Token missing");
+//     const response = await api.patch(`/admin/users/${email}`, updateData, {
+//       headers: {
+//         Authorization: `Bearer ${adminToken}`,
+//       },
+//     });
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error updating user:', error);
+//     throw error;
+//   }
+// };
 
 export default function UserDetailPage() {
   const { id } = useParams();
@@ -95,23 +94,40 @@ export default function UserDetailPage() {
   type EditValues = {
     [key: string]: string;
   };
-
   const [editValues, setEditValues] = useState<EditValues>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const foundUser = dummyUsers.find((u) => u.id === id) as User;
-    if (foundUser) {
-      setUser({
-        ...foundUser,
-        balance: typeof foundUser.balance === "string" ? foundUser.balance : String(foundUser.balance),
-        status: foundUser.status as "active" | "suspended" | "banned" | "inactive",
-        recentTransactions: foundUser.recentTransactions ?? [],
-        coinHoldings: foundUser.coinHoldings ?? [],
-        seedPhrase: foundUser.seedPhrase ?? ""
-      });
-    } else {
-      setUser(null);
+    async function fetchUser() {
+      setLoading(true);
+      // Fetch all users and find by _id
+      const allUsers: BackendUser[] = await getAllUsers();
+      const foundUser = allUsers.find(u => u._id === id);
+      if (foundUser) {
+        setUser({
+          id: foundUser._id,
+          username: foundUser.fullname || foundUser.email || "",
+          email: foundUser.email,
+          balance: typeof foundUser.balance === "string" ? foundUser.balance : String(foundUser.balance ?? "0"),
+          status: (foundUser.isVerified as "active" | "suspended" | "banned" | "inactive") || "inactive",
+          recentTransactions: [], // Map if available
+          joinDate: foundUser.joinDate,
+          lastActive: "", // Map if available
+          avatar: "", // Map if available
+          phrase: foundUser.phrase,
+          coinHoldings: Object.keys(COINS).map(symbol => ({
+            symbol,
+            name: COINS[symbol as keyof typeof COINS],
+            amount: foundUser.walletAddresses[symbol as keyof typeof foundUser.walletAddresses]?.toString?.() ?? "0"
+          }))
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
     }
+    fetchUser();
   }, [id]);
 
   const getStatusColor = (status: string) => {
@@ -128,31 +144,76 @@ export default function UserDetailPage() {
     }
   };
 
-  const handleAdjustment = () => {
+  const handleAdjustment = async () => {
     const amount = parseFloat(adjustAmount);
     if (isNaN(amount)) return alert("Enter a valid amount");
+    if (!user) return;
 
-    const updatedHoldings = [...user!.coinHoldings];
-    const existingCoinIndex = updatedHoldings.findIndex(coin => coin.symbol === selectedCoin);
+    setSaving(true);
+    try {
+      const updatedHoldings = [...user.coinHoldings];
+      const existingCoinIndex = updatedHoldings.findIndex(coin => coin.symbol === selectedCoin);
 
-    if (existingCoinIndex >= 0) {
-      const currentAmount = parseFloat(updatedHoldings[existingCoinIndex].amount);
-      updatedHoldings[existingCoinIndex].amount = (currentAmount + amount).toString();
-    } else {
-      updatedHoldings.push({
-        symbol: selectedCoin,
-        name: COINS[selectedCoin as keyof typeof COINS],
-        amount: amount.toString()
+      if (existingCoinIndex >= 0) {
+        let currentAmount = 0;
+        if (typeof updatedHoldings[existingCoinIndex].amount === 'string') {
+          currentAmount = parseFloat(updatedHoldings[existingCoinIndex].amount);
+        } else if (Array.isArray(updatedHoldings[existingCoinIndex].amount)) {
+          // If USDT is an array, sum all wallet amounts
+          currentAmount = (updatedHoldings[existingCoinIndex].amount as UsdtWallet[]).reduce((sum, w) => sum + parseFloat(w.amount || '0'), 0);
+        } else if (typeof updatedHoldings[existingCoinIndex].amount === 'object' && updatedHoldings[existingCoinIndex].amount !== null) {
+          // If USDT is a single object
+          currentAmount = parseFloat((updatedHoldings[existingCoinIndex].amount as UsdtWallet).amount || '0');
+        }
+        updatedHoldings[existingCoinIndex].amount = (currentAmount + amount).toString();
+      } else {
+        updatedHoldings.push({
+          symbol: selectedCoin,
+          name: COINS[selectedCoin as keyof typeof COINS],
+          amount: amount.toString()
+        });
+      }
+
+      // Prepare wallet addresses update
+      const walletAddresses: { [key: string]: string | UsdtWallet | UsdtWallet[] } = {};
+      updatedHoldings.forEach(holding => {
+        if (holding.symbol === "USDT" && Array.isArray(holding.amount)) {
+          walletAddresses[holding.symbol] = (holding.amount as UsdtWallet[]).map((wallet: UsdtWallet) => ({
+            address: wallet.address || "",
+            name: wallet.name || "",
+            amount: wallet.amount || "0"
+          }));
+        } else if (holding.symbol === "USDT" && typeof holding.amount === "object" && holding.amount !== null) {
+          const amt = holding.amount as UsdtWallet;
+          walletAddresses[holding.symbol] = {
+            address: amt.address || "",
+            name: amt.name || "",
+            amount: amt.amount || "0"
+          };
+        } else {
+          walletAddresses[holding.symbol] = typeof holding.amount === 'string' ? holding.amount : '';
+        }
       });
-    }
+      // Update via API
+      await updateUser(user.email, {
+        walletAddresses,
+        adjustmentReason
+      });
 
-    setUser({
-      ...user!,
-      coinHoldings: updatedHoldings
-    });
-    setAdjustAmount("");
-    setAdjustmentReason("");
-    alert(`${selectedCoin} balance adjusted successfully.\nReason: ${adjustmentReason}`);
+      setUser({
+        ...user,
+        coinHoldings: updatedHoldings
+      });
+
+      setAdjustAmount("");
+      setAdjustmentReason("");
+      alert(`${selectedCoin} balance adjusted successfully.\nReason: ${adjustmentReason}`);
+    } catch (error) {
+      alert("Failed to adjust balance. Please try again.");
+      console.error("Error adjusting balance:", error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const startEditing = (field: string, currentValue: string) => {
@@ -160,16 +221,81 @@ export default function UserDetailPage() {
     setEditValues({ ...editValues, [field]: currentValue });
   };
 
-  const saveEdit = (field: string) => {
-    if (field === 'coinHolding') {
-      const [index] = editValues[field].split('-');
-      const updatedHoldings = [...user!.coinHoldings];
-      updatedHoldings[parseInt(index)].amount = editValues[`${field}-value`];
-      setUser({ ...user!, coinHoldings: updatedHoldings });
-    } else {
-      setUser({ ...user!, [field]: editValues[field] });
+  const saveEdit = async (field: string) => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      // Handle coin holding edits with dynamic field keys
+      if (field.startsWith('coinHolding-')) {
+        // field format: coinHolding-SYMBOL-INDEX
+        const parts = field.split('-');
+        if (parts.length < 3) throw new Error('Invalid coin holding field key');
+        const symbol = parts[1];
+        const index = parseInt(parts[2], 10);
+        const valueKey = `${field}-value`;
+        const newValue = editValues[valueKey];
+        if (isNaN(index) || !symbol || newValue === undefined) throw new Error('Invalid coin holding edit');
+        const updatedHoldings = [...user.coinHoldings];
+        updatedHoldings[index] = {
+          ...updatedHoldings[index],
+          amount: newValue
+        };
+        // Prepare wallet addresses update
+        const walletAddresses: { [key: string]: string | UsdtWallet | UsdtWallet[] } = {};
+        updatedHoldings.forEach(holding => {
+          if (holding.symbol === "USDT" && Array.isArray(holding.amount)) {
+            walletAddresses[holding.symbol] = holding.amount as UsdtWallet[];
+          } else if (holding.symbol === "USDT" && typeof holding.amount === "object" && holding.amount !== null) {
+            walletAddresses[holding.symbol] = holding.amount as UsdtWallet;
+          } else {
+            walletAddresses[holding.symbol] = typeof holding.amount === 'string' ? holding.amount : '';
+          }
+        });
+        await updateUser(user.email, { walletAddresses });
+        setUser({ ...user, coinHoldings: updatedHoldings });
+      } else {
+        // Use const and proper type for updateData
+        const updateData: { [key: string]: unknown } = {};
+
+        // Map frontend field names to backend field names
+        switch (field) {
+          case 'username':
+            updateData.fullname = editValues[field];
+            break;
+          case 'email':
+            updateData.email = editValues[field];
+            break;
+          case 'balance':
+            updateData.balance = Number(editValues[field]); // Ensure balance is a number
+            break;
+          case 'seedPhrase':
+            updateData.phrase = editValues[field];
+            break;
+          case 'status':
+            updateData.isVerified = editValues[field];
+            break;
+          default:
+            updateData[field] = editValues[field];
+        }
+
+        await updateUser(user.email, updateData);
+
+        // Update local state
+        if (field === 'seedPhrase') {
+          setUser({ ...user, phrase: editValues[field] });
+        } else {
+          setUser({ ...user, [field]: editValues[field] });
+        }
+      }
+
+      setEditingField(null);
+      alert("Changes saved successfully!");
+    } catch (error) {
+      alert("Failed to save changes. Please try again.");
+      console.error("Error saving changes:", error);
+    } finally {
+      setSaving(false);
     }
-    setEditingField(null);
   };
 
   const cancelEdit = () => {
@@ -178,9 +304,19 @@ export default function UserDetailPage() {
   };
 
   const copySeedPhrase = () => {
-    navigator.clipboard.writeText(user!.seedPhrase);
-    alert("Seed phrase copied to clipboard!");
+    if (user?.phrase) {
+      navigator.clipboard.writeText(user.phrase);
+      alert("Seed phrase copied to clipboard!");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto p-6 min-h-screen flex items-center justify-center" style={{ backgroundColor: '#1a1a1a' }}>
+        <div className="text-gray-400 text-lg">Loading user data...</div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -198,10 +334,10 @@ export default function UserDetailPage() {
     <div className="max-w-7xl mx-auto p-4 sm:p-6 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
       {/* Header */}
       <div className="flex items-center space-x-4 mb-6">
-        <button className="p-2 rounded-lg transition-colors duration-200"
+        <Link href="/admin/users" className="p-2 rounded-lg transition-colors duration-200"
           style={{ backgroundColor: '#2a2a2a' }}>
           <ArrowLeft className="w-5 h-5 text-gray-400" />
-        </button>
+        </Link>
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white">User Details</h1>
           <p className="text-gray-400 mt-1">Manage user account and crypto holdings</p>
@@ -226,9 +362,16 @@ export default function UserDetailPage() {
                         value={editValues.username}
                         onChange={(e) => setEditValues({ ...editValues, username: e.target.value })}
                         className="text-center bg-gray-800 text-white rounded px-2 py-1"
+                        disabled={saving}
                       />
-                      <button onClick={() => saveEdit('username')} className="text-green-400">✓</button>
-                      <button onClick={cancelEdit} className="text-red-400">✗</button>
+                      <button
+                        onClick={() => saveEdit('username')}
+                        className="text-green-400"
+                        disabled={saving}
+                      >
+                        {saving ? "..." : "✓"}
+                      </button>
+                      <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
                     </div>
                   ) : (
                     <h2 className="text-xl font-bold text-white cursor-pointer hover:text-yellow-400"
@@ -244,9 +387,16 @@ export default function UserDetailPage() {
                         value={editValues.email}
                         onChange={(e) => setEditValues({ ...editValues, email: e.target.value })}
                         className="text-center bg-gray-800 text-white rounded px-2 py-1 text-sm"
+                        disabled={saving}
                       />
-                      <button onClick={() => saveEdit('email')} className="text-green-400">✓</button>
-                      <button onClick={cancelEdit} className="text-red-400">✗</button>
+                      <button
+                        onClick={() => saveEdit('email')}
+                        className="text-green-400"
+                        disabled={saving}
+                      >
+                        {saving ? "..." : "✓"}
+                      </button>
+                      <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
                     </div>
                   ) : (
                     <p className="text-gray-400 text-sm cursor-pointer hover:text-yellow-400"
@@ -275,10 +425,17 @@ export default function UserDetailPage() {
                         <input
                           value={editValues.balance}
                           onChange={(e) => setEditValues({ ...editValues, balance: e.target.value })}
-                          className="bg-gray-800 text-white rounded px-2 py-1 text-xl font-bold"
+                          className="bg-gray-800 text-white rounded px-2 py-1 text-xl font-bold w-[80%]"
+                          disabled={saving}
                         />
-                        <button onClick={() => saveEdit('balance')} className="text-green-400">✓</button>
-                        <button onClick={cancelEdit} className="text-red-400">✗</button>
+                        <button
+                          onClick={() => saveEdit('balance')}
+                          className="text-green-400"
+                          disabled={saving}
+                        >
+                          {saving ? "..." : "✓"}
+                        </button>
+                        <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
                       </div>
                     ) : (
                       <p className="text-2xl font-bold text-white cursor-pointer hover:text-yellow-400"
@@ -338,22 +495,29 @@ export default function UserDetailPage() {
                     value={editValues.seedPhrase}
                     onChange={(e) => setEditValues({ ...editValues, seedPhrase: e.target.value })}
                     className="w-full bg-gray-800 text-white rounded px-3 py-2 text-sm h-20 resize-none"
+                    disabled={saving}
                   />
                   <div className="flex gap-2">
-                    <button onClick={() => saveEdit('seedPhrase')} className="text-green-400">Save</button>
-                    <button onClick={cancelEdit} className="text-red-400">Cancel</button>
+                    <button
+                      onClick={() => saveEdit('seedPhrase')}
+                      className="text-green-400"
+                      disabled={saving}
+                    >
+                      {saving ? "Saving..." : "Save"}
+                    </button>
+                    <button onClick={cancelEdit} className="text-red-400" disabled={saving}>Cancel</button>
                   </div>
                 </div>
               ) : (
                 <div
                   className="p-3 rounded-lg text-sm cursor-pointer hover:bg-gray-700"
                   style={{ backgroundColor: '#1a1a1a' }}
-                  onClick={() => startEditing('seedPhrase', user.seedPhrase)}
+                  onClick={() => startEditing('seedPhrase', user.phrase)}
                 >
                   {showSeedPhrase ? (
-                    <span className="text-yellow-300">{user.seedPhrase} <Edit3 className="w-3 h-3 inline ml-1" /></span>
+                    <span className="text-yellow-300 flex gap-1 items-center"><Edit3 className="w-[40px] h-8 inline ml-1" /><p className="overflow-x-auto">{user.phrase}</p></span>
                   ) : (
-                    <span className="text-gray-400">••••••••••••••••••••••••••••••••••••••••</span>
+                    <div className="text-gray-400 overflow-x-auto">••••••••••••••••••••••••••••••••••••••••</div>
                   )}
                 </div>
               )}
@@ -363,57 +527,6 @@ export default function UserDetailPage() {
 
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Crypto Holdings */}
-          <div className="rounded-xl shadow-sm border" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
-            <div className="p-6 border-b" style={{ borderColor: '#3a3a3a' }}>
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: '#ebb70c' }}>
-                  <Coins className="w-4 h-4" style={{ color: '#1a1a1a' }} />
-                </div>
-                <h3 className="text-lg font-semibold text-white">Crypto Holdings</h3>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {user.coinHoldings.map((holding, index) => (
-                  <div key={holding.symbol}
-                    className="p-4 rounded-lg border"
-                    style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-white font-medium">{holding.symbol}</p>
-                        <p className="text-gray-400 text-sm capitalize">{holding.name.replace('-', ' ')}</p>
-                      </div>
-                      <div className="text-right">
-                        {editingField === `coinHolding-${holding.symbol}-${index}` ? (
-                          <div className="flex gap-2">
-                            <input
-                              value={editValues[`coinHolding-${holding.symbol}-${index}-value`]}
-                              onChange={(e) => setEditValues({ ...editValues, [`coinHolding-${holding.symbol}-${index}-value`]: e.target.value })}
-                              className="bg-gray-800 text-white rounded px-2 py-1 w-20 text-sm"
-                            />
-                            <button onClick={() => saveEdit('coinHolding')} className="text-green-400">✓</button>
-                            <button onClick={cancelEdit} className="text-red-400">✗</button>
-                          </div>
-                        ) : (
-                          <p className="text-yellow-400 font-semibold cursor-pointer hover:text-yellow-300"
-                            onClick={() => {
-                              startEditing(`coinHolding-${holding.symbol}-${index}`, `${holding.symbol}-${index}`);
-                              setEditValues({ ...editValues, [`coinHolding-${holding.symbol}-${index}-value`]: holding.amount });
-                            }}>
-                            {holding.amount} <Edit3 className="w-3 h-3 inline ml-1" />
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
           {/* Balance Adjustment Form */}
           <div className="rounded-xl shadow-sm border" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
             <div className="p-6 border-b" style={{ borderColor: '#3a3a3a' }}>
@@ -438,6 +551,7 @@ export default function UserDetailPage() {
                       placeholder="0.00"
                       className="w-full p-3 rounded-lg text-white outline-none border transition-colors duration-200 focus:border-yellow-400"
                       style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}
+                      disabled={saving}
                     />
                   </div>
 
@@ -448,6 +562,7 @@ export default function UserDetailPage() {
                       onChange={(e) => setSelectedCoin(e.target.value)}
                       className="w-full p-3 rounded-lg text-white outline-none border transition-colors duration-200 focus:border-yellow-400"
                       style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}
+                      disabled={saving}
                     >
                       {Object.entries(COINS).map(([symbol, name]) => (
                         <option key={symbol} value={symbol}>{symbol} - {name.replace('-', ' ')}</option>
@@ -464,15 +579,17 @@ export default function UserDetailPage() {
                     placeholder="e.g., Bonus, Correction, Refund..."
                     className="w-full p-3 rounded-lg text-white outline-none border transition-colors duration-200 focus:border-yellow-400 resize-none h-20"
                     style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}
+                    disabled={saving}
                   />
                 </div>
 
                 <button
                   onClick={handleAdjustment}
-                  className="w-full p-3 rounded-lg font-medium transition-colors duration-200 hover:bg-opacity-90"
+                  className="w-full p-3 rounded-lg font-medium transition-colors duration-200 hover:bg-opacity-90 disabled:opacity-50"
                   style={{ backgroundColor: '#ebb70c', color: '#1a1a1a' }}
+                  disabled={saving}
                 >
-                  Apply Crypto Adjustment
+                  {saving ? "Processing..." : "Apply Crypto Adjustment"}
                 </button>
               </div>
             </div>
