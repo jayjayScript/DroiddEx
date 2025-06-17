@@ -50,7 +50,8 @@ export type user = {
                 address: string
             }
         ]
-    }
+    },
+    verificationStatus?: string
 }
 
 export async function getAllUsers(): Promise<user[]> {

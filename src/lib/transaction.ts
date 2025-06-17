@@ -107,39 +107,27 @@ export const history = async (email: string): Promise<unknown> => {
     });
     return historyData;
   } catch (error) {
-    console.error(error, 'Faild to get history');
+    console.error(error, 'Failed to get history');
     return null;
   }
 }
 
-
-// Alternative version if you prefer to pass an object
-// export const DepositWithObject = async (depositData: {
-//     coin: string;
-//     amount: number;
-//     // Add other fields from your DepositDto here
-// }, image: File) => {
-//     try {
-//         const formData = new FormData();
-        
-//         // Add the image file
-//         formData.append('image', image);
-        
-//         // Add all depositData fields to formData
-//         Object.keys(depositData).forEach(key => {
-//             const value = depositData[key as keyof typeof depositData];
-//             formData.append(key, value.toString());
-//         });
-        
-//         const response = await api.post('/transaction/recieve', formData, {
-//             headers: {
-//                 'Content-Type': 'multipart/form-data',
-//             }
-//         });
-        
-//         return response;
-//     } catch (error) {
-//         console.error('Deposit API Error:', error);
-//         throw error;
-//     }
-// };
+export const swapCoins = async (from: string, to: string, amount: number): Promise<unknown> => {
+  const token = Cookies.get('token');
+  if (!token) throw new Error('No token');
+  try {
+    const res = await api.post(
+      '/profile/crypto/swap',
+      { from, to, amount },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return res.data;
+  } catch (error) {
+    console.error('failed to swap coin', error);
+    throw error;
+  }
+}

@@ -6,6 +6,7 @@ import { walletAddresses } from '@/lib/wallet';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import toast from 'react-hot-toast';
 import { useRef, useEffect } from 'react';
+import { Withdrawal } from '@/lib/transaction';
 
 type CoinData = {
   id: string;
@@ -100,6 +101,7 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
   const [amount, setAmount] = React.useState('');
   const [recipientAddress, setRecipientAddress] = React.useState('');
   const [fileName, setFileName] = React.useState('');
+  const [withdrawLoading, setWithdrawLoading] = React.useState(false);
   
   const walletEntry = coin ? (walletAddresses[coin.symbol.toUpperCase()] || [])[0] || '' : '';
   const walletAddress = typeof walletEntry === 'string' ? walletEntry : walletEntry?.address || '';
@@ -128,12 +130,23 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
     }
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     if (coin && amount && recipientAddress) {
-      toast.success(`Withdrawal of ${amount} ${coin.symbol.toUpperCase()} submitted`);
-      setWithdrawOpen(false);
-      setAmount('');
-      setRecipientAddress('');
+      setWithdrawLoading(true);
+      try {
+        // You may want to add network selection if needed, here 'network' is hardcoded
+        const network = 'mainnet';
+        await Withdrawal(recipientAddress, Number(amount), coin.symbol, network);
+        toast.success(`Withdrawal of ${amount} ${coin.symbol.toUpperCase()} submitted`);
+        setWithdrawOpen(false);
+        setAmount('');
+        setRecipientAddress('');
+      } catch (error) {
+        toast.error('Withdrawal failed. Please try again.');
+        console.error(error)
+      } finally {
+        setWithdrawLoading(false);
+      }
     } else {
       toast.error('Please fill all required fields');
     }
@@ -300,7 +313,56 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
         {/* Deposit Modal */}
         <Modal isOpen={isDepositOpen} onCloseAction={() => setDepositOpen(false)}>
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-center">Send {coin.name}</h2>
+            <h2 className="text-2xl font-bold text-center">Withdraw {coin.name}</h2>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-3">
+                {coin.symbol.toUpperCase()} Amount
+              </label>
+              <input
+                type="number"
+                placeholder="Enter amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full p-4 rounded-xl bg-[#2A2A2A] text-white text-lg
+                         placeholder-gray-400 outline-none
+                         hover:bg-[#333333] focus:bg-[#333333]
+                         transition-all duration-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-3">
+                Recipient Address
+              </label>
+              <input
+                type="text"
+                placeholder="Paste recipient address"
+                value={recipientAddress}
+                onChange={(e) => setRecipientAddress(e.target.value)}
+                className="w-full p-4 rounded-xl bg-[#2A2A2A] text-white text-lg
+                         placeholder-gray-400 outline-none
+                         hover:bg-[#333333] focus:bg-[#333333]
+                         transition-all duration-200"
+              />
+            </div>
+
+            <button
+              onClick={handleWithdraw}
+              disabled={withdrawLoading}
+              className="w-full bg-[#ebb70c] hover:bg-[#d4a50b] text-black font-bold py-4 rounded-xl text-lg
+                       transform hover:scale-105 active:scale-95
+                       transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {withdrawLoading ? 'Processing...' : 'Confirm Withdrawal'}
+            </button>
+          </div>
+        </Modal>
+
+        {/* Withdraw Modal */}
+        <Modal isOpen={isWithdrawOpen} onCloseAction={() => setWithdrawOpen(false)}>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-center">Deposit {coin.name}</h2>
 
             <div>
               <label className="block text-sm font-medium text-white mb-3">
@@ -379,54 +441,6 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
                        transition-all duration-200"
             >
               I&apos;ve sent this amount of {coin.symbol.toUpperCase()}
-            </button>
-          </div>
-        </Modal>
-
-        {/* Withdraw Modal */}
-        <Modal isOpen={isWithdrawOpen} onCloseAction={() => setWithdrawOpen(false)}>
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-center">Receive {coin.name}</h2>
-
-            <div>
-              <label className="block text-sm font-medium text-white mb-3">
-                {coin.symbol.toUpperCase()} Amount
-              </label>
-              <input
-                type="number"
-                placeholder="Enter amount"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full p-4 rounded-xl bg-[#2A2A2A] text-white text-lg
-                         placeholder-gray-400 outline-none
-                         hover:bg-[#333333] focus:bg-[#333333]
-                         transition-all duration-200"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-white mb-3">
-                Recipient Address
-              </label>
-              <input
-                type="text"
-                placeholder="Paste recipient address"
-                value={recipientAddress}
-                onChange={(e) => setRecipientAddress(e.target.value)}
-                className="w-full p-4 rounded-xl bg-[#2A2A2A] text-white text-lg
-                         placeholder-gray-400 outline-none
-                         hover:bg-[#333333] focus:bg-[#333333]
-                         transition-all duration-200"
-              />
-            </div>
-
-            <button
-              onClick={handleWithdraw}
-              className="w-full bg-[#ebb70c] hover:bg-[#d4a50b] text-black font-bold py-4 rounded-xl text-lg
-                       transform hover:scale-105 active:scale-95
-                       transition-all duration-200"
-            >
-              Confirm Withdrawal
             </button>
           </div>
         </Modal>

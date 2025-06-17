@@ -62,8 +62,17 @@ const AdminUsers = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // Helper to normalize status/isVerified for display and color
+  const getNormalizedStatus = (status: string | boolean | undefined) => {
+    if (status === true || status === 'true' || status === 'verified') return 'verified';
+    if (status === false || status === 'false' || status === 'unverified') return 'unverified';
+    if (status === 'suspended' || status === 'banned') return 'suspended';
+    return 'unverified';
+  };
+
   const getStatusColor = (status: User['status']): string => {
-    switch (status) {
+    const normalized = getNormalizedStatus(status);
+    switch (normalized) {
       case 'verified':
         return 'bg-green-900 text-green-300';
       case 'unverified':
@@ -75,12 +84,9 @@ const AdminUsers = () => {
     }
   };
 
-  // interface StatusIconProps {
-  //   status: User['status'];
-  // }
-
   const getStatusIcon = (status: User['status']): React.ReactElement | null => {
-    switch (status) {
+    const normalized = getNormalizedStatus(status);
+    switch (normalized) {
       case 'verified':
         return <UserCheck className="w-3 h-3" />;
       case 'unverified':
@@ -130,8 +136,8 @@ const AdminUsers = () => {
                 style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}
               >
                 <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="verified">Verified</option>
+                <option value="unverified">Unverified</option>
                 <option value="suspended">Suspended</option>
               </select>
             </div>
@@ -181,7 +187,7 @@ const AdminUsers = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredUsers.map((user) => (
                 <div key={user.id}
-                  className="p-6 rounded-lg border hover:shadow-lg transition-all duration-200"
+                  className="p-4 rounded-lg border hover:shadow-lg transition-all duration-200"
                   style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
                   {/* User Header */}
                   <div className="flex items-center space-x-2 md:space-x-2 mb-4">
@@ -193,13 +199,13 @@ const AdminUsers = () => {
                     </div>
                     <div className="flex-1">
                       <div className='flex items-center justify-between'>
-                        <h3 className="text-white font-medium text-lg">{user.fullname ? user.fullname : ''}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(user.status)}`}>
+                        <h3 className="text-white font-medium text-[14px]">{user.fullname ? user.fullname : ''}</h3>
+                        <span className={`px-1 py-1 rounded-full text-[8px] font-medium flex items-center space-x-1 ${getStatusColor(user.status)}`}>
                           {getStatusIcon(user.status)}
-                          <span>{user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Unknown'}</span>
+                          <span>{getNormalizedStatus(user.status).charAt(0).toUpperCase() + getNormalizedStatus(user.status).slice(1)}</span>
                         </span>
                       </div>
-                      <p className="text-gray-400 text-sm">{user.email}</p>
+                      <p className="text-gray-400 text-[12px]">{user.email}</p>
                     </div>
 
                   </div>

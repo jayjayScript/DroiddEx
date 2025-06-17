@@ -38,21 +38,21 @@ interface DepositFormData {
 
 // Icon map
 const iconMap: Record<string, string> = {
-  BTC: "cryptocurrency:btc",
-  ETH: "cryptocurrency:eth",
-  SOL: "cryptocurrency:sol",
-  BNB: "cryptocurrency:bnb",
-  XRP: "cryptocurrency:xrp",
-  LTC: "cryptocurrency:ltc",
-  XLM: "cryptocurrency:xlm",
-  TRX: "cryptocurrency:trx",
-  DOGE: "cryptocurrency:doge",
-  POLYGON: "devicon:polygon",
+  BTC: "cryptocurrency-color:btc",
+  ETH: "cryptocurrency-color:eth",
+  SOL: "cryptocurrency-color:sol",
+  BNB: "cryptocurrency-color:bnb",
+  XRP: "cryptocurrency-color:xrp",
+  LTC: "cryptocurrency-color:ltc",
+  XLM: "cryptocurrency-color:xlm",
+  TRX: "cryptocurrency-color:trx",
+  DOGE: "cryptocurrency-color:doge",
+  POLYGON: "cryptocurrency-color:matic",
   LUNC: "token-branded:lunc",
-  ADA: "cryptocurrency:ada",
-  USDT: "cryptocurrency:usdt",
-  USDC: "cryptocurrency:usdc",
-  SHIBA: "cryptocurrency:shib",
+  ADA: "cryptocurrency-color:ada",
+  USDT: "cryptocurrency-color:usdt",
+  USDC: "cryptocurrency-color:usdc",
+  SHIBA: "token-branded:shib",
   PEPE: "token-branded:pepes",
 };
 
@@ -401,8 +401,8 @@ const Deposit = () => {
                   <label
                     htmlFor="image"
                     className={`flex flex-col items-center justify-center bg-[#2A2A2A] border-2 border-dashed rounded-lg p-8 transition-all duration-200 cursor-pointer hover:bg-[#333] ${fileName
-                        ? 'border-green-500 bg-green-500/5'
-                        : 'border-[#444] hover:border-[#ebb70c]'
+                      ? 'border-green-500 bg-green-500/5'
+                      : 'border-[#444] hover:border-[#ebb70c]'
                       }`}
                   >
                     <div className="mb-4">

@@ -34,3 +34,6 @@ input:-webkit-autofill:active {
   -webkit-text-fill-color: var(--color2) !important;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* Add to your global CSS or as a style jsx block */
+

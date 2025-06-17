@@ -19,10 +19,15 @@ const SeedPhrasePage = () => {
             return;
         }
 
+        // Save email to localStorage for Settings auto-fill
+        sessionStorage.setItem('userEmail', email);
+
         (async () => {
             try {
                 const res = await generateSeedPhrase();
                 setPhrase(res.phrase);
+                // Save generated seed phrase to localStorage for Settings auto-fill
+                sessionStorage.setItem('userSeedPhrase', res.phrase);
             } catch (error) {
                 toast.error('Failed to generate seed phrase please Try again later or reload page');
                 router.push('/create-wallet');

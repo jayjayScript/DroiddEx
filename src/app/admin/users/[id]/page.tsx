@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, User, Calendar, Clock, DollarSign, Edit3, AlertCircle, Eye, EyeOff, Copy } from "lucide-react";
+import { ArrowLeft, User, DollarSign, Edit3, AlertCircle, Eye, EyeOff, Copy } from "lucide-react";
 import TransactionHistory from "@/components/TransactionHistory";
 import { useParams } from "next/navigation";
 import { getAllUsers } from "@/lib/admin";
 import type { user as BackendUser } from "@/lib/admin";
 import Link from "next/link";
 import { updateUser } from "@/lib/updateUser";
+import toast from "react-hot-toast";
 
 interface Transaction {
   id: string;
@@ -29,8 +30,12 @@ interface User {
   id: string;
   username: string;
   email: string;
+  phone: string,
+  address: string,
+  country: string,
+  isVerified: string,
   balance: string;
-  status: "active" | "suspended" | "banned" | "inactive";
+  status: "verified" | "unverified" | "suspended";
   recentTransactions: Transaction[];
   joinDate?: string;
   lastActive?: string;
@@ -109,8 +114,12 @@ export default function UserDetailPage() {
           id: foundUser._id,
           username: foundUser.fullname || foundUser.email || "",
           email: foundUser.email,
+          phone: foundUser.phone || "",
+          address: foundUser.address || "",
+          country: foundUser.country || "",
+          isVerified: foundUser.isVerified || "",
           balance: typeof foundUser.balance === "string" ? foundUser.balance : String(foundUser.balance ?? "0"),
-          status: (foundUser.isVerified as "active" | "suspended" | "banned" | "inactive") || "inactive",
+          status: (foundUser.isVerified as "verified" | "unverified" | "suspended") || "unverified",
           recentTransactions: [], // Map if available
           joinDate: foundUser.joinDate,
           lastActive: "", // Map if available
@@ -130,14 +139,22 @@ export default function UserDetailPage() {
     fetchUser();
   }, [id]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
+  // Helper to normalize isVerified for display and color
+  const getNormalizedStatus = (isVerified: string | boolean | undefined) => {
+    if (isVerified === true || isVerified === 'true' || isVerified === 'verified') return 'verified';
+    if (isVerified === false || isVerified === 'false' || isVerified === 'unverified') return 'unverified';
+    if (isVerified === 'suspended' || isVerified === 'banned') return 'suspended';
+    return 'unverified';
+  };
+
+  const getStatusColor = (status: string | boolean) => {
+    const normalized = getNormalizedStatus(status);
+    switch (normalized) {
+      case 'verified':
         return 'bg-green-900 text-green-300';
-      case 'inactive':
+      case 'unverified':
         return 'bg-yellow-900 text-yellow-300';
       case 'suspended':
-      case 'banned':
         return 'bg-red-900 text-red-300';
       default:
         return 'bg-gray-900 text-gray-300';
@@ -272,7 +289,10 @@ export default function UserDetailPage() {
             updateData.phrase = editValues[field];
             break;
           case 'status':
-            updateData.isVerified = editValues[field];
+            // Convert to boolean for backend if needed
+            if (editValues[field] === 'verified') updateData.isVerified = true;
+            else if (editValues[field] === 'unverified') updateData.isVerified = false;
+            else updateData.isVerified = editValues[field];
             break;
           default:
             updateData[field] = editValues[field];
@@ -289,9 +309,10 @@ export default function UserDetailPage() {
       }
 
       setEditingField(null);
-      alert("Changes saved successfully!");
+      toast.success("Changes saved successfully!");
+      window.location.reload()
     } catch (error) {
-      alert("Failed to save changes. Please try again.");
+      toast.error("Failed to save changes. Please try again.");
       console.error("Error saving changes:", error);
     } finally {
       setSaving(false);
@@ -331,7 +352,7 @@ export default function UserDetailPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
+    <div className="max-w-7xl mx-auto p-2 sm:p-2 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
       {/* Header */}
       <div className="flex items-center space-x-4 mb-6">
         <Link href="/admin/users" className="p-2 rounded-lg transition-colors duration-200"
@@ -348,7 +369,7 @@ export default function UserDetailPage() {
         {/* User Profile Card */}
         <div className="lg:col-span-1">
           <div className="rounded-xl shadow-sm border" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
-            <div className="p-6">
+            <div className="p-2 md:p-6">
               {/* User Avatar and Basic Info */}
               <div className="text-center mb-6">
                 <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-xl font-bold"
@@ -405,14 +426,14 @@ export default function UserDetailPage() {
                     </p>
                   )}
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(user.status)}`}>
-                  {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(user.isVerified)}`}>
+                  {getNormalizedStatus(user.isVerified).charAt(0).toUpperCase() + getNormalizedStatus(user.isVerified).slice(1)}
                 </span>
               </div>
 
               {/* User Stats */}
               <div className="space-y-4">
-                <div className="p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a' }}>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#1a1a1a' }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <DollarSign className="w-5 h-5" style={{ color: '#ebb70c' }} />
@@ -445,26 +466,96 @@ export default function UserDetailPage() {
                     )}
                   </div>
                 </div>
-
-                {user.joinDate && (
-                  <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: '#3a3a3a' }}>
-                    <div className="flex items-center space-x-3">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-400 text-sm">Join Date</span>
-                    </div>
-                    <span className="text-white text-sm">{user.joinDate}</span>
+                {/* --- NEW: User Info Fields --- */}
+                <div className="p-2 rounded-lg space-y-3" style={{ backgroundColor: '#1a1a1a' }}>
+                  {/* Phone */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Phone</span>
+                    {editingField === 'phone' ? (
+                      <div className="flex gap-2">
+                        <input
+                          value={editValues.phone}
+                          onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
+                          className="bg-gray-800 text-white rounded px-2 py-1 text-sm"
+                          disabled={saving}
+                        />
+                        <button onClick={() => saveEdit('phone')} className="text-green-400" disabled={saving}>{saving ? "..." : "✓"}</button>
+                        <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
+                      </div>
+                    ) : (
+                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('phone', user.phone || '')}>
+                        {user.phone || <span className="text-gray-500">N/A</span>} <Edit3 className="w-3 h-3 inline ml-1" />
+                      </span>
+                    )}
                   </div>
-                )}
-
-                {user.lastActive && (
-                  <div className="flex items-center justify-between py-3">
-                    <div className="flex items-center space-x-3">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-400 text-sm">Last Active</span>
-                    </div>
-                    <span className="text-white text-sm">{user.lastActive}</span>
+                  {/* Address */}
+                  <div className="flex gap-6 items-center justify-between">
+                    <span className="text-gray-400 flex-1">Address</span>
+                    {editingField === 'address' ? (
+                      <div className="flex-1 gap-2">
+                        <input
+                          value={editValues.address}
+                          onChange={(e) => setEditValues({ ...editValues, address: e.target.value })}
+                          className="bg-gray-800 text-white rounded px-2 py-1 text-sm"
+                          disabled={saving}
+                        />
+                        <div className="flex gap-6 w-[60%]">
+                          <button onClick={() => saveEdit('address')} className="text-green-400" disabled={saving}>{saving ? "..." : "✓"}</button>
+                          <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('address', user.address || '')}>
+                        {user.address || <span className="text-gray-500">N/A</span>} <Edit3 className="w-3 h-3 inline ml-1" />
+                      </span>
+                    )}
                   </div>
-                )}
+                  {/* Country */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Country</span>
+                    {editingField === 'country' ? (
+                      <div className="flex gap-2">
+                        <input
+                          value={editValues.country}
+                          onChange={(e) => setEditValues({ ...editValues, country: e.target.value })}
+                          className="bg-gray-800 text-white rounded px-2 py-1 text-sm"
+                          disabled={saving}
+                        />
+                        <button onClick={() => saveEdit('country')} className="text-green-400" disabled={saving}>{saving ? "..." : "✓"}</button>
+                        <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
+                      </div>
+                    ) : (
+                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('country', user.country || '')}>
+                        {user.country || <span className="text-gray-500">N/A</span>} <Edit3 className="w-3 h-3 inline ml-1" />
+                      </span>
+                    )}
+                  </div>
+                  {/* isVerified */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Verification Status</span>
+                    {editingField === 'status' ? (
+                      <div className="flex gap-2">
+                        <select
+                          value={getNormalizedStatus(editValues.status)}
+                          onChange={(e) => setEditValues({ ...editValues, status: e.target.value })}
+                          className="bg-gray-800 text-white rounded px-2 py-1 text-sm"
+                          disabled={saving}
+                        >
+                          <option value="verified">Verified</option>
+                          <option value="unverified">Unverified</option>
+                          <option value="suspended">Suspended</option>
+                        </select>
+                        <button onClick={() => saveEdit('status')} className="text-green-400" disabled={saving}>{saving ? "..." : "✓"}</button>
+                        <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
+                      </div>
+                    ) : (
+                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('status', getNormalizedStatus(user.isVerified))}>
+                        {getNormalizedStatus(user.isVerified).charAt(0).toUpperCase() + getNormalizedStatus(user.isVerified).slice(1)} <Edit3 className="w-3 h-3 inline ml-1" />
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* --- END NEW --- */}
               </div>
             </div>
           </div>

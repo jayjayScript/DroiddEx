@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
+import { swapCoins } from "@/lib/transaction";
 
 interface Coin {
   symbol: string;
@@ -40,27 +41,32 @@ const CoinDropdown = ({
   excludeCoin?: string;
 }) => {
   const filteredCoins = coins.filter(coin => coin.symbol !== excludeCoin);
-  const selectedData = coinData[selectedCoin];
+  // Get selected coin info from coins prop or fallback to coinData
+  const selectedInfo = coins.find(c => c.symbol === selectedCoin) || coinData[selectedCoin];
+  // Prefer icon from coin object, fallback to coinData
+  const selectedIcon = selectedInfo?.icon || (coinData[selectedCoin]?.icon) || "cryptocurrency:question";
+  const selectedName = selectedInfo?.name || (coinData[selectedCoin]?.name) || selectedCoin;
 
   return (
     <div className="relative">
-      <label className="block mb-3 text-sm font-medium text-gray-300">
+      <label className="block mb-2 text-xs font-medium text-gray-300">
         {label}
       </label>
       <button
         onClick={onToggle}
-        className="w-full flex justify-between items-center p-4 rounded-xl bg-[#2A2A2A] text-white border border-[#3A3A3A] hover:border-[#ebb70c] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ebb70c]/50"
+        className="w-full flex justify-between items-center p-2 rounded-lg bg-[#2A2A2A] text-white border border-[#3A3A3A] hover:border-[#ebb70c] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ebb70c]/50 min-h-0"
       >
-        <div className="flex items-center space-x-3">
-          <Icon icon={selectedData?.icon || "cryptocurrency:question"} width={28} height={28} />
+        <div className="flex items-center space-x-2">
+          <Icon icon={selectedIcon} width={18} height={18} />
           <div className="text-left">
-            <p className="font-medium">{selectedCoin}</p>
-            <p className="text-sm text-gray-400">{selectedData?.name}</p>
+            <p className="font-medium text-sm">
+              {selectedCoin.toUpperCase()} <span className="text-gray-400 text-xs">- {selectedName}</span>
+            </p>
           </div>
         </div>
         <Icon 
           icon="ic:round-arrow-drop-down" 
-          className={`text-xl transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-base transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -70,10 +76,11 @@ const CoinDropdown = ({
             className="fixed inset-0 z-10" 
             onClick={onToggle}
           />
-          <div className="absolute z-20 mt-2 w-full bg-[#2A2A2A] border border-[#3A3A3A] rounded-xl shadow-2xl max-h-60 overflow-y-auto">
-            <div className="py-2">
+          <div className="absolute z-20 mt-1 w-full bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg shadow-2xl max-h-48 overflow-y-auto">
+            <div className="py-1">
               {filteredCoins.map((coin) => {
-                const data = coinData[coin.symbol];
+                const icon = coin.icon || (coinData[coin.symbol]?.icon) || "cryptocurrency:question";
+                const name = coin.name || (coinData[coin.symbol]?.name) || coin.symbol;
                 return (
                   <button
                     key={coin.symbol}
@@ -81,21 +88,19 @@ const CoinDropdown = ({
                       onSelect(coin.symbol);
                       onToggle();
                     }}
-                    className={`w-full flex items-center justify-between p-4 hover:bg-[#3A3A3A] transition-colors duration-150 text-left ${
+                    className={`w-full flex items-center justify-between p-2 hover:bg-[#3A3A3A] transition-colors duration-150 text-left ${
                       selectedCoin === coin.symbol ? "bg-[#3A3A3A] border-r-2 border-[#ebb70c]" : ""
                     }`}
                   >
-                    <div className="flex items-center space-x-3">
-                      <Icon icon={data?.icon || "cryptocurrency:question"} width={24} height={24} />
+                    <div className="flex items-center space-x-2">
+                      <Icon icon={icon} width={16} height={16} />
                       <div>
-                        <p className="font-medium text-white">{coin.symbol}</p>
-                        <p className="text-sm text-gray-400">{data?.name}</p>
+                        <p className="font-medium text-xs text-white">{coin.symbol.toUpperCase()} <span className="text-gray-400 text-xs">- {name}</span></p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-gray-300">${data?.price?.toLocaleString()}</p>
                       {selectedCoin === coin.symbol && (
-                        <Icon icon="ic:baseline-check" className="text-[#ebb70c] text-lg" />
+                        <Icon icon="ic:baseline-check" className="text-[#ebb70c] text-base" />
                       )}
                     </div>
                   </button>
@@ -119,12 +124,18 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [slippage, setSlippage] = useState("0.5");
 
+  // Helper to get coin info from coins prop or fallback to coinData
+  const getCoinInfo = React.useCallback((symbol: string) => {
+    return coins.find((c) => c.symbol === symbol) || coinData[symbol];
+  }, [coins]);
+
   // Calculate exchange rate and estimated output
   useEffect(() => {
     if (fromAmount && !isNaN(Number(fromAmount))) {
-      const fromPrice = coinData[fromCoin]?.price || 0;
-      const toPrice = coinData[toCoin]?.price || 0;
-      
+      const fromInfo = getCoinInfo(fromCoin);
+      const toInfo = getCoinInfo(toCoin);
+      const fromPrice = fromInfo?.price || (typeof (fromInfo as Record<string, unknown>) === 'object' && (fromInfo as { market_data?: { current_price?: { usd?: number } } }).market_data?.current_price?.usd) || 0;
+      const toPrice = toInfo?.price || (typeof (toInfo as Record<string, unknown>) === 'object' && (toInfo as { market_data?: { current_price?: { usd?: number } } }).market_data?.current_price?.usd) || 0;
       if (fromPrice && toPrice) {
         const exchangeRate = fromPrice / toPrice;
         const estimated = (Number(fromAmount) * exchangeRate).toFixed(6);
@@ -133,7 +144,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
     } else {
       setToAmount("");
     }
-  }, [fromAmount, fromCoin, toCoin]);
+  }, [fromAmount, fromCoin, toCoin, coins, getCoinInfo]);
 
   const handleSwapCoins = () => {
     const tempCoin = fromCoin;
@@ -150,16 +161,25 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
       toast.error("Please enter a valid amount");
       return;
     }
-
     setIsLoading(true);
-    
-    // Simulate swap process
-    setTimeout(() => {
-      toast.success(`Successfully swapped ${fromAmount} ${fromCoin} to ${toAmount} ${toCoin}`);
+    try {
+      // Use full coin names for backend
+      const fromFullName = getCoinInfo(fromCoin)?.name || fromCoin;
+      const toFullName = getCoinInfo(toCoin)?.name || toCoin;
+      const result: unknown = await swapCoins(fromFullName, toFullName, Number(fromAmount));
+      if (result && typeof result === 'object' && 'success' in result && (result as { success: boolean; message?: string }).success === false) {
+        toast.error((result as { message?: string }).message || "Swap failed");
+      } else {
+        toast.success(`Successfully swapped ${fromAmount} ${fromFullName} to ${toAmount} ${toFullName}`);
+        setFromAmount("");
+        setToAmount("");
+      }
+    } catch (error: unknown) {
+      toast.error("Swap failed. Please try again.");
+      console.error(error)
+    } finally {
       setIsLoading(false);
-      setFromAmount("");
-      setToAmount("");
-    }, 2000);
+    }
   };
 
   const exchangeRate = coinData[fromCoin]?.price && coinData[toCoin]?.price 
@@ -198,11 +218,11 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
                   type="number"
                   value={fromAmount}
                   onChange={(e) => setFromAmount(e.target.value)}
-                  className="w-full bg-transparent text-2xl font-semibold text-white placeholder-gray-500 focus:outline-none"
+                  className="w-full bg-transparent font-semibold text-white placeholder-gray-500 focus:outline-none"
                   placeholder="0.0"
                 />
                 <p className="text-sm text-gray-400 mt-1">
-                  ≈ ${fromAmount ? (Number(fromAmount) * (coinData[fromCoin]?.price || 0)).toLocaleString() : "0.00"}
+                  ≈ ${fromAmount ? (Number(fromAmount) * (getCoinInfo(fromCoin)?.price || (typeof (getCoinInfo(fromCoin)) === 'object' && (getCoinInfo(fromCoin) as { market_data?: { current_price?: { usd?: number } } }).market_data?.current_price?.usd) || 0)).toLocaleString() : "0.00"}
                 </p>
               </div>
               
@@ -243,11 +263,11 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
                   type="text"
                   value={toAmount}
                   readOnly
-                  className="w-full bg-transparent text-2xl font-semibold text-white placeholder-gray-500 focus:outline-none cursor-not-allowed"
+                  className="w-full bg-transparent font-semibold text-white placeholder-gray-500 focus:outline-none cursor-not-allowed"
                   placeholder="0.0"
                 />
                 <p className="text-sm text-gray-400 mt-1">
-                  ≈ ${toAmount ? (Number(toAmount) * (coinData[toCoin]?.price || 0)).toLocaleString() : "0.00"}
+                  ≈ ${toAmount ? (Number(toAmount) * (getCoinInfo(toCoin)?.price || (typeof (getCoinInfo(toCoin)) === 'object' && (getCoinInfo(toCoin) as { market_data?: { current_price?: { usd?: number } } }).market_data?.current_price?.usd) || 0)).toLocaleString() : "0.00"}
                 </p>
               </div>
               

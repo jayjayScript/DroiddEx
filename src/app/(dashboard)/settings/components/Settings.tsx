@@ -1,7 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
+import { updateFullname, updateCountry, updatePhone, updateAddress } from "@/lib/profile";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/user";
+import toast from "react-hot-toast";
+import { getAllUsers } from "@/lib/admin"; // Import the getAllUsers function
 
 interface UserInfo {
   fullName: string;
@@ -12,13 +17,15 @@ interface UserInfo {
   address: string;
 }
 
-type VerificationStatus = 'unverified' | 'pending_first' | 'first_approved' | 'pending_second' | 'fully_verified';
+type VerificationStatus = 'unverified' | 'pending' | 'verified';
 
 const Settings = () => {
+  // Use Redux state for email and phrase
+  const { email, phrase } = useSelector((state: RootState) => state.user.value);
   const [userInfo, setUserInfo] = useState<UserInfo>({
     fullName: "",
-    email: "john.doe@example.com", // Pre-filled from wallet creation
-    seedPhrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", // Pre-filled from wallet creation
+    email: email || "",
+    seedPhrase: phrase || "",
     country: "",
     phoneNumber: "",
     address: ""
@@ -31,17 +38,106 @@ const Settings = () => {
   const [copied, setCopied] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // Fetch user status and details from backend
+  useEffect(() => {
+    const fetchUserStatus = async () => {
+      try {
+        const users = await getAllUsers();
+        const currentUser = users.find(u => u.email === email);
+        // Prefer verificationStatus, fallback to isVerified for legacy
+        let status = currentUser?.verificationStatus;
+        // Robust normalization for isVerified (can be boolean, string, or number)
+        if (!status && currentUser?.isVerified !== undefined) {
+          const isVerified = currentUser.isVerified;
+          if (typeof isVerified === 'boolean') {
+            status = isVerified ? 'verified' : 'unverified';
+          } else if (typeof isVerified === 'string') {
+            const normalized = isVerified.trim().toLowerCase();
+            if (normalized === 'true' || normalized === 'verified') status = 'verified';
+            else if (normalized === 'false' || normalized === 'unverified') status = 'unverified';
+            else if (normalized === 'pending') status = 'pending';
+          } else if (typeof isVerified === 'number') {
+            status = isVerified === 1 ? 'verified' : 'unverified';
+          }
+        }
+        const validStatuses = ['unverified', 'pending', 'verified'];
+        if (status && validStatuses.includes(status)) {
+          setVerificationStatus(status as VerificationStatus);
+        } else {
+          setVerificationStatus('unverified');
+        }
+        // Update user info from backend if available
+        if (currentUser) {
+          setUserInfo(prev => ({
+            ...prev,
+            fullName: currentUser.fullname || prev.fullName,
+            country: currentUser.country || prev.country,
+            phoneNumber: currentUser.phone || prev.phoneNumber,
+            address: currentUser.address || prev.address,
+            // email and seedPhrase remain from Redux
+          }));
+        }
+      } catch (error) {
+        toast.error('Failed to get users');
+        setVerificationStatus('unverified');
+        console.log(error);
+      }
+    };
+    fetchUserStatus();
+  }, [email]);
+
+  // Refetch user status/details after verification actions
+  const refetchUserStatus = async () => {
+    try {
+      const users = await getAllUsers();
+      const currentUser = users.find(u => u.email === email);
+      const status = currentUser?.verificationStatus || currentUser?.isVerified;
+      const validStatuses = ['unverified', 'pending', 'verified'];
+      if (status && validStatuses.includes(status)) {
+        setVerificationStatus(status as VerificationStatus);
+      } else {
+        setVerificationStatus('unverified');
+      }
+      if (currentUser) {
+        setUserInfo(prev => ({
+          ...prev,
+          fullName: currentUser.fullname || prev.fullName,
+          country: currentUser.country || prev.country,
+          phoneNumber: currentUser.phone || prev.phoneNumber,
+          address: currentUser.address || prev.address,
+        }));
+      }
+    } catch (error) {
+      toast.error('Failed to refresh user');
+      console.error(error)
+      setVerificationStatus('unverified');
+    }
+  };
+
   const handleEdit = (field: keyof UserInfo) => {
     setEditingField(field);
     setTempValue(userInfo[field]);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editingField) {
-      setUserInfo(prev => ({
-        ...prev,
-        [editingField]: tempValue
-      }));
+      try {
+        // Call the correct API based on the field
+        if (editingField === "fullName") await updateFullname(tempValue);
+        if (editingField === "country") await updateCountry(tempValue);
+        if (editingField === "phoneNumber") await updatePhone(tempValue);
+        if (editingField === "address") await updateAddress(tempValue);
+
+        setUserInfo(prev => ({
+          ...prev,
+          [editingField]: tempValue
+        }));
+        // Optionally show a toast here for success
+      } catch (error) {
+        // Optionally show a toast here for error
+        toast("Failed to update. Please try again.");
+        console.error(error)
+      }
     }
     setEditingField(null);
     setTempValue("");
@@ -58,28 +154,29 @@ const Settings = () => {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const handleFirstVerification = () => {
+  const handleFirstVerification = async () => {
     // Check if required fields are filled
     const requiredFields = ['fullName', 'country', 'phoneNumber', 'address'] as const;
     const missingFields = requiredFields.filter(field => !userInfo[field].trim());
-    
+
     if (missingFields.length > 0) {
       alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
       return;
     }
-    
-    setVerificationStatus('pending_first');
-    alert('First verification submitted! Awaiting admin approval.');
+
+    setVerificationStatus('pending');
+    toast('Verification submitted! Awaiting admin approval.');
+    await refetchUserStatus();
   };
 
-  const handleSecondVerification = () => {
+  const handleSecondVerification = async () => {
     if (!selectedFile) {
-      alert('Please select a document (Passport or Driver\'s License)');
+      toast('Please select a document (Passport or Driver\'s License)');
       return;
     }
-    
-    setVerificationStatus('pending_second');
-    alert('Second verification submitted! Awaiting admin approval.');
+    setVerificationStatus('pending');
+    toast('KYC verification submitted! Awaiting admin approval.');
+    await refetchUserStatus();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,75 +204,59 @@ const Settings = () => {
     address: "mdi:map-marker"
   };
 
-  const getVerificationStatusInfo = () => {
-    switch (verificationStatus) {
-      case 'unverified':
-        return { 
-          text: 'Not Verified', 
-          color: 'text-red-400', 
-          bgColor: 'bg-red-400/10', 
-          icon: 'mdi:close-circle' 
-        };
-      case 'pending_first':
-        return { 
-          text: 'First Verification Pending', 
-          color: 'text-yellow-400', 
-          bgColor: 'bg-yellow-400/10', 
-          icon: 'mdi:clock' 
-        };
-      case 'first_approved':
-        return { 
-          text: 'First Verification Approved', 
-          color: 'text-blue-400', 
-          bgColor: 'bg-blue-400/10', 
-          icon: 'mdi:check-circle' 
-        };
-      case 'pending_second':
-        return { 
-          text: 'Final Verification Pending', 
-          color: 'text-yellow-400', 
-          bgColor: 'bg-yellow-400/10', 
-          icon: 'mdi:clock' 
-        };
-      case 'fully_verified':
-        return { 
-          text: 'Fully Verified', 
-          color: 'text-green-400', 
-          bgColor: 'bg-green-400/10', 
-          icon: 'mdi:check-circle-outline' 
-        };
-    }
-  };
+  // const getVerificationStatusInfo = () => {
+  //   switch (verificationStatus) {
+  //     case 'unverified':
+  //       return {
+  //         text: 'Not Verified',
+  //         color: 'text-red-400',
+  //         bgColor: 'bg-red-400/10',
+  //         icon: 'mdi:close-circle'
+  //       };
+  //     case 'pending':
+  //       return {
+  //         text: 'Verification Pending',
+  //         color: 'text-yellow-400',
+  //         bgColor: 'bg-yellow-400/10',
+  //         icon: 'mdi:clock'
+  //       };
+  //     case 'verified':
+  //       return {
+  //         text: 'Verified',
+  //         color: 'text-green-400',
+  //         bgColor: 'bg-green-400/10',
+  //         icon: 'mdi:check-circle-outline'
+  //       };
+  //   }
+  // };
 
   const renderField = (field: keyof UserInfo) => {
     const isEditing = editingField === field;
     const isSeedPhrase = field === 'seedPhrase';
-    const isEmail = field === 'email';
-    const isPreFilled = isEmail || isSeedPhrase;
-    const displayValue = isSeedPhrase && !showFullSeed 
-      ? userInfo[field].substring(0, 20) + "..." 
+    // const isEmail = field === 'email';
+    const displayValue = isSeedPhrase && !showFullSeed
+      ? userInfo[field]?.substring(0, 20) + "..."
       : userInfo[field];
 
     return (
-      <div 
+      <div
         key={field}
         className="bg-[#1A1A1A] p-4 rounded-xl shadow-md transition-all duration-300 ease-in-out hover:bg-[#222222] group"
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Icon 
-              icon={fieldIcons[field]} 
-              width="20" 
-              height="20" 
-              className="text-[#ebb70c]" 
+            <Icon
+              icon={fieldIcons[field]}
+              width="20"
+              height="20"
+              className="text-[#ebb70c]"
             />
             <h3 className="text-sm font-medium text-gray-400">
               {fieldLabels[field]}
-              {isPreFilled && <span className="ml-1 text-xs text-[#ebb70c]">(Auto-filled)</span>}
             </h3>
           </div>
           <div className="flex items-center gap-2">
-            {isSeedPhrase && (
+            {isSeedPhrase && userInfo[field] && (
               <>
                 <Icon
                   icon="solar:copy-bold-duotone"
@@ -193,6 +274,7 @@ const Settings = () => {
                 />
               </>
             )}
+            {/* All fields are editable */}
             {!isEditing && (
               <Icon
                 icon="mdi:pencil"
@@ -204,7 +286,6 @@ const Settings = () => {
             )}
           </div>
         </div>
-
         {isEditing ? (
           <div className="space-y-3">
             {isSeedPhrase ? (
@@ -258,26 +339,95 @@ const Settings = () => {
   };
 
   const renderVerificationSection = () => {
-    const statusInfo = getVerificationStatusInfo();
-
+    // Show KYC step only after verified
+    if (verificationStatus === 'verified') {
+      return (
+        <div className="mt-8 space-y-4">
+          <div className="bg-[#1A1A1A] p-6 rounded-xl shadow-md">
+            <div className="flex flex-1 items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Icon icon="mdi:shield-account" width="24" height="24" className="text-[#ebb70c]" />
+                <h3 className="text-xl font-semibold">KYC Verification</h3>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="border-l-4 border-[#ebb70c] pl-4">
+                <h4 className="font-semibold text-white mb-2">Step 2: Document Verification</h4>
+                <p className="text-gray-400 text-sm mb-3">
+                  Upload a clear photo of your Passport or Driver&apos;s License to complete KYC verification.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <label className="block">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon icon="mdi:file-document" width="18" height="18" className="text-[#ebb70c]" />
+                    <span className="text-sm font-medium text-gray-300">Upload Document</span>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleFileChange}
+                    className="w-full px-4 py-3 rounded-lg bg-[#2A2A2A] text-white focus:outline-none focus:ring-2 focus:ring-[#ebb70c] transition-all duration-200 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#ebb70c] file:text-black file:cursor-pointer"
+                  />
+                </label>
+                {selectedFile && (
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Icon icon="mdi:check-circle" width="16" height="16" className="text-green-400" />
+                    Selected: {selectedFile.name}
+                  </div>
+                )}
+                <button
+                  onClick={handleSecondVerification}
+                  className="w-full sm:w-auto bg-[#ebb70c] hover:bg-yellow-400 text-black font-semibold px-6 py-3 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <Icon icon="mdi:upload" width="18" height="18" />
+                  Submit KYC Verification
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    // Status badge and first verification button
+    const statusInfo = (() => {
+      switch (verificationStatus as VerificationStatus) {
+        case 'unverified':
+        return {
+          text: 'Not Verified',
+          color: 'text-red-400',
+          bgColor: 'bg-red-400/10',
+          icon: 'mdi:close-circle'
+        };
+      case 'pending':
+        return {
+          text: 'Verification Pending',
+          color: 'text-yellow-400',
+          bgColor: 'bg-yellow-400/10',
+          icon: 'mdi:clock'
+        };
+      case 'verified':
+        return {
+          text: 'Verified',
+          color: 'text-green-400',
+          bgColor: 'bg-green-400/10',
+          icon: 'mdi:check-circle-outline'
+        };
+      }
+    })();
     return (
       <div className="mt-8 space-y-4">
-        {/* Verification Status */}
         <div className="bg-[#1A1A1A] p-6 rounded-xl shadow-md">
           <div className="flex flex-1 items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <Icon icon="mdi:shield-check" width="24" height="24" className="text-[#ebb70c]" />
               <h3 className="text-xl font-semibold">Verification Status</h3>
             </div>
-            <div className={`flex  items-center gap-2 px-2 py-1 rounded-full ${statusInfo.bgColor}`}>
+            <div className={`flex items-center gap-2 px-2 py-1 rounded-full ${statusInfo.bgColor}`}>
               <Icon icon={statusInfo.icon} width="14" height="14" className={statusInfo.color} />
-              <span className={`text-[8px] font-medium ${statusInfo.color}`}>
-                {statusInfo.text}
-              </span>
+              <span className={`text-[8px] font-medium ${statusInfo.color}`}>{statusInfo.text}</span>
             </div>
           </div>
-
-          {/* First Verification */}
           {verificationStatus === 'unverified' && (
             <div className="space-y-4">
               <div className="border-l-4 border-[#ebb70c] pl-4">
@@ -294,70 +444,15 @@ const Settings = () => {
                 className="w-full sm:w-auto bg-[#ebb70c] hover:bg-yellow-400 text-black font-semibold px-6 py-3 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 flex items-center justify-center gap-2"
               >
                 <Icon icon="mdi:send" width="18" height="18" />
-                Submit First Verification
+                Submit Verification
               </button>
             </div>
           )}
-
-          {/* Second Verification */}
-          {verificationStatus === 'first_approved' && (
-            <div className="space-y-4">
-              <div className="border-l-4 border-[#ebb70c] pl-4">
-                <h4 className="font-semibold text-white mb-2">Step 2: Document Verification</h4>
-                <p className="text-gray-400 text-sm mb-3">
-                  Upload a clear photo of your Passport or Driver&apos;s License to complete verification.
-                </p>
-              </div>
-              
-              <div className="space-y-3">
-                <label className="block">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Icon icon="mdi:file-document" width="18" height="18" className="text-[#ebb70c]" />
-                    <span className="text-sm font-medium text-gray-300">Upload Document</span>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={handleFileChange}
-                    className="w-full px-4 py-3 rounded-lg bg-[#2A2A2A] text-white focus:outline-none focus:ring-2 focus:ring-[#ebb70c] transition-all duration-200 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#ebb70c] file:text-black file:cursor-pointer"
-                  />
-                </label>
-                
-                {selectedFile && (
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <Icon icon="mdi:check-circle" width="16" height="16" className="text-green-400" />
-                    Selected: {selectedFile.name}
-                  </div>
-                )}
-                
-                <button
-                  onClick={handleSecondVerification}
-                  className="w-full sm:w-auto bg-[#ebb70c] hover:bg-yellow-400 text-black font-semibold px-6 py-3 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 flex items-center justify-center gap-2"
-                >
-                  <Icon icon="mdi:upload" width="18" height="18" />
-                  Submit Document Verification
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Pending States */}
-          {(verificationStatus === 'pending_first' || verificationStatus === 'pending_second') && (
+          {verificationStatus === 'pending' && (
             <div className="text-center py-6">
               <Icon icon="mdi:clock-outline" width="48" height="48" className="text-yellow-400 mx-auto mb-3" />
               <p className="text-gray-400">
                 Your verification is being reviewed by our admin team. This usually takes 1-2 business days.
-              </p>
-            </div>
-          )}
-
-          {/* Fully Verified */}
-          {verificationStatus === 'fully_verified' && (
-            <div className="text-center py-6">
-              <Icon icon="mdi:check-decagram" width="48" height="48" className="text-green-400 mx-auto mb-3" />
-              <p className="text-green-400 font-semibold mb-2">Congratulations!</p>
-              <p className="text-gray-400">
-                Your account is fully verified. You now have access to all platform features.
               </p>
             </div>
           )}
@@ -372,7 +467,6 @@ const Settings = () => {
         <h1 className="text-3xl font-bold mb-2">User Settings</h1>
         <p className="text-gray-400">Manage your account information and verification</p>
       </div>
-
       <div className="space-y-4">
         {(Object.keys(userInfo) as Array<keyof UserInfo>).map(field => renderField(field))}
       </div>
