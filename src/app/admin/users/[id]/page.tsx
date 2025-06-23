@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, User, DollarSign, Edit3, AlertCircle, Eye, EyeOff, Copy } from "lucide-react";
-import TransactionHistory from "@/components/TransactionHistory";
+import TransactionHistory from "@/components/history/TransactionHistory";
 import { useParams } from "next/navigation";
 import { getAllUsers } from "@/lib/admin";
 import type { user as BackendUser } from "@/lib/admin";
@@ -69,24 +69,6 @@ const COINS = {
   SHIBA: "shiba-inu",
   PEPE: "pepe"
 };
-
-// API function to update user
-// const updateUser = async (email: string, updateData: any) => {
-
-//   try {
-//     const adminToken = Cookies.get('adminToken');
-//     if (!adminToken) throw new Error("Admin Token missing");
-//     const response = await api.patch(`/admin/users/${email}`, updateData, {
-//       headers: {
-//         Authorization: `Bearer ${adminToken}`,
-//       },
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error('Error updating user:', error);
-//     throw error;
-//   }
-// };
 
 export default function UserDetailPage() {
   const { id } = useParams();
@@ -172,17 +154,8 @@ export default function UserDetailPage() {
       const existingCoinIndex = updatedHoldings.findIndex(coin => coin.symbol === selectedCoin);
 
       if (existingCoinIndex >= 0) {
-        let currentAmount = 0;
-        if (typeof updatedHoldings[existingCoinIndex].amount === 'string') {
-          currentAmount = parseFloat(updatedHoldings[existingCoinIndex].amount);
-        } else if (Array.isArray(updatedHoldings[existingCoinIndex].amount)) {
-          // If USDT is an array, sum all wallet amounts
-          currentAmount = (updatedHoldings[existingCoinIndex].amount as UsdtWallet[]).reduce((sum, w) => sum + parseFloat(w.amount || '0'), 0);
-        } else if (typeof updatedHoldings[existingCoinIndex].amount === 'object' && updatedHoldings[existingCoinIndex].amount !== null) {
-          // If USDT is a single object
-          currentAmount = parseFloat((updatedHoldings[existingCoinIndex].amount as UsdtWallet).amount || '0');
-        }
-        updatedHoldings[existingCoinIndex].amount = (currentAmount + amount).toString();
+        // Instead of adding, set the amount directly to the new value
+        updatedHoldings[existingCoinIndex].amount = amount.toString();
       } else {
         updatedHoldings.push({
           symbol: selectedCoin,
@@ -616,7 +589,28 @@ export default function UserDetailPage() {
           </div>
         </div>
 
-        {/* Main Content */}
+  
+        {/* Coin Holdings Section */}
+        <div className="rounded-xl shadow-sm border mt-6" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Coin Holdings</h3>
+            <div
+              className="space-y-3 overflow-y-auto"
+              style={{ maxHeight: "320px" }}
+            >
+              {user.coinHoldings.map((holding, idx) => (
+                <div key={`${holding.symbol}-${idx}`} className="flex items-center justify-between gap-2 bg-[#1a1a1a] rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-yellow-400">{holding.symbol}</span>
+                    <span className="text-gray-400 text-xs">{holding.name.replace('-', ' ')}</span>
+                  </div>
+                  <span className="text-white font-mono overflow-x-auto">{typeof holding.amount === "string" ? holding.amount : ""}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <div className="lg:col-span-2 space-y-6">
           {/* Balance Adjustment Form */}
           <div className="rounded-xl shadow-sm border" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
@@ -693,12 +687,7 @@ export default function UserDetailPage() {
               <p className="text-gray-400 text-sm mt-1">Latest account activity</p>
             </div>
 
-            <TransactionHistory
-              isAdmin={true}
-              pendingTransactions={[]}
-              completedTransactions={[]}
-              onTransactionUpdate={() => { }}
-            />
+            <TransactionHistory/>
           </div>
         </div>
       </div>

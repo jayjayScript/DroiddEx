@@ -47,7 +47,7 @@ const UserLogin = () => {
 
       setLoading(false);
 
-      toast('Login successful!');
+      toast.success('Login successful!');
       router.push('/dashboard');
     } catch (err: unknown) {
       setLoading(false);

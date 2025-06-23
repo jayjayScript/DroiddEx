@@ -36,3 +36,7 @@ export const updateAddress = (address: string) =>
       headers: { Authorization: `Bearer ${Cookies.get("token")}` },
     }
   );
+
+export const coins = () => {
+  
+}

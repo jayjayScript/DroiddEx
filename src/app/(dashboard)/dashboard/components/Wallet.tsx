@@ -14,8 +14,9 @@ import { useMemo } from "react";
 import Link from "next/link";
 import SellPage from "./Sell";
 import Deposit from "./Send";
-import TransactionHistory from "@/components/TransactionHistory";
+import TransactionHistory from "@/components/history/TransactionHistory";
 import { Poppins } from "next/font/google";
+import toast from "react-hot-toast";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
 
@@ -243,11 +244,11 @@ const Wallet = () => {
       // await updateUserSubscription(userId, expiryDate);
       
       // Optionally show a success message
-      alert('Subscription activated successfully!');
+      toast.success('Subscription activated successfully!');
       
     } catch (error) {
       console.error('Subscription failed:', error);
-      alert('Subscription failed. Please try again.');
+      toast.error('Subscription failed. Please try again.');
     } finally {
       setSubscriptionLoading(false);
     }
@@ -467,7 +468,7 @@ const Wallet = () => {
         {activePage === null && (
           <div>
             <div>
-              <h2 className="text-[#fff] text-[18px] font-bold p-1 px-4 my-2 rounded-xs">
+              <h2 className="text-[#ebb70c] text-[18px] font-bold p-1 px-4 my-2 rounded-xs">
                 Assets
               </h2>
             </div>
@@ -566,11 +567,7 @@ const Wallet = () => {
             </div>
           </div>
         </div>
-        <TransactionHistory
-          isAdmin={false}
-          pendingTransactions={[]}
-          completedTransactions={[]}
-        />
+        <TransactionHistory />
       </div>
     </div>
   );

@@ -1,11 +1,12 @@
 // app/deposit/page.tsx
 "use client";
 
-import React, { useState, useRef, ChangeEvent, FormEvent } from "react";
+import React, { useState, useRef, ChangeEvent } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { walletAddresses } from "@/lib/wallet";
 import { coinIdMap } from "@/lib/wallet";
+import { DepositAPI } from "@/lib/transaction";
 
 // Types
 type WalletAddress = {
@@ -144,14 +145,26 @@ const Deposit = () => {
   const [fileName, setFileName] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Form data state
-  const [myFormData, setMyFormData] = useState<DepositFormData>({
+  // Form data state with initial values
+  const initialFormData: DepositFormData = {
     amount: "",
     coin: "",
     image: null,
     email: "",
     note: "",
-  });
+  };
+
+  const [myFormData, setMyFormData] = useState<DepositFormData>(initialFormData);
+
+  // Reset form function
+  const resetForm = () => {
+    setMyFormData(initialFormData);
+    setSelected(coins[0]);
+    setFileName("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   // Copy address handler
   const handleCopy = (address: string) => {
@@ -159,12 +172,42 @@ const Deposit = () => {
     toast.success("Wallet address copied!");
   };
 
+  // Track if user has focused on amount input
+  const [amountFocused, setAmountFocused] = useState(false);
+
   // Handle amount input change
   const handleAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
     setMyFormData(prev => ({
       ...prev,
       amount: e.target.value
     }));
+  };
+
+  // Handle amount input focus - clear default value
+  const handleAmountFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (!amountFocused && (e.target.value === "0.00" || e.target.value === "")) {
+      setMyFormData(prev => ({
+        ...prev,
+        amount: ""
+      }));
+      setAmountFocused(true);
+    }
+  };
+
+  // Handle amount input blur - set default if empty
+  const handleAmountBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (e.target.value === "" || e.target.value === "0" || e.target.value === "0.") {
+      setMyFormData(prev => ({
+        ...prev,
+        amount: "0.00"
+      }));
+      setAmountFocused(false);
+    }
+  };
+
+  // Prevent scroll wheel from changing number input
+  const handleAmountWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.currentTarget.blur();
   };
 
   // File input handler
@@ -207,99 +250,64 @@ const Deposit = () => {
   };
 
   // Handle form submission
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
 
-    console.log("=== FORM SUBMISSION DEBUG ===");
-    console.log("Form data state:", myFormData);
-
-    // Validation
-    if (!myFormData.amount || parseFloat(myFormData.amount) <= 0) {
-      toast.error("Please enter a valid amount.");
-      setIsLoading(false);
-      return;
+    let compressedImageBase64 = "";
+    if (myFormData.image) {
+      try {
+        compressedImageBase64 = await compressAndConvertToBase64(myFormData.image);
+      } catch (e) {
+        toast.error("Failed to process image.");
+        setIsLoading(false);
+        return;
+      }
     }
-
-    if (!myFormData.image) {
-      toast.error("Please select an image file.");
-      setIsLoading(false);
-      return;
-    }
-
-    if (myFormData.image.size === 0) {
-      toast.error("Selected file is empty.");
-      setIsLoading(false);
-      return;
-    }
-
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-    if (!validTypes.includes(myFormData.image.type)) {
-      toast.error("Please upload a valid image file (PNG, JPG, JPEG)");
-      setIsLoading(false);
-      return;
-    }
-
-    if (myFormData.image.size > 5 * 1024 * 1024) {
-      toast.error("File size must be less than 5MB");
-      setIsLoading(false);
-      return;
-    }
-
-    // Create FormData object for API submission
-    const formData = new FormData();
-    formData.append('amount', myFormData.amount);
-    formData.append('coin', selected.symbol);
-    formData.append('image', myFormData.image);
-    formData.append('email', myFormData.email);
-    formData.append('note', myFormData.note);
-
-    console.log("=== API CALL DEBUG ===");
-    console.log("Submitting FormData with:", {
-      amount: myFormData.amount,
-      coin: selected.symbol,
-      image: myFormData.image?.name,
-      email: myFormData.email,
-      note: myFormData.note
-    });
 
     try {
-      // Replace with your actual API endpoint
-      const response = await fetch('/api/deposit', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      const result = await response.json();
-      console.log("API result:", result);
-      toast.success("Deposit request submitted successfully!");
-
-      // Clear form data
-      setMyFormData({
-        amount: "",
-        coin: "",
-        image: null,
-        email: "",
-        note: "",
-      });
-      setFileName("");
-
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-
-    } catch (error) {
-      console.error('Deposit API Error:', error);
-      toast.error("Failed to submit deposit request. Please try again.");
+      const result = await DepositAPI(
+        selected.symbol,
+        Number(myFormData.amount),
+        compressedImageBase64
+      );
+      toast.success("Deposit submitted successfully!");
+      
+      // Reset form after successful submission
+      resetForm();
+      
+      return result;
+    } catch (error: any) {
+      toast.error(error?.message || "Deposit failed");
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Image compression function
+  function compressAndConvertToBase64(file: File, maxWidth = 800, quality = 0.7): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const scale = Math.min(maxWidth / img.width, 1);
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject("No canvas context");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(dataUrl);
+        };
+        img.onerror = reject;
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
 
   // UI
   return (
@@ -341,6 +349,7 @@ const Deposit = () => {
                     name="amount"
                     value={myFormData.amount}
                     onChange={handleAmountChange}
+                    onWheel={handleAmountWheel}
                     placeholder="0.00"
                     min="0"
                     step="any"

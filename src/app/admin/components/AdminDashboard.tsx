@@ -4,7 +4,7 @@
 
 import React, { useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import TransactionHistory from '@/components/TransactionHistory';
+import TransactionHistory from '@/components/history/TransactionHistory';
 import Cookies from 'js-cookie';
 
 
