@@ -240,12 +240,9 @@ const CryptoWalletLanding = () => {
                   <span className="text-yellow-400 font-semibold"> zero-fee transactions</span>.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-6 justify-start mb-8">
-                  <a href="/create-wallet" className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-10 py-4 rounded-full font-bold text-xl hover:bg-yellow-500 hover:to-orange-400 transition-all duration-300 transform hover:scale-105 cursor-pointer">
+                  <a href="/create-wallet" className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-8 py-3 rounded-full font-bold text-xl hover:bg-yellow-500 hover:to-orange-400 transition-all duration-300 transform hover:scale-105 cursor-pointer w-[80%]">
                     Start Trading Now
                   </a>
-                  <button className="border-2 border-yellow-400 text-yellow-400 px-10 py-4 rounded-full font-bold text-xl hover:bg-yellow-400 hover:text-black transition-all duration-300 backdrop-blur-sm cursor-pointer">
-                    Watch Demo
-                  </button>
                 </div>
               </div>
 
@@ -370,7 +367,7 @@ const CryptoWalletLanding = () => {
                   <div className="text-2xl font-black text-white mb-3">
                     ${crypto.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
-                  <div className={`text-lg font-semibold px-3 py-1 rounded-full ${crypto.change > 0
+                  <div className={`w-[50%] text-lg font-semibold px-3 py-1 rounded-full ${crypto.change > 0
                     ? 'text-green-400 bg-green-400/10 border border-green-400/30'
                     : 'text-red-400 bg-red-400/10 border border-red-400/30'
                     }`}>

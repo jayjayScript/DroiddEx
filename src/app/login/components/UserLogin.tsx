@@ -10,6 +10,7 @@ import { showToast } from '@/utils/alert';
 import { useDispatch } from 'react-redux';
 import { login } from '@/store/user';
 import toast from 'react-hot-toast';
+import { Icon } from '@iconify/react/dist/iconify.js';
 
 
 
@@ -17,6 +18,7 @@ const UserLogin = () => {
   const router = useRouter();
   const [form, setForm] = useState({ email: '', phrase: '' });
   const [loading, setLoading] = useState(false);
+  const [toggleView, setToggleView] = useState(false)
   const { t, ready } = useTranslation();
   const dispatch = useDispatch()
 
@@ -56,6 +58,9 @@ const UserLogin = () => {
     }
   };
 
+  const handlePhraseView = () => {
+    setToggleView(!toggleView);
+  }
 
   return (
     <div className="min-h-screen bg-[#121212] flex items-center justify-center px-4">
@@ -78,10 +83,11 @@ const UserLogin = () => {
             />
           </div>
 
-          <div>
-            <label className="text-sm text-gray-300 mb-1 block">{t('login.password')}</label>
+          <div className='flex gap-2'>
+            <div className='flex-1'>
+              <label className="text-sm text-gray-300 mb-1 block">{t('login.password')}</label>
             <input
-              type="text"
+              type={toggleView ? "text" : "password"}
               name='phrase'
               className="w-full p-3 rounded bg-[#2A2A2A] text-white outline-none focus:ring-2 focus:ring-[#ebb70c]"
               value={form.phrase}
@@ -89,6 +95,8 @@ const UserLogin = () => {
               placeholder="••••••••"
               required
             />
+            </div>
+            <Icon className='mt-[3rem]' icon={toggleView ? "simple-line-icons:eye" : "iconamoon:eye-off-light"} width="22" height="22" onClick={handlePhraseView}/>
           </div>
           {loading && (
             <div className="text-yellow-400 text-sm text-center animate-pulse">Authenticating...</div>
