@@ -5,7 +5,7 @@ import { Icon } from '@iconify/react/dist/iconify.js'
 const page = () => {
   return (
     <div>
-      <div className="p-4 py-6 border-b" style={{ borderColor: '#3a3a3a' }}>
+      <div className="p-4 py-6 border-b md:max-w-[70%] mx-auto" style={{ borderColor: '#3a3a3a' }}>
         <div className="flex items-center space-x-3">
           <div className="w-14 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#ebb70c' }}>
             <Icon icon="cryptocurrency:btc" className="w-6 h-6" style={{ color: '#1a1a1a' }} />
@@ -16,12 +16,7 @@ const page = () => {
           </div>
         </div>
       </div>
-      <TransactionHistory
-        isAdmin={true}
-        pendingTransactions={[]}
-          completedTransactions={[]}
-          // onTransactionUpdate={() => {}}
-      />
+      <TransactionHistory/>
     </div>
   )
 }

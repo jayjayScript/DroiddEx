@@ -325,7 +325,7 @@ export default function UserDetailPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-2 sm:p-2 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
+    <div className="md:max-w-[70%] mx-auto p-2 sm:p-2 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
       {/* Header */}
       <div className="flex items-center space-x-4 mb-6">
         <Link href="/admin/users" className="p-2 rounded-lg transition-colors duration-200"

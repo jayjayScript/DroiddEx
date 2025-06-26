@@ -241,7 +241,7 @@ const Settings = () => {
     return (
       <div
         key={field}
-        className="bg-[#1A1A1A] p-4 rounded-xl shadow-md transition-all duration-300 ease-in-out hover:bg-[#222222] group"
+        className="bg-[#1A1A1A] p-4 rounded-xl shadow-md transition-all duration-300 ease-in-out hover:bg-[#222222] group md:max-w-[70%] mx-auto"
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">

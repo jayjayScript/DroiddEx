@@ -1,3 +1,4 @@
+"use client"
 import React, { useState } from 'react'
 import StatusTab from './StatusTab'
 import Pending from './tabs/Pending'
@@ -7,7 +8,7 @@ const TransactionHistory = () => {
   const [activeTab, setActiveTab] = useState("pending")
   return (
     <div>
-      <div>
+      <div className='p-4 md:max-w-[70%] mx-auto'>
         <StatusTab activeTab={activeTab} setActiveTab={setActiveTab}/>
 
         {activeTab === "pending" && <Pending />}

@@ -327,7 +327,7 @@ const Wallet = () => {
   };
 
   return (
-    <div className="min-h-screen md:max-w-[80%] mx-auto text-white p-4 pb-20">
+    <div className="min-h-screen md:max-w-[60%] mx-auto text-white p-4 pb-20">
       <div className="hidden">{copied}</div>
       <header className="flex justify-between items-center mb-4">
         <h1

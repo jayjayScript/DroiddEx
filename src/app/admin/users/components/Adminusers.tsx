@@ -99,7 +99,7 @@ const AdminUsers = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-2 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
+    <div className="md:max-w-[70%] mx-auto p-2 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
       <div className="rounded-xl shadow-sm border" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
         {/* Header */}
         <div className="p-6 border-b" style={{ borderColor: '#3a3a3a' }}>

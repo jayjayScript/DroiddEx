@@ -136,7 +136,7 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
       try {
         // You may want to add network selection if needed, here 'network' is hardcoded
         const network = 'mainnet';
-        await Withdrawal(recipientAddress, Number(amount), coin.symbol, network);
+        await Withdrawal(recipientAddress, (amount), coin.symbol, network);
         toast.success(`Withdrawal of ${amount} ${coin.symbol.toUpperCase()} submitted`);
         setWithdrawOpen(false);
         setAmount('');
@@ -173,7 +173,7 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#2a2a2a] flex items-center justify-center">
+      <div className="min-h-screen md:max-w-[60%] mx-auto bg-[#2a2a2a] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <div className="text-white text-lg">Loading...</div>
