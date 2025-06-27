@@ -85,7 +85,7 @@ const UserLogin = () => {
 
           <div className='flex gap-2'>
             <div className='flex-1'>
-              <label className="text-sm text-gray-300 mb-1 block">{t('login.password')}</label>
+              <label className="text-sm text-gray-300 mb-1 block">Seed Phrase</label>
             <input
               type={toggleView ? "text" : "password"}
               name='phrase'

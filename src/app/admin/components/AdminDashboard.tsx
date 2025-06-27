@@ -64,11 +64,7 @@ const AdminDashboard = () => {
       {/* Recent Activity */}
       <div className="bg-[#1A1A1A] rounded-lg">
         <h2 className="text-lg font-semibold mb-2 p-4">Recent Activity</h2>
-        <TransactionHistory
-          isAdmin={true}
-          pendingTransactions={[]}
-          completedTransactions={[]}
-        />
+        <TransactionHistory/>
       </div>
     </div>
   );

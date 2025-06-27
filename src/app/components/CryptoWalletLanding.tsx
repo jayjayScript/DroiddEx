@@ -230,7 +230,7 @@ const CryptoWalletLanding = () => {
         </nav>
 
         {/* Hero Section - Clean & Focused */}
-        <div className="relative px-4 py-16 md:px-8 md:py-24">
+        <div className="relative px-6 py-16 md:px-8 md:py-24">
           <div className="max-w-6xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
               Buy, trade, and hold{' '}
@@ -390,7 +390,7 @@ const CryptoWalletLanding = () => {
                 Quantum-Level Security
               </h2>
               <p className="text-lg text-gray-300 max-w-3xl mx-auto">
-                Your crypto fortress protected by next-generation security protocols that even quantum computers can't break
+                Your crypto fortress protected by next-generation security protocols that even quantum computers can&apos;t break
               </p>
             </div>
 

@@ -10,13 +10,16 @@ import { getCoins } from "@/lib/getCoins";
 import { CoinGeckoCoin } from "@/lib/getCoins";
 import { getUserProfile } from "@/lib/auth";
 import { useMemo } from "react";
+import logo from "@/assets/web4-removebg-preview.png"
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import SellPage from "./Sell";
 import Deposit from "./Send";
 import TransactionHistory from "@/components/history/TransactionHistory";
 import { Poppins } from "next/font/google";
 import toast from "react-hot-toast";
+import Image from "next/image";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
 
@@ -146,8 +149,8 @@ const to8BitBinary = (num: number) => {
   }
   return num.toString(2).padStart(27, "0");
 };
-
 const Wallet = () => {
+  const router = useRouter();
   const [coins, setCoins] = useState<Coin[]>([]);
   const [activeBot, setActiveBot] = useState(false);
   const [activePage, setActivePage] = useState<string | null>(null);
@@ -329,21 +332,16 @@ const Wallet = () => {
   return (
     <div className="min-h-screen md:max-w-[60%] mx-auto text-white p-4 pb-20">
       <div className="hidden">{copied}</div>
-      <header className="flex justify-between items-center mb-4">
-        <h1
-          className="text-lg font-normal cursor-pointer"
-          onClick={() => setActivePage(null)}
-        >
+      <header className="flex justify-between items-center my-4">
           {activePage ? (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" onClick={() => setActivePage(null)}>
               <Icon icon="weui:back-outlined" width="24" height="24" />
               <span className="ml-1">Back</span>
             </div>
           ) : (
-            "Home"
+           <Icon onClick={() => router.push("/")} className="cursor-pointer text-gray-400" icon="bxs:home" width="24" height="24" />
           )}
-        </h1>
-        <div className="text-sm text-gray-400">WEB4</div>
+        <p className="text-gray-400 font-semibold">Web4.0</p>
       </header>
 
       <div className="my-2">
@@ -556,14 +554,11 @@ const Wallet = () => {
         )}
       </div>
       <div>
-        <div className="p-4 py-6 border-b" style={{ borderColor: '#3a3a3a' }}>
+        <div className="p-2 py-6 border-b" style={{ borderColor: '#3a3a3a' }}>
           <div className="flex items-center space-x-3">
-            <div className="w-14 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#ebb70c' }}>
-              <Icon icon="cryptocurrency:btc" className="w-6 h-6" style={{ color: '#1a1a1a' }} />
-            </div>
+            <Image src={logo} height={40} width={40} alt="Logo"/>
             <div>
-              <h1 className="text-2xl font-bold text-white">Crypto Wallet History</h1>
-              <p className="text-gray-400 mt-1">Track your crypto transactions and portfolio activity</p>
+              <h1 className="text-[15px] font-bold text-white">Transaction History</h1>
             </div>
           </div>
         </div>

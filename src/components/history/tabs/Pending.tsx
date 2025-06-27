@@ -8,7 +8,7 @@ const Pending = () => {
     setIsAdmin(window.location.pathname === "/admin")
   }, [])
 
-  const formatDate = (date: any) => {
+  const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
