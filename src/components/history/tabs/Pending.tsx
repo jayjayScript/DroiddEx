@@ -27,6 +27,7 @@ const Pending = () => {
       type: "deposit",
       coin: "BTC",
       amount: 12,
+      usd: 1200000,
       receipt: "Transaction image",
       status: "pending",
       email: "princewilljeremiah83@gmail.com",
@@ -37,6 +38,7 @@ const Pending = () => {
       coin: "USD",
       network: "BEP20",
       amount: 400,
+      usd: 400,
       status: "pending",
       email: "princewilljeremiah83@gmail.com",
       date: formatDate(date)
@@ -65,7 +67,7 @@ const Pending = () => {
 
         <div>
           {dummyTransaction.map((transaction, index) => {
-            const { type, coin, amount, receipt, network, email, status, date } = transaction
+            const { type, coin, amount, receipt, network, email, status, date, usd } = transaction
             const isExpanded = expandedTransaction === index
 
             return (
@@ -87,6 +89,7 @@ const Pending = () => {
                   <div className='text-right'>
                     <p className={`${type == 'deposit' ? 'text-green-400' : 'text-red-400'}`}>{amount}{coin}</p>
                     {network && <p className='text-gray-500 text-[10px]'>{network}</p>}
+                    <small className='text-gray-400 font-bold text-[12px]'>USD {usd}</small>
                     <p className='text-[#ebb70c] text-xs bg-[#ebb70c27] text-center px-2 py-[1px] rounded'>{status}</p>
                   </div>
 

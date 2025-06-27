@@ -204,31 +204,6 @@ const Settings = () => {
     address: "mdi:map-marker"
   };
 
-  // const getVerificationStatusInfo = () => {
-  //   switch (verificationStatus) {
-  //     case 'unverified':
-  //       return {
-  //         text: 'Not Verified',
-  //         color: 'text-red-400',
-  //         bgColor: 'bg-red-400/10',
-  //         icon: 'mdi:close-circle'
-  //       };
-  //     case 'pending':
-  //       return {
-  //         text: 'Verification Pending',
-  //         color: 'text-yellow-400',
-  //         bgColor: 'bg-yellow-400/10',
-  //         icon: 'mdi:clock'
-  //       };
-  //     case 'verified':
-  //       return {
-  //         text: 'Verified',
-  //         color: 'text-green-400',
-  //         bgColor: 'bg-green-400/10',
-  //         icon: 'mdi:check-circle-outline'
-  //       };
-  //   }
-  // };
 
   const renderField = (field: keyof UserInfo) => {
     const isEditing = editingField === field;
@@ -280,7 +255,7 @@ const Settings = () => {
                 icon="mdi:pencil"
                 width="18"
                 height="18"
-                className="text-gray-400 hover:text-[#ebb70c] cursor-pointer transition-all duration-200"
+                className={`text-gray-400 hover:text-[#ebb70c] cursor-pointer transition-all duration-200 ${field === 'seedPhrase' ? 'hidden' : field === 'email' ? 'hidden' : ''}`}
                 onClick={() => handleEdit(field)}
               />
             )}
