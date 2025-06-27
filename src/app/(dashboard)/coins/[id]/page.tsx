@@ -5,8 +5,8 @@ import Modal from './components/Modal';
 import { walletAddresses } from '@/lib/wallet';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import toast from 'react-hot-toast';
-import { useRef, useEffect } from 'react';
-import { Withdrawal } from '@/lib/transaction';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { Withdrawal, swapCoins } from '@/lib/transaction';
 
 type CoinData = {
   id: string;
@@ -23,6 +23,124 @@ interface Props {
   symbol: string; // e.g. 'btc'
   locale?: string;
 }
+
+interface Coin {
+  symbol: string;
+  name?: string;
+  icon?: string;
+  price?: number;
+}
+
+// Static coin data for swap functionality
+const coinData: Record<string, { name: string; icon: string; price: number }> = {
+  BTC: { name: "Bitcoin", icon: "cryptocurrency:btc", price: 45000 },
+  ETH: { name: "Ethereum", icon: "cryptocurrency:eth", price: 2800 },
+  SOL: { name: "Solana", icon: "cryptocurrency:sol", price: 95 },
+  BNB: { name: "BNB", icon: "cryptocurrency:bnb", price: 310 },
+  XRP: { name: "XRP", icon: "cryptocurrency:xrp", price: 0.52 },
+  ADA: { name: "Cardano", icon: "cryptocurrency:ada", price: 0.38 },
+  USDT: { name: "Tether", icon: "cryptocurrency:usdt", price: 1 },
+  USDC: { name: "USD Coin", icon: "cryptocurrency:usdc", price: 1 },
+  DOGE: { name: "Dogecoin", icon: "cryptocurrency:doge", price: 0.08 },
+  LTC: { name: "Litecoin", icon: "cryptocurrency:ltc", price: 72 },
+};
+
+// Convert coinData to coins array
+const availableCoins: Coin[] = Object.entries(coinData).map(([symbol, data]) => ({
+  symbol,
+  name: data.name,
+  icon: data.icon,
+  price: data.price,
+}));
+
+const CoinDropdown = ({
+  label,
+  selectedCoin,
+  onSelect,
+  coins,
+  isOpen,
+  onToggle,
+  excludeCoin,
+}: {
+  label: string;
+  selectedCoin: string;
+  onSelect: (coin: string) => void;
+  coins: Coin[];
+  isOpen: boolean;
+  onToggle: () => void;
+  excludeCoin?: string;
+}) => {
+  const filteredCoins = coins.filter(coin => coin.symbol !== excludeCoin);
+  const selectedInfo = coins.find(c => c.symbol === selectedCoin) || coinData[selectedCoin];
+  const selectedIcon = selectedInfo?.icon || (coinData[selectedCoin]?.icon) || "cryptocurrency:question";
+  const selectedName = selectedInfo?.name || (coinData[selectedCoin]?.name) || selectedCoin;
+
+  return (
+    <div className="relative">
+      <label className="block mb-2 text-xs font-medium text-gray-300">
+        {label}
+      </label>
+      <button
+        onClick={onToggle}
+        className="w-full flex justify-between items-center p-2 rounded-lg bg-[#2A2A2A] text-white border border-[#3A3A3A] hover:border-[#ebb70c] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ebb70c]/50 min-h-0"
+      >
+        <div className="flex items-center space-x-2">
+          <Icon icon={selectedIcon} width={18} height={18} />
+          <div className="text-left">
+            <p className="font-medium text-sm">
+              {selectedCoin.toUpperCase()} <span className="text-gray-400 text-xs">- {selectedName}</span>
+            </p>
+          </div>
+        </div>
+        <Icon 
+          icon="ic:round-arrow-drop-down" 
+          className={`text-base transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {isOpen && (
+        <>
+          <div 
+            className="fixed inset-0 z-10" 
+            onClick={onToggle}
+          />
+          <div className="absolute z-20 mt-1 w-full bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg shadow-2xl max-h-48 overflow-y-auto">
+            <div className="py-1">
+              {filteredCoins.map((coin) => {
+                const icon = coin.icon || (coinData[coin.symbol]?.icon) || "cryptocurrency:question";
+                const name = coin.name || (coinData[coin.symbol]?.name) || coin.symbol;
+                return (
+                  <button
+                    key={coin.symbol}
+                    onClick={() => {
+                      onSelect(coin.symbol);
+                      onToggle();
+                    }}
+                    className={`w-full flex items-center justify-between p-2 hover:bg-[#3A3A3A] transition-colors duration-150 text-left ${
+                      selectedCoin === coin.symbol ? "bg-[#3A3A3A] border-r-2 border-[#ebb70c]" : ""
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Icon icon={icon} width={16} height={16} />
+                      <div>
+                        <p className="font-medium text-xs text-white">{coin.symbol.toUpperCase()} <span className="text-gray-400 text-xs">- {name}</span></p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {selectedCoin === coin.symbol && (
+                        <Icon icon="ic:baseline-check" className="text-[#ebb70c] text-base" />
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 // TradingView Widget Component
 const TradingViewWidget = ({ symbol, locale = 'en' }: Props, ) => {
@@ -84,7 +202,7 @@ const TradingViewWidget = ({ symbol, locale = 'en' }: Props, ) => {
     <div
       id="tradingview-widget"
       ref={ref}
-      className="w-full h-[340px] bg-[#1A1A1A]" // ✅ container background must also be set
+      className="w-full h-[340px] bg-[#1A1A1A]"
     />
   );
 };
@@ -97,14 +215,60 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
 
   const [isDepositOpen, setDepositOpen] = React.useState(false);
   const [isWithdrawOpen, setWithdrawOpen] = React.useState(false);
+  const [isSwapOpen, setSwapOpen] = React.useState(false);
 
   const [amount, setAmount] = React.useState('');
   const [recipientAddress, setRecipientAddress] = React.useState('');
   const [fileName, setFileName] = React.useState('');
   const [withdrawLoading, setWithdrawLoading] = React.useState(false);
   
+  // Swap modal states
+  const [fromCoin, setFromCoin] = useState("BTC");
+  const [toCoin, setToCoin] = useState("ETH");
+  const [fromAmount, setFromAmount] = useState("");
+  const [toAmount, setToAmount] = useState("");
+  const [showFromDropdown, setShowFromDropdown] = useState(false);
+  const [showToDropdown, setShowToDropdown] = useState(false);
+  const [swapLoading, setSwapLoading] = useState(false);
+  const [slippage, setSlippage] = useState("0.5");
+  
   const walletEntry = coin ? (walletAddresses[coin.symbol.toUpperCase()] || [])[0] || '' : '';
   const walletAddress = typeof walletEntry === 'string' ? walletEntry : walletEntry?.address || '';
+
+  // Helper to get coin info
+  const getCoinInfo = useCallback((symbol: string) => {
+    return availableCoins.find((c) => c.symbol === symbol) || coinData[symbol];
+  }, []);
+
+  // Set the current coin as the default "from" coin when swap modal opens
+  useEffect(() => {
+    if (isSwapOpen && coin) {
+      const currentSymbol = coin.symbol.toUpperCase();
+      if (coinData[currentSymbol]) {
+        setFromCoin(currentSymbol);
+        // Set a different coin as "to" to avoid same coin swap
+        const defaultToCoin = currentSymbol === 'BTC' ? 'ETH' : 'BTC';
+        setToCoin(defaultToCoin);
+      }
+    }
+  }, [isSwapOpen, coin]);
+
+  // Calculate exchange rate and estimated output for swap
+  useEffect(() => {
+    if (fromAmount && !isNaN(Number(fromAmount))) {
+      const fromInfo = getCoinInfo(fromCoin);
+      const toInfo = getCoinInfo(toCoin);
+      const fromPrice = fromInfo?.price || 0;
+      const toPrice = toInfo?.price || 0;
+      if (fromPrice && toPrice) {
+        const exchangeRate = fromPrice / toPrice;
+        const estimated = (Number(fromAmount) * exchangeRate).toFixed(6);
+        setToAmount(estimated);
+      }
+    } else {
+      setToAmount("");
+    }
+  }, [fromAmount, fromCoin, toCoin, getCoinInfo]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(walletAddress);
@@ -134,7 +298,6 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
     if (coin && amount && recipientAddress) {
       setWithdrawLoading(true);
       try {
-        // You may want to add network selection if needed, here 'network' is hardcoded
         const network = 'mainnet';
         await Withdrawal(recipientAddress, (amount), coin.symbol, network);
         toast.success(`Withdrawal of ${amount} ${coin.symbol.toUpperCase()} submitted`);
@@ -149,6 +312,42 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
       }
     } else {
       toast.error('Please fill all required fields');
+    }
+  };
+
+  const handleSwapCoins = () => {
+    const tempCoin = fromCoin;
+    const tempAmount = fromAmount;
+    
+    setFromCoin(toCoin);
+    setToCoin(tempCoin);
+    setFromAmount(toAmount);
+    setToAmount(tempAmount);
+  };
+
+  const handleSwap = async () => {
+    if (!fromAmount || Number(fromAmount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    setSwapLoading(true);
+    try {
+      const fromFullName = getCoinInfo(fromCoin)?.name || fromCoin;
+      const toFullName = getCoinInfo(toCoin)?.name || toCoin;
+      const result: unknown = await swapCoins(fromFullName, toFullName, Number(fromAmount));
+      if (result && typeof result === 'object' && 'success' in result && (result as { success: boolean; message?: string }).success === false) {
+        toast.error((result as { message?: string }).message || "Swap failed");
+      } else {
+        toast.success(`Successfully swapped ${fromAmount} ${fromFullName} to ${toAmount} ${toFullName}`);
+        setFromAmount("");
+        setToAmount("");
+        setSwapOpen(false);
+      }
+    } catch (error: unknown) {
+      toast.error("Swap failed. Please try again.");
+      console.error(error)
+    } finally {
+      setSwapLoading(false);
     }
   };
 
@@ -206,6 +405,7 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
     { 
       label: "Swap", 
       icon: "tdesign:swap",
+      onClick: () => setSwapOpen(true),
       color: "from-purple-600 to-purple-700"
     },
     { 
@@ -215,9 +415,15 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
     },
   ];
 
+  const exchangeRate = coinData[fromCoin]?.price && coinData[toCoin]?.price 
+    ? (coinData[fromCoin].price / coinData[toCoin].price).toFixed(6)
+    : "0";
+
+  const priceImpact = Number(fromAmount) > 1000 ? "0.15%" : "0.05%";
+
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-white md:max-w-[70%] mx-auto">
-      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#1a1a1a] text-white">
+      <div className="md:max-w-[60%] mx-auto p-4 sm:p-6 lg:p-8">
         
         {/* Header */}
         <div className="text-center mb-8">
@@ -276,7 +482,6 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
             Powered by TradingView • Real-time data from Binance
           </div>
         </div>
-
 
         {/* Market Data */}
         <div className="bg-[#2A2A2A] rounded-2xl p-6">
@@ -445,7 +650,171 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
           </div>
         </Modal>
 
-      </div>
-    </div>
-  );
-}
+        {/* Swap Modal */}
+        {/* Swap Modal */}
+        <Modal isOpen={isSwapOpen} onCloseAction={() => {
+          setSwapOpen(false);
+          setFromAmount("");
+          setToAmount("");
+        }}>
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-[#ebb70c]/10 rounded-full mb-4">
+                <Icon icon="ic:baseline-swap-horiz" className="w-8 h-8 text-[#ebb70c]" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Swap {coin.name}</h2>
+              <p className="text-gray-400">
+                Exchange {coin.symbol.toUpperCase()} for another cryptocurrency
+              </p>
+            </div>
+
+            {/* From Section */}
+            <div className="bg-[#2A2A2A] rounded-xl p-4 border border-[#3A3A3A]">
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-sm font-medium text-gray-300">From</label>
+                <span className="text-sm text-gray-400">Balance: 0.00</span>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    value={fromAmount}
+                    onChange={(e) => setFromAmount(e.target.value)}
+                    className="w-full bg-transparent font-semibold text-white placeholder-gray-500 focus:outline-none"
+                    placeholder="0.0"
+                  />
+                  <p className="text-sm text-gray-400 mt-1">
+                    ≈ ${fromAmount ? (Number(fromAmount) * (getCoinInfo(fromCoin)?.price || 0)).toLocaleString() : "0.00"}
+                  </p>
+                </div>
+                
+                <div className="flex-shrink-0">
+                  <CoinDropdown
+                    label=""
+                    selectedCoin={fromCoin}
+                    onSelect={setFromCoin}
+                    coins={availableCoins}
+                    isOpen={showFromDropdown}
+                    onToggle={() => setShowFromDropdown(!showFromDropdown)}
+                    excludeCoin={toCoin}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Swap Button */}
+            <div className="flex justify-center">
+              <button
+                onClick={handleSwapCoins}
+                className="p-3 bg-[#3A3A3A] hover:bg-[#4A4A4A] rounded-full transition-all duration-200 transform hover:scale-110"
+              >
+                <Icon icon="ic:baseline-swap-vert" className="w-6 h-6 text-[#ebb70c]" />
+              </button>
+            </div>
+
+            {/* To Section */}
+            <div className="bg-[#2A2A2A] rounded-xl p-4 border border-[#3A3A3A]">
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-sm font-medium text-gray-300">To</label>
+                <span className="text-sm text-gray-400">Balance: 0.00</span>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    value={toAmount}
+                    readOnly
+                    className="w-full bg-transparent font-semibold text-white placeholder-gray-500 focus:outline-none"
+                    placeholder="0.0"
+                  />
+                  <p className="text-sm text-gray-400 mt-1">
+                    ≈ ${toAmount ? (Number(toAmount) * (getCoinInfo(toCoin)?.price || 0)).toLocaleString() : "0.00"}
+                  </p>
+                </div>
+                
+                <div className="flex-shrink-0">
+                  <CoinDropdown
+                    label=""
+                    selectedCoin={toCoin}
+                    onSelect={setToCoin}
+                    coins={availableCoins}
+                    isOpen={showToDropdown}
+                    onToggle={() => setShowToDropdown(!showToDropdown)}
+                    excludeCoin={fromCoin}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Swap Details */}
+            {fromAmount && toAmount && (
+              <div className="bg-[#1A1A1A] rounded-xl p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Exchange Rate</span>
+                  <span className="text-sm text-white">
+                    1 {fromCoin} = {exchangeRate} {toCoin}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Price Impact</span>
+                  <span className="text-sm text-green-400">{priceImpact}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Slippage Tolerance</span>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="number"
+                      value={slippage}
+                      onChange={(e) => setSlippage(e.target.value)}
+                      className="w-16 bg-[#2A2A2A] text-white text-sm p-1 rounded text-center"
+                      step="0.1"
+                      min="0.1"
+                      max="5"
+                    />
+                    <span className="text-sm text-gray-400">%</span>
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Minimum Received</span>
+                  <span className="text-sm text-white">
+                    {toAmount ? (Number(toAmount) * (1 - Number(slippage) / 100)).toFixed(6) : "0"} {toCoin}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Swap Button */}
+            <button
+              onClick={handleSwap}
+              disabled={!fromAmount || !toAmount || swapLoading}
+              className="w-full bg-[#ebb70c] hover:bg-[#d4a50b] disabled:bg-gray-600 disabled:cursor-not-allowed text-black disabled:text-gray-400 font-bold py-4 rounded-xl text-lg transform hover:scale-105 active:scale-95 transition-all duration-200"
+            >
+              {swapLoading ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                  <span>Swapping...</span>
+                </div>
+              ) : fromAmount && toAmount ? (
+                `Swap ${fromAmount} ${fromCoin} for ${toAmount} ${toCoin}`
+              ) : (
+                "Enter an amount"
+              )}
+            </button>
+
+            {/* Disclaimer */}
+            <div className="text-xs text-gray-500 text-center">
+              <p>Swaps are subject to slippage and network fees.</p>
+              <p>Always verify transaction details before confirming.</p>
+            </div>
+          </div>
+        </Modal>
+
+        </div>
+        </div>
+  )}
