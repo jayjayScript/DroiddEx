@@ -86,7 +86,6 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="min-h-screen bg-black p-4 sm:p-6 text-white">
-      <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-bold mb-6">Admin Settings</h1>
 

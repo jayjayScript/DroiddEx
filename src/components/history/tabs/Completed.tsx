@@ -8,7 +8,7 @@ const Completed = () => {
   setIsAdmin(window.location.pathname === "/admin")
 }, [])
 
-  const formatDate = (date: any) => {
+  const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -62,6 +62,7 @@ const Completed = () => {
     <div>
       <div>
         {dummyTransaction.length === 0 && <p className='text-center text-gray-400 my-6'>No completed Transactions</p>}
+        <div className='hidden'>{isAdmin}</div>
 
         <div>
           {dummyTransaction.map((transaction, index) => {

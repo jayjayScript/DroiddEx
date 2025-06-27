@@ -112,7 +112,7 @@ const Receive = () => {
     }
     setIsLoading(true);
     try {
-      await Withdrawal(address, +amount, selectedCoin.id, selectedNetwork);
+      await Withdrawal(address, amount, selectedCoin.id, selectedNetwork);
       toast.success(`Sent ${amount} ${selectedCoin.name} via ${selectedNetwork}`);
       setAmount("");
       setAddress("");

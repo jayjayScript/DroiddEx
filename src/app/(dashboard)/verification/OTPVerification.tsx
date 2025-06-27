@@ -19,11 +19,6 @@ const OTPVerification = () => {
     }
   }, [timeLeft]);
 
-interface Message {
-    type: '' | 'success' | 'error' | 'info';
-    text: string;
-}
-
 type OTPArray = [string, string, string, string];
 
 const handleChange = (index: number, value: string) => {
@@ -41,9 +36,7 @@ const handleChange = (index: number, value: string) => {
     }
 };
 
-interface OTPKeyDownEvent extends React.KeyboardEvent<HTMLInputElement> {}
-
-const handleKeyDown = (index: number, e: OTPKeyDownEvent) => {
+const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
         inputRefs.current[index - 1]?.focus();
         const newOtp = [...otp];
@@ -56,9 +49,8 @@ const handleKeyDown = (index: number, e: OTPKeyDownEvent) => {
     }
 };
 
-interface PasteEvent extends React.ClipboardEvent<HTMLInputElement> {}
 
-const handlePaste = (e: PasteEvent) => {
+const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pastedData: string = e.clipboardData.getData('text');
     const digits: string = pastedData.replace(/\D/g, '').slice(0, 4);
@@ -93,6 +85,7 @@ const handlePaste = (e: PasteEvent) => {
         inputRefs.current[0]?.focus();
       }
     } catch (error) {
+        console.error(error)
       setMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
     } finally {
       setIsLoading(false);
@@ -128,12 +121,12 @@ const handlePaste = (e: PasteEvent) => {
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold text-white mb-2 bg-gradient-to-r from-white to-[#ebb70c] bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-white mb-2 bg-gradient-to-r from-white to-[#ebb70c] bg-clip-text">
             Verify Your Number
           </h1>
           
           <p className="text-gray-400 mb-8 leading-relaxed">
-            We've sent a 4-digit code to<br />
+            We&apos;ve sent a 4-digit code to<br />
             <span className="text-[#ebb70c] font-semibold">+1 (234) 567-8900</span>
           </p>
 
@@ -201,7 +194,7 @@ const handlePaste = (e: PasteEvent) => {
 
           {/* Resend Section */}
           <div className="text-gray-400 text-sm">
-            <span>Didn't receive the code? </span>
+            <span>Didn&apos;t receive the code? </span>
             {canResend ? (
               <button
                 onClick={handleResend}

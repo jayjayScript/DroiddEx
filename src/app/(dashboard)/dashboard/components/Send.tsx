@@ -172,9 +172,6 @@ const Deposit = () => {
     toast.success("Wallet address copied!");
   };
 
-  // Track if user has focused on amount input
-  const [amountFocused, setAmountFocused] = useState(false);
-
   // Handle amount input change
   const handleAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
     setMyFormData(prev => ({
@@ -183,27 +180,6 @@ const Deposit = () => {
     }));
   };
 
-  // Handle amount input focus - clear default value
-  const handleAmountFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    if (!amountFocused && (e.target.value === "0.00" || e.target.value === "")) {
-      setMyFormData(prev => ({
-        ...prev,
-        amount: ""
-      }));
-      setAmountFocused(true);
-    }
-  };
-
-  // Handle amount input blur - set default if empty
-  const handleAmountBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    if (e.target.value === "" || e.target.value === "0" || e.target.value === "0.") {
-      setMyFormData(prev => ({
-        ...prev,
-        amount: "0.00"
-      }));
-      setAmountFocused(false);
-    }
-  };
 
   // Prevent scroll wheel from changing number input
   const handleAmountWheel = (e: React.WheelEvent<HTMLInputElement>) => {
@@ -250,7 +226,7 @@ const Deposit = () => {
   };
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -261,6 +237,7 @@ const Deposit = () => {
       } catch (e) {
         toast.error("Failed to process image.");
         setIsLoading(false);
+        console.error(e)
         return;
       }
     }
@@ -277,8 +254,9 @@ const Deposit = () => {
       resetForm();
       
       return result;
-    } catch (error: any) {
-      toast.error(error?.message || "Deposit failed");
+    } catch (error) {
+      toast.error("Deposit failed");
+      console.error(error)
     } finally {
       setIsLoading(false);
     }
