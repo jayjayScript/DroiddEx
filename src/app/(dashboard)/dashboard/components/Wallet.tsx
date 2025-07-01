@@ -20,6 +20,7 @@ import TransactionHistory from "@/components/history/TransactionHistory";
 import { Poppins } from "next/font/google";
 import toast from "react-hot-toast";
 import Image from "next/image";
+import { useUserContext } from "@/store/userContext";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
 
@@ -53,11 +54,11 @@ interface UserProfile {
   // Add other fields as needed
 }
 
-const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onSubscribe, 
-  loading 
+const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
+  isOpen,
+  onClose,
+  onSubscribe,
+  loading
 }) => {
   if (!isOpen) return null;
 
@@ -73,7 +74,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             <Icon icon="material-symbols:close" width="24" height="24" />
           </button>
         </div>
-        
+
         <div className="text-center mb-6">
           <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-[#ebb70c] to-[#ffba1a] rounded-full flex items-center justify-center">
             <Icon
@@ -149,6 +150,7 @@ const to8BitBinary = (num: number) => {
   }
   return num.toString(2).padStart(27, "0");
 };
+
 const Wallet = () => {
   const router = useRouter();
   const [coins, setCoins] = useState<Coin[]>([]);
@@ -160,7 +162,8 @@ const Wallet = () => {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  
+  const { user, setUser } = useUserContext()
+
   // Subscription related states
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
@@ -197,7 +200,7 @@ const Wallet = () => {
       try {
         const profile = await getUserProfile();
         setUserProfile(profile);
-        
+
         // Check for existing subscription
         // You'll need to add subscription fields to your user profile
         if (profile.subscriptionExpiry) {
@@ -220,35 +223,35 @@ const Wallet = () => {
       setShowSubscriptionModal(true);
       return;
     }
-    
+
     setActiveBot(!activeBot);
   };
 
   const handleSubscribe = async () => {
     setSubscriptionLoading(true);
-    
+
     try {
       // Here you would integrate with your payment processor (Stripe, PayPal, etc.)
       // For now, we'll simulate a successful payment
-      
+
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Calculate expiry date (30 days from now)
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + 30);
-      
+
       // Update subscription status
       setHasActiveSubscription(true);
       setSubscriptionExpiry(expiryDate);
       setShowSubscriptionModal(false);
-      
+
       // You would typically make an API call here to update the user's subscription status
       // await updateUserSubscription(userId, expiryDate);
-      
+
       // Optionally show a success message
       toast.success('Subscription activated successfully!');
-      
+
     } catch (error) {
       console.error('Subscription failed:', error);
       toast.error('Subscription failed. Please try again.');
@@ -322,25 +325,40 @@ const Wallet = () => {
   }, [userProfile]);
 
   const formatExpiryDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
+  const getTotalBalance = (wallet: Wallet): number => {
+    return Object.values(wallet).reduce<number>((total, entry) => {
+      // entry can be WalletItem *or* USDTAddress[]
+      if (Array.isArray(entry)) {
+        /* USDT has one object per network → sum those first */
+        const usdtSum = entry.reduce(
+          (sub, { balance }) => sub + balance,
+          0
+        );
+        return total + usdtSum;
+      }
+
+      return total + entry.balance; // normal WalletItem
+    }, 0);
+  }
   return (
     <div className="min-h-screen md:max-w-[60%] mx-auto text-white p-4 pb-20">
       <div className="hidden">{copied}</div>
       <header className="flex justify-between items-center my-4">
-          {activePage ? (
-            <div className="flex items-center gap-1" onClick={() => setActivePage(null)}>
-              <Icon icon="weui:back-outlined" width="24" height="24" />
-              <span className="ml-1">Back</span>
-            </div>
-          ) : (
-           <Icon onClick={() => router.push("/")} className="cursor-pointer text-gray-400" icon="bxs:home" width="24" height="24" />
-          )}
+        {activePage ? (
+          <div className="flex items-center gap-1" onClick={() => setActivePage(null)}>
+            <Icon icon="weui:back-outlined" width="24" height="24" />
+            <span className="ml-1">Back</span>
+          </div>
+        ) : (
+          <Icon onClick={() => router.push("/")} className="cursor-pointer text-gray-400" icon="bxs:home" width="24" height="24" />
+        )}
         <p className="text-gray-400 font-semibold">Web4.0</p>
       </header>
 
@@ -355,7 +373,7 @@ const Wallet = () => {
             <div className={`overflow-auto transition-all duration-500 ease-in-out ${showFullPhrase ? "w-auto max-w-none" : "w-[178px] sm:w-40"
               }`}>
               <p className="text-[14px] sm:text-sm whitespace-nowrap p-1 font-mono text-gray-300">
-                {userProfile ? userProfile.phrase : 'Loading...'}
+                {user ? user.phrase : 'Loading...'}
               </p>
             </div>
 
@@ -388,7 +406,7 @@ const Wallet = () => {
           </div>
         </div>
 
-        <div className="text-3xl font-bold mb-2">${userProfile ? userProfile.balance : '...'}</div>
+        <div className="text-3xl font-bold mb-2">${user ? getTotalBalance(user.wallet) : '...'}</div>
 
         <div className="grid grid-cols-5 sm:grid-cols-5 gap-4 text-center text-sm mt-8 mb-2 px-4">
           {[
@@ -431,7 +449,7 @@ const Wallet = () => {
                   height="24"
                   className={`cursor-pointer transition-all duration-300 ${activeBot
                     ? "rotate-animation text-green-500 animate-spin"
-                    : hasActiveSubscription 
+                    : hasActiveSubscription
                       ? "text-[#ebb70c] hover:text-[#ffba1a]"
                       : "text-gray-500 hover:text-gray-400"
                     }`}
@@ -447,7 +465,7 @@ const Wallet = () => {
           </div>
           <small className="font-medium text-center text-[10px] my-1 ms-[2.6rem] text-gray-400 flex items-center justify-center gap-1">
             <Icon icon="material-symbols:security" width="12" height="12" />
-            {hasActiveSubscription 
+            {hasActiveSubscription
               ? `Subscription expires: ${subscriptionExpiry ? formatExpiryDate(subscriptionExpiry) : 'Unknown'} ⚠`
               : 'Subscribe to activate bot ⚠'
             }
@@ -483,7 +501,7 @@ const Wallet = () => {
                       className="flex justify-between bg-[#1A1A1A] p-2 mb-[6px] rounded-lg"
                     >
                       <div className="flex items-center gap-2">
-                        <Icon icon={iconName} width="32" height="32"/>
+                        <Icon icon={iconName} width="32" height="32" />
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-1">
                             <div className="text-[13px] font-semibold">
@@ -556,7 +574,7 @@ const Wallet = () => {
       <div>
         <div className="p-2 py-6 border-b" style={{ borderColor: '#3a3a3a' }}>
           <div className="flex items-center space-x-3">
-            <Image src={logo} height={40} width={40} alt="Logo"/>
+            <Image src={logo} height={40} width={40} alt="Logo" />
             <div>
               <h1 className="text-[15px] font-bold text-white">Transaction History</h1>
             </div>

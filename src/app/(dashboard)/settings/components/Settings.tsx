@@ -3,10 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { updateFullname, updateCountry, updatePhone, updateAddress } from "@/lib/profile";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store/user";
 import toast from "react-hot-toast";
 import { getAllUsers } from "@/lib/admin"; // Import the getAllUsers function
+import api from "@/lib/axios";
+import { AxiosError } from "axios";
+import { useRouter } from "next/navigation";
+import { useUserContext } from "@/store/userContext";
+import imageCompression from 'browser-image-compression';
 
 interface UserInfo {
   fullName: string;
@@ -19,19 +22,31 @@ interface UserInfo {
 
 type VerificationStatus = 'unverified' | 'pending' | 'verified';
 
-const Settings = () => {
-  // Use Redux state for email and phrase
-  const { email, phrase } = useSelector((state: RootState) => state.user.value);
-  const [userInfo, setUserInfo] = useState<UserInfo>({
-    fullName: "",
-    email: email || "",
-    seedPhrase: phrase || "",
-    country: "",
-    phoneNumber: "",
-    address: ""
+const toBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file); // includes mime type like "data:image/png;base64,..."
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
   });
 
-  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('unverified');
+
+const Settings = () => {
+  const router = useRouter()
+  // Use Redux state for email and phrase
+  const { user, setUser } = useUserContext()
+  const { email, phrase, fullname, country, phone, address } = user
+  const [userInfo, setUserInfo] = useState<UserInfo>({
+    fullName: fullname || "",
+    email: email || "",
+    seedPhrase: phrase || "",
+    country: country || "",
+    phoneNumber: phone || "",
+    address: address || ""
+  });
+
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>(user.verificationStatus || 'unverified');
+  const [KYCVerificationStatus, setKYCVerificationStatus] = useState<VerificationStatus>(user.KYCVerificationStatus || 'unverified')
   const [editingField, setEditingField] = useState<keyof UserInfo | null>(null);
   const [tempValue, setTempValue] = useState("");
   const [showFullSeed, setShowFullSeed] = useState(false);
@@ -39,59 +54,59 @@ const Settings = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Fetch user status and details from backend
-  useEffect(() => {
-    const fetchUserStatus = async () => {
-      try {
-        const users = await getAllUsers();
-        const currentUser = users.find(u => u.email === email);
-        // Prefer verificationStatus, fallback to isVerified for legacy
-        let status = currentUser?.verificationStatus;
-        // Robust normalization for isVerified (can be boolean, string, or number)
-        if (!status && currentUser?.isVerified !== undefined) {
-          const isVerified = currentUser.isVerified;
-          if (typeof isVerified === 'boolean') {
-            status = isVerified ? 'verified' : 'unverified';
-          } else if (typeof isVerified === 'string') {
-            const normalized = isVerified.trim().toLowerCase();
-            if (normalized === 'true' || normalized === 'verified') status = 'verified';
-            else if (normalized === 'false' || normalized === 'unverified') status = 'unverified';
-            else if (normalized === 'pending') status = 'pending';
-          } else if (typeof isVerified === 'number') {
-            status = isVerified === 1 ? 'verified' : 'unverified';
-          }
-        }
-        const validStatuses = ['unverified', 'pending', 'verified'];
-        if (status && validStatuses.includes(status)) {
-          setVerificationStatus(status as VerificationStatus);
-        } else {
-          setVerificationStatus('unverified');
-        }
-        // Update user info from backend if available
-        if (currentUser) {
-          setUserInfo(prev => ({
-            ...prev,
-            fullName: currentUser.fullname || prev.fullName,
-            country: currentUser.country || prev.country,
-            phoneNumber: currentUser.phone || prev.phoneNumber,
-            address: currentUser.address || prev.address,
-            // email and seedPhrase remain from Redux
-          }));
-        }
-      } catch (error) {
-        toast.error('Failed to get users');
-        setVerificationStatus('unverified');
-        console.log(error);
-      }
-    };
-    fetchUserStatus();
-  }, [email]);
+  // useEffect(() => {
+  //   const fetchUserStatus = async () => {
+  //     try {
+  //       const users = await getAllUsers();
+  //       const currentUser = users.find(u => u.email === email);
+  //       // Prefer verificationStatus, fallback to isVerified for legacy
+  //       let status = currentUser?.verificationStatus;
+  //       // Robust normalization for isVerified (can be boolean, string, or number)
+  //       if (!status && currentUser?.isVerified !== undefined) {
+  //         const isVerified = currentUser.isVerified;
+  //         if (typeof isVerified === 'boolean') {
+  //           status = isVerified ? 'verified' : 'unverified';
+  //         } else if (typeof isVerified === 'string') {
+  //           const normalized = isVerified.trim().toLowerCase();
+  //           if (normalized === 'true' || normalized === 'verified') status = 'verified';
+  //           else if (normalized === 'false' || normalized === 'unverified') status = 'unverified';
+  //           else if (normalized === 'pending') status = 'pending';
+  //         } else if (typeof isVerified === 'number') {
+  //           status = isVerified === 1 ? 'verified' : 'unverified';
+  //         }
+  //       }
+  //       const validStatuses = ['unverified', 'pending', 'verified'];
+  //       if (status && validStatuses.includes(status)) {
+  //         setVerificationStatus(status as VerificationStatus);
+  //       } else {
+  //         setVerificationStatus('unverified');
+  //       }
+  //       // Update user info from backend if available
+  //       if (currentUser) {
+  //         setUserInfo(prev => ({
+  //           ...prev,
+  //           fullName: currentUser.fullname || prev.fullName,
+  //           country: currentUser.country || prev.country,
+  //           phoneNumber: currentUser.phone || prev.phoneNumber,
+  //           address: currentUser.address || prev.address,
+  //           // email and seedPhrase remain from Redux
+  //         }));
+  //       }
+  //     } catch (error) {
+  //       toast.error('Failed to get users');
+  //       setVerificationStatus('unverified');
+  //       console.log(error);
+  //     }
+  //   };
+  //   fetchUserStatus();
+  // }, [user]);
 
   // Refetch user status/details after verification actions
   const refetchUserStatus = async () => {
     try {
       const users = await getAllUsers();
       const currentUser = users.find(u => u.email === email);
-      const status = currentUser?.verificationStatus || currentUser?.isVerified;
+      const status = currentUser?.verificationStatus
       const validStatuses = ['unverified', 'pending', 'verified'];
       if (status && validStatuses.includes(status)) {
         setVerificationStatus(status as VerificationStatus);
@@ -160,23 +175,69 @@ const Settings = () => {
     const missingFields = requiredFields.filter(field => !userInfo[field].trim());
 
     if (missingFields.length > 0) {
-      alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
       return;
     }
 
-    setVerificationStatus('pending');
-    toast('Verification submitted! Awaiting admin approval.');
-    await refetchUserStatus();
+    try {
+      const response = await api.patch("/profile/verificationStatus", { verificationStatus: 'pending' });
+      setVerificationStatus('pending');
+      toast('Verification submitted! Awaiting admin approval.');
+      await refetchUserStatus();
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        toast.error(err.response?.data.message)
+      } else {
+        toast.error('Failed to generate seed phrase please Try again later or reload page');
+      }
+    }
   };
+
+  useEffect(() => {
+    if (verificationStatus === 'pending') {
+      router.push('/verification')
+      return
+    }
+  }, [verificationStatus])
 
   const handleSecondVerification = async () => {
     if (!selectedFile) {
       toast('Please select a document (Passport or Driver\'s License)');
       return;
     }
-    setVerificationStatus('pending');
-    toast('KYC verification submitted! Awaiting admin approval.');
-    await refetchUserStatus();
+    const MAX_FILE_SIZE_MB = 5;
+    if (selectedFile && selectedFile.size / (1024 * 1024) > MAX_FILE_SIZE_MB) {
+      toast.error('File too large. Max size is 5MB.');
+      return;
+    }
+    try {
+      const options = {
+        maxSizeMB: MAX_FILE_SIZE_MB,
+        maxWidthOrHeight: 800,
+        useWebWorker: true,
+      };
+
+      const compressedFile = await imageCompression(selectedFile, options);
+      setSelectedFile(compressedFile);
+    } catch (error) {
+      console.error('Image compression error:', error);
+      toast.error('Failed to compress image.');
+    }
+    const imageBase64 = await toBase64(selectedFile);
+    try {
+      const response = await api.patch<UserType>('/profile/KYC', {
+        KYC: imageBase64
+      })
+      setKYCVerificationStatus('pending');
+      toast('KYC verification submitted! Awaiting admin approval.');
+      await setUser(response.data);
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        toast.error(err.response?.data.message)
+      } else {
+        toast.error('An error occurred during signup')
+      }
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,7 +376,7 @@ const Settings = () => {
 
   const renderVerificationSection = () => {
     // Show KYC step only after verified
-    if (verificationStatus === 'verified') {
+    if (verificationStatus === 'verified' && KYCVerificationStatus === 'unverified') {
       return (
         <div className="mt-8 space-y-4">
           <div className="bg-[#1A1A1A] p-6 rounded-xl shadow-md">
@@ -366,28 +427,47 @@ const Settings = () => {
     }
     // Status badge and first verification button
     const statusInfo = (() => {
-      switch (verificationStatus as VerificationStatus) {
+      if (verificationStatus !== 'verified') {
+        return {
+          text: verificationStatus === 'pending'
+            ? 'Verification Pending'
+            : 'Not Verified',
+          color: verificationStatus === 'pending'
+            ? 'text-yellow-400'
+            : 'text-red-400',
+          bgColor: verificationStatus === 'pending'
+            ? 'bg-yellow-400/10'
+            : 'bg-red-400/10',
+          icon: verificationStatus === 'pending'
+            ? 'mdi:clock-outline'
+            : 'mdi:close-circle',
+        };
+      }
+
+      // ── 2️⃣ basic verified, now look at KYC status ─────────────
+      switch (KYCVerificationStatus) {
         case 'unverified':
-        return {
-          text: 'Not Verified',
-          color: 'text-red-400',
-          bgColor: 'bg-red-400/10',
-          icon: 'mdi:close-circle'
-        };
-      case 'pending':
-        return {
-          text: 'Verification Pending',
-          color: 'text-yellow-400',
-          bgColor: 'bg-yellow-400/10',
-          icon: 'mdi:clock'
-        };
-      case 'verified':
-        return {
-          text: 'Verified',
-          color: 'text-green-400',
-          bgColor: 'bg-green-400/10',
-          icon: 'mdi:check-circle-outline'
-        };
+          return {
+            text: 'KYC Not Submitted',
+            color: 'text-red-400',
+            bgColor: 'bg-red-400/10',
+            icon: 'mdi:shield-off',
+          };
+        case 'pending':
+          return {
+            text: 'KYC Pending',
+            color: 'text-yellow-400',
+            bgColor: 'bg-yellow-400/10',
+            icon: 'mdi:clock-outline',
+          };
+        case 'verified':
+        default:
+          return {
+            text: 'Fully Verified',
+            color: 'text-green-400',
+            bgColor: 'bg-green-400/10',
+            icon: 'mdi:check-circle-outline',
+          };
       }
     })();
     return (
@@ -423,11 +503,19 @@ const Settings = () => {
               </button>
             </div>
           )}
-          {verificationStatus === 'pending' && (
+          {(verificationStatus === 'pending') && (
             <div className="text-center py-6">
               <Icon icon="mdi:clock-outline" width="48" height="48" className="text-yellow-400 mx-auto mb-3" />
               <p className="text-gray-400">
                 Your verification is being reviewed by our admin team. This usually takes 1-2 business days.
+              </p>
+            </div>
+          )}
+          {(KYCVerificationStatus === 'pending') && (
+            <div className="text-center py-6">
+              <Icon icon="mdi:clock-outline" width="48" height="48" className="text-yellow-400 mx-auto mb-3" />
+              <p className="text-gray-400">
+                Your KYC verification is being reviewed by our admin team. This usually takes 1-2 business days.
               </p>
             </div>
           )}

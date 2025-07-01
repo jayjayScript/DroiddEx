@@ -1,13 +1,43 @@
+'use client';
+import api from '@/lib/axios';
+import { useUserContext } from '@/store/userContext';
+import { AxiosError } from 'axios';
+import { useRouter } from 'next/navigation';
 import React, { useState, useRef, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 const OTPVerification = () => {
+  const { user, setUser } = useUserContext()
   const [otp, setOtp] = useState(['', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [timeLeft, setTimeLeft] = useState(30);
   const [canResend, setCanResend] = useState(false);
-  
+  const requestedRef = useRef(false);
+  const router = useRouter()
+
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const getOtpCode = async () => {
+    if (!user.email) return;
+    try {
+      const { data } = await api.patch(`/seed/sendCode?email=${user.email}`);
+      toast(data.message);
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        toast.error(err.response?.data.message);
+      } else {
+        toast.error(
+          'Failed to send OTP code. Please try again later or reload the page.'
+        );
+      }
+    }
+  }
+  useEffect(() => {
+    if (requestedRef.current) return
+    requestedRef.current = true
+    getOtpCode();
+  }, [user.email]);
 
   // Timer effect
   useEffect(() => {
@@ -19,9 +49,9 @@ const OTPVerification = () => {
     }
   }, [timeLeft]);
 
-type OTPArray = [string, string, string, string];
+  type OTPArray = [string, string, string, string];
 
-const handleChange = (index: number, value: string) => {
+  const handleChange = (index: number, value: string) => {
     // Only allow numbers
     if (!/^\d*$/.test(value)) return;
 
@@ -32,63 +62,63 @@ const handleChange = (index: number, value: string) => {
 
     // Move to next input if value is entered
     if (value && index < 3) {
-        inputRefs.current[index + 1]?.focus();
+      inputRefs.current[index + 1]?.focus();
     }
-};
+  };
 
-const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
-        inputRefs.current[index - 1]?.focus();
-        const newOtp = [...otp];
-        newOtp[index - 1] = '';
-        setOtp(newOtp);
+      inputRefs.current[index - 1]?.focus();
+      const newOtp = [...otp];
+      newOtp[index - 1] = '';
+      setOtp(newOtp);
     }
 
     if (e.key === 'Enter') {
-        handleVerify();
+      handleVerify();
     }
-};
+  };
 
 
-const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pastedData: string = e.clipboardData.getData('text');
     const digits: string = pastedData.replace(/\D/g, '').slice(0, 4);
 
     if (digits.length === 4) {
-        setOtp(digits.split(''));
-        inputRefs.current[3]?.focus();
+      setOtp(digits.split(''));
+      inputRefs.current[3]?.focus();
     }
-};
+  };
 
   const handleVerify = async () => {
     const otpString = otp.join('');
-    
+
     if (otpString.length !== 4) {
       setMessage({ type: 'error', text: 'Please enter all 4 digits' });
       return;
     }
 
     setIsLoading(true);
-    
+
     // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Demo: accept "1234" as valid OTP
-      if (otpString === '1234') {
-        setMessage({ type: 'success', text: 'Verification successful! Welcome aboard.' });
+      const response = await api.patch(`/seed/verifyCode?email=${user.email}&code=${otpString}`);
+      setMessage({ type: 'success', text: 'Verification successful! Welcome aboard.' });
+      toast(response.data.message)
+      router.replace('/settings')
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        // toast.error(err.response?.data.message)
+        setMessage({ type: 'error', text: err.response?.data.message })
       } else {
-        setMessage({ type: 'error', text: 'Invalid code. Please try again.' });
-        // Clear inputs on error
-        setOtp(['', '', '', '']);
-        inputRefs.current[0]?.focus();
+        toast.error('Failed to generate seed phrase please Try again later or reload page');
       }
-    } catch (error) {
-        console.error(error)
-      setMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
     } finally {
       setIsLoading(false);
+      // Clear inputs on error
+      setOtp(['', '', '', '']);
+      inputRefs.current[0]?.focus();
     }
   };
 
@@ -98,8 +128,9 @@ const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     setTimeLeft(30);
     setCanResend(false);
     inputRefs.current[0]?.focus();
-    
+
     // Show resend confirmation
+    getOtpCode()
     setMessage({ type: 'info', text: 'New code sent to your phone!' });
     setTimeout(() => setMessage({ type: '', text: '' }), 3000);
   };
@@ -111,7 +142,7 @@ const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
       <div className="bg-[#2A2A2A] rounded-3xl p-10 max-w-md w-full text-center shadow-2xl border border-[#ebb70c]/20 relative overflow-hidden">
         {/* Glow effect */}
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-[#ebb70c] via-transparent to-[#ebb70c] opacity-20 animate-pulse"></div>
-        
+
         {/* Icon */}
         <div className="relative z-10">
           <div className="w-16 h-16 bg-gradient-to-br from-[#ebb70c] to-[#f4c430] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-[#ebb70c]/30 animate-pulse">
@@ -122,23 +153,22 @@ const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
 
           {/* Title */}
           <h1 className="text-3xl font-bold text-white mb-2 bg-gradient-to-r from-white to-[#ebb70c] bg-clip-text">
-            Verify Your Number
+            Verify Your Email
           </h1>
-          
+
           <p className="text-gray-400 mb-8 leading-relaxed">
             We&apos;ve sent a 4-digit code to<br />
-            <span className="text-[#ebb70c] font-semibold">+1 (234) 567-8900</span>
+            <span className="text-[#ebb70c] font-semibold">{user.email ?? 'example@gmail.comm'}</span>
           </p>
 
           {/* Message */}
           {message.text && (
-            <div className={`mb-6 p-3 rounded-lg border transition-all duration-300 ${
-              message.type === 'success' 
-                ? 'bg-green-500/10 border-green-500 text-green-400' 
-                : message.type === 'error'
+            <div className={`mb-6 p-3 rounded-lg border transition-all duration-300 ${message.type === 'success'
+              ? 'bg-green-500/10 border-green-500 text-green-400'
+              : message.type === 'error'
                 ? 'bg-red-500/10 border-red-500 text-red-400'
                 : 'bg-blue-500/10 border-blue-500 text-blue-400'
-            }`}>
+              }`}>
               {message.type === 'success' && '✅ '}
               {message.type === 'error' && '❌ '}
               {message.type === 'info' && 'ℹ️ '}
@@ -158,11 +188,10 @@ const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onPaste={handlePaste}
-                className={`w-14 h-14 text-2xl font-semibold text-center rounded-xl border-2 bg-[#1A1A1A]/80 text-white transition-all duration-300 outline-none ${
-                  digit 
-                    ? 'border-[#ebb70c] bg-[#ebb70c]/10 shadow-lg shadow-[#ebb70c]/20' 
-                    : 'border-gray-600 hover:border-gray-500'
-                } focus:border-[#ebb70c] focus:bg-[#1A1A1A] focus:shadow-lg focus:shadow-[#ebb70c]/20 focus:scale-105`}
+                className={`w-14 h-14 text-2xl font-semibold text-center rounded-xl border-2 bg-[#1A1A1A]/80 text-white transition-all duration-300 outline-none ${digit
+                  ? 'border-[#ebb70c] bg-[#ebb70c]/10 shadow-lg shadow-[#ebb70c]/20'
+                  : 'border-gray-600 hover:border-gray-500'
+                  } focus:border-[#ebb70c] focus:bg-[#1A1A1A] focus:shadow-lg focus:shadow-[#ebb70c]/20 focus:scale-105`}
               />
             ))}
           </div>
@@ -171,11 +200,10 @@ const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
           <button
             onClick={handleVerify}
             disabled={!isComplete || isLoading}
-            className={`w-full py-4 rounded-xl font-semibold text-[#1A1A1A] transition-all duration-300 mb-6 relative overflow-hidden ${
-              isComplete && !isLoading
-                ? 'bg-gradient-to-r from-[#ebb70c] to-[#f4c430] hover:shadow-lg hover:shadow-[#ebb70c]/30 hover:-translate-y-0.5 active:translate-y-0'
-                : 'bg-gray-600 cursor-not-allowed'
-            }`}
+            className={`w-full py-4 rounded-xl font-semibold text-[#1A1A1A] transition-all duration-300 mb-6 relative overflow-hidden ${isComplete && !isLoading
+              ? 'bg-gradient-to-r from-[#ebb70c] to-[#f4c430] hover:shadow-lg hover:shadow-[#ebb70c]/30 hover:-translate-y-0.5 active:translate-y-0'
+              : 'bg-gray-600 cursor-not-allowed'
+              }`}
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
@@ -185,7 +213,7 @@ const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
             ) : (
               'Verify Code'
             )}
-            
+
             {/* Shimmer effect */}
             {isComplete && !isLoading && (
               <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>

@@ -1,45 +1,53 @@
-'use client';
-import { getUserProfile } from '@/lib/auth';
-import { AppDispatch, login, RootState } from '@/store/user';
-import { useRouter } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+"use client";
+import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
+import { useLoader } from "@/store/LoaderContext";
+import { useUserContext } from "@/store/userContext";
+import api from "@/lib/axios";
 
 const WithAuth = ({ children }: { children: React.ReactNode }) => {
+  const {user, setUser} = useUserContext()
+  const { showPageLoader, hidePageLoader, PageLoader } = useLoader()
   const router = useRouter();
-  const dispatch = useDispatch<AppDispatch>();
-  const { email, phrase } = useSelector((state: RootState) => state.user.value);
-  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    const token = Cookies.get('token');
-    if (!token) {
-      router.replace('/login/');
-      return;
-    }
+    showPageLoader()
+    const getUser = async () => {
+      const userToken = Cookies.get("token");
 
-    const checkAuth = async () => {
+      if (!userToken) {
+        router.replace("/login");
+        return;
+      }
+
       try {
-        // Only fetch if missing state
-        if (!email || !phrase) {
-          const data = await getUserProfile(); // should handle token
-          dispatch(login({ email: data.email, phrase: data.phrase }));
+        api.defaults.headers.common["Authorization"] = `Bearer ${userToken}`;
+        const response = await api.get<UserType>("/profile/");
+        setUser(response.data);
+        hidePageLoader()
+        if(!user.isVerified){
+          router.replace('/settings/')
         }
-        setChecked(true);
       } catch (error) {
-        console.log(error)
-        Cookies.remove('token'); // clear invalid token
-        router.replace('/login/');
+        hidePageLoader()
+        console.error("Error fetching user profile:", error);
+        router.replace("/login");
       }
     };
 
-    checkAuth();
-  }, [dispatch, email, phrase, router]);
+    getUser();
+  }, [router]);
 
-  if (!checked) return null;
+  if (PageLoader || !user) {
+    return null; // or return a spinner/loading UI
+  }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+    </>
+  );
 };
 
 export default WithAuth;

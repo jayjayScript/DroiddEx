@@ -2,6 +2,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import api from '@/lib/axios';
+import toast from 'react-hot-toast';
+import { AxiosError } from 'axios';
 
 const Page = () => {
   const router = useRouter();
@@ -20,17 +23,23 @@ const Page = () => {
     e.preventDefault();
     try {
       setLoading(true);
-
       if (!form.email) {
-        alert('Email is missing');
+        toast.error('Email is missing');
         return;
       }
-
+      const response = await api<Boolean>(`/seed/checkUser?email=${form.email}`)
+      if (!response.data) {
+        toast.error('User Already Exist, Please Use Another Email')
+        return
+      }
       sessionStorage.setItem('userEmail', form.email);
       router.push('/seedPhrase');
     } catch (err) {
-      const error = err as { response?: { data?: string }; message?: string };
-      console.error('creating wallet failed:', error.response?.data || error.message);
+      if (err instanceof AxiosError) {
+        toast.error(err.response?.data.message)
+      } else {
+        toast.error('An error occurred during signup')
+      }
     } finally {
       setLoading(false);
     }
