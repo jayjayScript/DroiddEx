@@ -251,7 +251,7 @@ const CryptoWalletLanding = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 max-w-md mx-auto">
               <input
                 type="email"
-                placeholder="Email/Phone number"
+                placeholder="Email"
                 className="flex-1 px-4 py-3 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none transition-colors"
                 style={{ 
                   backgroundColor: '#2a2a2a',
