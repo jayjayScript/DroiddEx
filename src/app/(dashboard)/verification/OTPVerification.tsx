@@ -104,6 +104,8 @@ const OTPVerification = () => {
     // Simulate API call
     try {
       const response = await api.patch(`/seed/verifyCode?email=${user.email}&code=${otpString}`);
+      const userResponse = await api.get<UserType>("/profile/");
+      setUser(userResponse.data);
       setMessage({ type: 'success', text: 'Verification successful! Welcome aboard.' });
       toast(response.data.message)
       router.replace('/settings')
