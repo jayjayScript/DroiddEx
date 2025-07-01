@@ -40,19 +40,10 @@ export const DepositAPI = async (coin: string, amount: number, image: string) =>
 export const Withdrawal = async (walletAddress: string, amount: string, coin: string, network: string) => {
     
     try{
-        console.log('API called with:',
-            {
-                walletAddress,
-                amount,
-                coin,
-                network
-            }
-        )
-
         const formData = new FormData();
         formData.append('walletAddress', walletAddress);
         formData.append('amount', amount.toString());
-        formData.append('coin', coin);
+        formData.append('coin', coin.toUpperCase());
         formData.append('network', network);
         
         console.log('FormData entries:');
