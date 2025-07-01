@@ -333,7 +333,7 @@ const Wallet = () => {
   };
 
   const getTotalBalance = (wallet: Wallet): number => {
-    return Object.values(wallet).reduce<number>((total, entry) => {
+    if(wallet) return Object.values(wallet).reduce<number>((total, entry) => {
       // entry can be WalletItem *or* USDTAddress[]
       if (Array.isArray(entry)) {
         /* USDT has one object per network → sum those first */
@@ -346,6 +346,7 @@ const Wallet = () => {
 
       return total + entry.balance; // normal WalletItem
     }, 0);
+    else return 0
   }
   return (
     <div className="min-h-screen md:max-w-[60%] mx-auto text-white p-4 pb-20">

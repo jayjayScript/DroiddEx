@@ -155,7 +155,7 @@ const Deposit = () => {
   };
 
   const [myFormData, setMyFormData] = useState<DepositFormData>(initialFormData);
-
+ 
   // Reset form function
   const resetForm = () => {
     setMyFormData(initialFormData);
@@ -189,15 +189,6 @@ const Deposit = () => {
   // File input handler
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-
-    console.log("=== FILE SELECTION DEBUG ===");
-    console.log("Raw file from event:", file);
-    console.log("File details:", file ? {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified
-    } : "No file");
 
     if (file) {
       setMyFormData(prev => ({
@@ -234,6 +225,7 @@ const Deposit = () => {
     if (myFormData.image) {
       try {
         compressedImageBase64 = await compressAndConvertToBase64(myFormData.image);
+        console.dir({ ...myFormData, image: compressedImageBase64})
       } catch (e) {
         toast.error("Failed to process image.");
         setIsLoading(false);

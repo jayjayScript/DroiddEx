@@ -4,6 +4,7 @@ import { ChevronDown, Check, Send, Info, Copy, Eye, EyeOff } from "lucide-react"
 import toast from "react-hot-toast";
 // import Cookies from "js-cookie";
 import { Withdrawal } from "@/lib/transaction"; // Adjust path as needed
+import { AxiosError } from "axios";
 
 const coinOptions = [
   { id: "btc", name: "Bitcoin", networks: ["Bitcoin"], icon: "₿" },
@@ -46,16 +47,16 @@ const Dropdown = ({
           )}
           <span className="font-medium">{selected}</span>
         </div>
-        <ChevronDown 
-          size={18} 
+        <ChevronDown
+          size={18}
           className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
         />
       </button>
-      
+
       {open && (
         <>
-          <div 
-            className="fixed inset-0 z-10" 
+          <div
+            className="fixed inset-0 z-10"
             onClick={() => setOpen(false)}
           />
           <div className="absolute z-20 mt-2 w-full bg-[#2A2A2A] border border-[#3A3A3A] rounded-xl shadow-2xl max-h-60 overflow-y-auto">
@@ -67,9 +68,8 @@ const Dropdown = ({
                     setSelected(option);
                     setOpen(false);
                   }}
-                  className={`p-4 hover:bg-[#3A3A3A] cursor-pointer flex justify-between items-center transition-colors duration-150 ${
-                    selected === option ? "bg-[#3A3A3A] border-r-2 border-[#ebb70c]" : ""
-                  }`}
+                  className={`p-4 hover:bg-[#3A3A3A] cursor-pointer flex justify-between items-center transition-colors duration-150 ${selected === option ? "bg-[#3A3A3A] border-r-2 border-[#ebb70c]" : ""
+                    }`}
                 >
                   <div className="flex items-center space-x-3">
                     {coinData && (
@@ -112,13 +112,18 @@ const Receive = () => {
     }
     setIsLoading(true);
     try {
-      await Withdrawal(address, amount, selectedCoin.id, selectedNetwork);
+      await Withdrawal(address, amount, selectedCoin.id.toUpperCase(), selectedNetwork);
       toast.success(`Sent ${amount} ${selectedCoin.name} via ${selectedNetwork}`);
       setAmount("");
       setAddress("");
-    } catch (error) {
-      toast.error("Failed to send");
-      console.log(error)
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        toast.error(err.response?.data.message);
+      } else {
+        toast.error(
+          'Failed to send OTP code. Please try again later or reload the page.'
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -135,9 +140,9 @@ const Receive = () => {
     }
   };
 
-  const estimatedFee = selectedNetwork === "Bitcoin" ? 0.0005 : 
-                      selectedNetwork === "Ethereum" || selectedNetwork === "ERC20" ? 0.002 :
-                      selectedNetwork === "TRC20" ? 1 : 0.001;
+  const estimatedFee = selectedNetwork === "Bitcoin" ? 0.0005 :
+    selectedNetwork === "Ethereum" || selectedNetwork === "ERC20" ? 0.002 :
+      selectedNetwork === "TRC20" ? 1 : 0.001;
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
