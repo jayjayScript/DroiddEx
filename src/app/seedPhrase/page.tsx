@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { generateSeedPhrase, saveSeedPhrase } from '@/lib/auth';
 import toast from 'react-hot-toast';
 import { Icon } from '@iconify/react/dist/iconify.js';
+import { AxiosError } from 'axios';
 
 const SeedPhrasePage = () => {
     const router = useRouter();
@@ -12,26 +13,26 @@ const SeedPhrasePage = () => {
 
     useEffect(() => {
         const email = sessionStorage.getItem('userEmail');
-
         if (!email) {
             toast.error('No email found. Redirecting...');
             router.push('/create-wallet');
             return;
         }
-
         // Save email to localStorage for Settings auto-fill
         sessionStorage.setItem('userEmail', email);
-
         (async () => {
             try {
                 const res = await generateSeedPhrase();
                 setPhrase(res.phrase);
                 // Save generated seed phrase to localStorage for Settings auto-fill
                 sessionStorage.setItem('userSeedPhrase', res.phrase);
-            } catch (error) {
-                toast.error('Failed to generate seed phrase please Try again later or reload page');
+            } catch (err) {
+                if (err instanceof AxiosError) {
+                    toast.error(err.response?.data.message)
+                } else {
+                    toast.error('Failed to generate seed phrase please Try again later or reload page');
+                }
                 router.push('/create-wallet');
-                console.error(error);
             } finally {
                 setLoading(false);
             }
@@ -45,7 +46,7 @@ const SeedPhrasePage = () => {
 
     const handleConfirm = async () => {
         const email = sessionStorage.getItem('userEmail')!;
-        
+
         try {
             await saveSeedPhrase(email, phrase);
             toast.success('Seed saved!');

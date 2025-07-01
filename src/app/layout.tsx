@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { UserProvider } from "@/store/user";
 import I18nProvider from "@/components/ClientI18nProvider";
 import Waker from "@/components/Waker";
+import { LoaderProvider } from "@/store/LoaderContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +35,7 @@ export default function RootLayout({
         <UserProvider>
           <I18nProvider>
             <Waker>
-              {children}
+              <LoaderProvider>{children}</LoaderProvider>
             </Waker>
           </I18nProvider>
           <Toaster position="top-center" />
