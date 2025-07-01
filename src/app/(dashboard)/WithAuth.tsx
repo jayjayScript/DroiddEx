@@ -26,7 +26,7 @@ const WithAuth = ({ children }: { children: React.ReactNode }) => {
         const response = await api.get<UserType>("/profile/");
         setUser(response.data);
         hidePageLoader()
-        if(!user.isVerified){
+        if(user.isVerified === false){
           router.replace('/settings/')
         }
       } catch (error) {
