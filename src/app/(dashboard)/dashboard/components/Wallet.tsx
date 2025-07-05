@@ -21,10 +21,11 @@ import { Poppins } from "next/font/google";
 import toast from "react-hot-toast";
 import Image from "next/image";
 import { useUserContext } from "@/store/userContext";
+import SubscriptionModal from "./SubscriptionModal";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
 
-interface Coin {
+export interface Coin {
   id: string;
   name: string;
   symbol: string;
@@ -39,13 +40,6 @@ interface Coin {
   };
 }
 
-interface SubscriptionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubscribe: () => void;
-  loading: boolean;
-}
-
 interface UserProfile {
   fullname: string;
   phrase: string;
@@ -54,102 +48,13 @@ interface UserProfile {
   // Add other fields as needed
 }
 
-const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
-  isOpen,
-  onClose,
-  onSubscribe,
-  loading
-}) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0000003a] bg-opacity-50 backdrop-blur-sm">
-      <div className="bg-[#1A1A1A] border border-[#313130] rounded-lg p-6 mx-4 max-w-md w-full">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white">Bot Subscription</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <Icon icon="material-symbols:close" width="24" height="24" />
-          </button>
-        </div>
-
-        <div className="text-center mb-6">
-          <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-[#ebb70c] to-[#ffba1a] rounded-full flex items-center justify-center">
-            <Icon
-              icon="fluent:bot-28-filled"
-              width="40"
-              height="40"
-              className="text-[#1a1a1a]"
-            />
-          </div>
-          <h3 className="text-lg font-semibold text-white mb-2">
-            Activate Trading Bot
-          </h3>
-          <p className="text-gray-400 text-sm mb-4">
-            Get access to our advanced AI trading bot that uses encrypted binary algorithms to optimize your trades.
-          </p>
-        </div>
-
-        <div className="bg-[#0000003C] border border-[#313130] rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-white font-semibold">Monthly Subscription</span>
-            <span className="text-[#ebb70c] text-2xl font-bold">$200</span>
-          </div>
-          <div className="space-y-2 text-sm text-gray-300">
-            <div className="flex items-center gap-2">
-              <Icon icon="material-symbols:check-circle" width="16" height="16" className="text-green-400" />
-              <span>24/7 Automated Trading</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Icon icon="material-symbols:check-circle" width="16" height="16" className="text-green-400" />
-              <span>Advanced Binary Encryption</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Icon icon="material-symbols:check-circle" width="16" height="16" className="text-green-400" />
-              <span>Real-time Market Analysis</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Icon icon="material-symbols:check-circle" width="16" height="16" className="text-green-400" />
-              <span>Risk Management Tools</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 bg-[#2A2A2A] text-white py-3 px-4 rounded-lg hover:bg-[#3A3A3A] transition-colors font-semibold"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onSubscribe}
-            disabled={loading}
-            className="flex-1 bg-gradient-to-r from-[#ebb70c] to-[#ffba1a] text-[#1a1a1a] py-3 px-4 rounded-lg hover:from-[#ffba1a] hover:to-[#ebb70c] transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Icon icon="eos-icons:loading" width="20" height="20" />
-                Processing...
-              </>
-            ) : (
-              'Subscribe Now'
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const to8BitBinary = (num: number) => {
   if (!Number.isInteger(num) || num < 0 || num >= 2 ** 34) {
     throw new Error("Input must be an integer between 0 and 255");
   }
   return num.toString(2).padStart(27, "0");
 };
+
 
 const Wallet = () => {
   const router = useRouter();
@@ -227,15 +132,47 @@ const Wallet = () => {
     setActiveBot(!activeBot);
   };
 
-  const handleSubscribe = async () => {
+
+  const handleSubscribe = async (selectedCoin: string, requiredAmount: number) => {
     setSubscriptionLoading(true);
 
     try {
-      // Here you would integrate with your payment processor (Stripe, PayPal, etc.)
-      // For now, we'll simulate a successful payment
-
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Check if user still has enough balance (in case prices changed)
+      const userBalance = getTotalBalance(selectedCoin);
+      if (userBalance < requiredAmount) {
+        toast.error('Insufficient balance. Please try again.');
+        setSubscriptionLoading(false);
+        return;
+      }
+
+      // Deduct the payment amount from user's wallet
+      if (user?.wallet) {
+        const updatedWallet = { ...user.wallet };
+        const walletEntry = updatedWallet[selectedCoin.toUpperCase() as keyof typeof updatedWallet];
+
+        if (Array.isArray(walletEntry)) {
+          // Handle multi-network coins like USDT
+          let remainingAmount = requiredAmount;
+          for (let i = 0; i < walletEntry.length && remainingAmount > 0; i++) {
+            const available = walletEntry[i].balance || 0;
+            const deductAmount = Math.min(available, remainingAmount);
+            walletEntry[i].balance = available - deductAmount;
+            remainingAmount -= deductAmount;
+          }
+        } else {
+          // Handle regular coins
+          walletEntry.balance = (walletEntry.balance || 0) - requiredAmount;
+        }
+
+        // Update user context with new wallet balance
+        setUser({
+          ...user,
+          wallet: updatedWallet
+        });
+      }
 
       // Calculate expiry date (30 days from now)
       const expiryDate = new Date();
@@ -246,11 +183,13 @@ const Wallet = () => {
       setSubscriptionExpiry(expiryDate);
       setShowSubscriptionModal(false);
 
-      // You would typically make an API call here to update the user's subscription status
-      // await updateUserSubscription(userId, expiryDate);
+      // Here you would typically make an API call to:
+      // 1. Record the transaction
+      // 2. Update the user's subscription status
+      // 3. Update the user's wallet balance on the server
+      // await updateUserSubscription(userId, expiryDate, selectedCoin, requiredAmount);
 
-      // Optionally show a success message
-      toast.success('Subscription activated successfully!');
+      toast.success(`Subscription activated! Paid ${requiredAmount.toFixed(6)} ${selectedCoin.toUpperCase()}`);
 
     } catch (error) {
       console.error('Subscription failed:', error);
@@ -332,22 +271,31 @@ const Wallet = () => {
     });
   };
 
-  const getTotalBalance = (wallet: Wallet): number => {
-    if(wallet) return Object.values(wallet).reduce<number>((total, entry) => {
-      // entry can be WalletItem *or* USDTAddress[]
+  // Updated getTotalBalance function with proper typing
+  const getTotalBalance = (wallet: any, coins: Coin[] = []): number => {
+    if (!wallet || !coins || coins.length === 0) return 0;
+
+    return Object.entries(wallet).reduce<number>((total, [symbol, entry]: [string, any]) => {
+
+      const coinData = coins.find(coin => coin.symbol.toUpperCase() === symbol.toUpperCase());
+      if (!coinData) return total
+
+      const currentPrice = coinData.market_data.current_price.usd;
+
       if (Array.isArray(entry)) {
-        /* USDT has one object per network → sum those first */
-        const usdtSum = entry.reduce(
-          (sub, { balance }) => sub + balance,
+        const coinQuantity = entry.reduce(
+          (sub: number, item: any) => sub + (item.balance || 0),
           0
         );
-        return total + usdtSum;
+        return total + (coinQuantity * currentPrice);
       }
 
-      return total + entry.balance; // normal WalletItem
+      const coinQuantity = entry.balance || 0;
+
+      return total + (coinQuantity * currentPrice);
     }, 0);
-    else return 0
   }
+
   return (
     <div className="min-h-screen md:max-w-[60%] mx-auto text-white p-4 pb-20">
       <div className="hidden">{copied}</div>
@@ -407,7 +355,7 @@ const Wallet = () => {
           </div>
         </div>
 
-        <div className="text-3xl font-bold mb-2">${user ? getTotalBalance(user.wallet) : '...'}</div>
+        <div className="text-3xl font-bold mb-2"> <span className="text-gray-400 text-2xl">$</span> {user?.wallet ? getTotalBalance(user.wallet, coins).toFixed(2) : '...'}</div>
 
         <div className="grid grid-cols-5 sm:grid-cols-5 gap-4 text-center text-sm mt-8 mb-2 px-4">
           {[
@@ -479,6 +427,8 @@ const Wallet = () => {
           onClose={() => setShowSubscriptionModal(false)}
           onSubscribe={handleSubscribe}
           loading={subscriptionLoading}
+          userWallet={user?.wallet}
+          coins={coins}
         />
 
         {/* assets */}
@@ -495,6 +445,19 @@ const Wallet = () => {
               {!loading &&
                 coins.map((coin) => {
                   const iconName = iconMap[coin.symbol.toUpperCase()] || "cryptocurrency:question";
+                  // Get the user's balance for this coin from user.wallet
+                  let userBalance = 0;
+                  if (user?.wallet) {
+                    const walletEntry = (user.wallet as any)[coin.symbol.toUpperCase()];
+                    if (walletEntry) {
+                      if (Array.isArray(walletEntry)) {
+                        // For USDT or multi-network coins, sum all balances
+                        userBalance = walletEntry.reduce((sum, item) => sum + (item.balance || 0), 0);
+                      } else {
+                        userBalance = walletEntry.balance || 0;
+                      }
+                    }
+                  }
                   return (
                     <Link
                       href={`/coins/${coin.id}`}
@@ -530,9 +493,9 @@ const Wallet = () => {
                       </div>
 
                       <div className="text-right text-sm flex flex-col gap-1">
-                        <span className="font-semibold text-[13px]">0.3103</span>
+                        <span className="font-semibold text-[13px]">{userBalance}</span>
                         <span className="text-[12px] text-gray-400">
-                          ${(coin.market_data.current_price.usd * 0.3103).toFixed(2)}
+                          ${(coin.market_data.current_price.usd * userBalance).toFixed(2)}
                         </span>
                       </div>
                     </Link>

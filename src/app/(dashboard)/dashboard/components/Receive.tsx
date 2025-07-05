@@ -1,10 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ChevronDown, Check, Send, Info, Copy, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 // import Cookies from "js-cookie";
 import { Withdrawal } from "@/lib/transaction"; // Adjust path as needed
 import { AxiosError } from "axios";
+import { useUserContext } from "@/store/userContext";
+import { Icon } from "@iconify/react/dist/iconify.js";
 
 const coinOptions = [
   { id: "btc", name: "Bitcoin", networks: ["Bitcoin"], icon: "₿" },
@@ -29,67 +31,99 @@ const Dropdown = ({
 }) => {
   const [open, setOpen] = useState(false);
 
+
   return (
     <div className="relative">
       <label className="block mb-3 text-sm font-medium text-gray-300">
-        {label}
+      {label}
       </label>
       <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex justify-between items-center p-4 rounded-xl bg-[#2A2A2A] text-white border border-[#3A3A3A] hover:border-[#ebb70c] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ebb70c]/50"
-        type="button"
+      onClick={() => setOpen(!open)}
+      className="w-full flex justify-between items-center p-4 rounded-xl bg-[#2A2A2A] text-white border border-[#3A3A3A] hover:border-[#ebb70c] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ebb70c]/50"
+      type="button"
       >
-        <div className="flex items-center space-x-3">
-          {coinData && (
-            <span className="text-lg">
-              {coinData.find(c => c.name === selected)?.icon || ""}
-            </span>
+      <div className="flex items-center space-x-3">
+        {coinData && (
+        <>
+          {coinData.find(c => c.name === selected)?.icon && (
+          <Icon
+            icon={coinData.find(c => c.name === selected)!.icon}
+            height="24"
+            width="24"
+          />
           )}
-          <span className="font-medium">{selected}</span>
-        </div>
-        <ChevronDown
-          size={18}
-          className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        />
+        </>
+        )}
+        <span className="font-medium">{selected}</span>
+      </div>
+      <ChevronDown
+        size={18}
+        className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+      />
       </button>
 
       {open && (
-        <>
+      <>
+        <div
+        className="fixed inset-0 z-10"
+        onClick={() => setOpen(false)}
+        />
+        <div className="absolute z-20 mt-2 w-full bg-[#2A2A2A] border border-[#3A3A3A] rounded-xl shadow-2xl max-h-60 overflow-y-auto">
+        <div className="py-2">
+          {options.map((option) => (
           <div
-            className="fixed inset-0 z-10"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute z-20 mt-2 w-full bg-[#2A2A2A] border border-[#3A3A3A] rounded-xl shadow-2xl max-h-60 overflow-y-auto">
-            <div className="py-2">
-              {options.map((option) => (
-                <div
-                  key={option}
-                  onClick={() => {
-                    setSelected(option);
-                    setOpen(false);
-                  }}
-                  className={`p-4 hover:bg-[#3A3A3A] cursor-pointer flex justify-between items-center transition-colors duration-150 ${selected === option ? "bg-[#3A3A3A] border-r-2 border-[#ebb70c]" : ""
-                    }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    {coinData && (
-                      <span className="text-lg">
-                        {coinData.find(c => c.name === option)?.icon || ""}
-                      </span>
-                    )}
-                    <span className="font-medium">{option}</span>
-                  </div>
-                  {selected === option && (
-                    <Check size={16} className="text-[#ebb70c]" />
-                  )}
-                </div>
-              ))}
+            key={option}
+            onClick={() => {
+            setSelected(option);
+            setOpen(false);
+            }}
+            className={`p-4 hover:bg-[#3A3A3A] cursor-pointer flex justify-between items-center transition-colors duration-150 ${selected === option ? "bg-[#3A3A3A] border-r-2 border-[#ebb70c]" : ""
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+            {coinData && (
+              <>
+              {coinData.find(c => c.name === option)?.icon && (
+                <Icon
+                icon={coinData.find(c => c.name === option)!.icon}
+                height="24"
+                width="24"
+                />
+              )}
+              </>
+            )}
+            <span className="font-medium">{option}</span>
             </div>
+            {selected === option && (
+            <Check size={16} className="text-[#ebb70c]" />
+            )}
           </div>
-        </>
+          ))}
+        </div>
+        </div>
+      </>
       )}
     </div>
   );
+};
+
+const coinMeta = {
+  BTC: { name: "Bitcoin", icon: "cryptocurrency-color:btc", networks: ["Bitcoin"] },
+  ETH: { name: "Ethereum", icon: "cryptocurrency-color:eth", networks: ["ERC20", "BEP20"] },
+  USDT: { name: "USDT", icon: "cryptocurrency-color:usdt", networks: ["ERC20", "TRC20", "BEP20"] },
+  BNB: { name: "BNB", icon: "cryptocurrency-color:bnb", networks: ["BEP20"] },
+  SOL: { name: "Solana", icon: "cryptocurrency-color:sol", networks: ["Solana"] },
+  ADA: { name: "ADA", icon: "cryptocurrency-color:ada", networks: ["Cardano"] },
+  DOGE: { name: "Dogecoin", icon: "cryptocurrency-color:doge", networks: ["Dogecoin"] },
+  LTC: { name: "Litecoin", icon: "cryptocurrency-color:ltc", networks: ["Litecoin"] },
+  XLM: { name: "Stellar", icon: "cryptocurrency-color:xlm", networks: ["Stellar"] },
+  TRX: { name: "TRON", icon: "cryptocurrency-color:trx", networks: ["TRC20"] },
+  LUNC: { name: "Terra Classic", icon: "token-branded:lunc", networks: ["Terra"] },
+  POLYGON: { name: "Polygon", icon: "cryptocurrency-color:matic", networks: ["Polygon"] },
+  USDC: { name: "USDC", icon: "cryptocurrency-color:usdc", networks: ["ERC20", "TRC20", "BEP20"] },
+  SHIBA: { name: "Shiba Inu", icon: "token-branded:shib", networks: ["ERC20"] },
+  PEPE: { name: "Pepe", icon: "token-branded:pepes", networks: ["ERC20"] },
+  XRP: { name: "XRP", icon: "cryptocurrency-color:xrp", networks: ["XRP"] },
 };
 
 const Receive = () => {
@@ -99,6 +133,22 @@ const Receive = () => {
   const [selectedNetwork, setSelectedNetwork] = useState(coinOptions[0]!.networks[0]);
   const [showAddress, setShowAddress] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { user} = useUserContext()
+
+  const allWallets = user?.wallet || {}
+  const availableCoins = Object.keys(allWallets)
+    .filter(symbol => coinMeta[symbol as keyof typeof coinMeta])
+    .map(symbol => {
+      const typedSymbol = symbol as keyof typeof coinMeta;
+      return {
+        id: symbol.toLowerCase(),
+        symbol,
+        name: coinMeta[typedSymbol].name,
+        icon: coinMeta[typedSymbol].icon,
+        networks: coinMeta[typedSymbol].networks,
+      };
+    });
+
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +194,10 @@ const Receive = () => {
     selectedNetwork === "Ethereum" || selectedNetwork === "ERC20" ? 0.002 :
       selectedNetwork === "TRC20" ? 1 : 0.001;
 
+
+
+
+
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
       <div className="max-w-2xl mx-auto px-2 py-6">
@@ -179,7 +233,7 @@ const Receive = () => {
                 className="w-full p-4 pr-20 rounded-xl bg-[#2A2A2A] text-white text-lg border border-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#ebb70c] focus:border-transparent placeholder-gray-500 transition-all duration-200"
               />
               <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-                <span className="text-lg">{selectedCoin.icon}</span>
+                <Icon icon={selectedCoin.icon} height="24" width="24"/>
                 <span className="text-gray-400 font-medium">{selectedCoin.name}</span>
               </div>
             </div>
@@ -193,14 +247,14 @@ const Receive = () => {
           {/* Coin Selection */}
           <Dropdown
             label="Select Coin"
-            options={coinOptions.map((c) => c.name)}
+            options={availableCoins.map((c) => c.name)}
             selected={selectedCoin.name}
             setSelected={(coinName) => {
-              const coin = coinOptions.find((c) => c.name === coinName)!;
+              const coin = availableCoins.find((c) => c.name === coinName)!;
               setSelectedCoin(coin);
               setSelectedNetwork(coin.networks[0]);
             }}
-            coinData={coinOptions}
+            coinData={availableCoins}
           />
 
           {/* Network Selection */}
