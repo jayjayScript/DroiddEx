@@ -3,9 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Users, Eye, DollarSign, UserCheck, UserX, Filter, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getAllUsers } from '@/lib/admin';
+import { getAllUsers, user } from '@/lib/admin';
 import toast from 'react-hot-toast';
-// import Cookies from 'js-cookie';
+import api from '@/lib/axios';
+import Cookies from 'js-cookie';
 
 const AdminUsers = () => {
   const [search, setSearch] = useState('');
@@ -34,8 +35,16 @@ const AdminUsers = () => {
 
   useEffect(() => {
     const fetchUsers = async () => {
+      const adminToken = Cookies.get("adminToken");
+
+      if (!adminToken) {
+        router.replace("/admin/auth/");
+        return;
+      }
       try {
-        const getusers = await getAllUsers();
+        api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
+        const users = await api<user[]>('admin/users/')
+        const getusers = users.data
         const usersList = getusers?.map(user => ({
           fullname: user.fullname,
           email: user.email,

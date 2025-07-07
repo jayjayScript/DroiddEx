@@ -1,11 +1,34 @@
+import api from '@/lib/axios'
+import { AxiosError } from 'axios'
+import Link from 'next/link'
 import React, { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 
 const Pending = () => {
   const [expandedTransaction, setExpandedTransaction] = useState<number | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
-  
-    useEffect(() => {
-    setIsAdmin(window.location.pathname === "/admin")
+  const [isAdmin, setIsAdmin] = useState<boolean>()
+  const [transactions, setTransactions] = useState<UserTransactionType[]>([])
+
+  const fetchTransactions = async () => {
+    const adminPath = window.location.pathname.includes("/admin")
+    try {
+      const response = adminPath ? await api<UserTransactionType[]>('/admin/transactions') : await api<UserTransactionType[]>('/transaction/history');
+      setTransactions(response.data)
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        toast.error(err.response?.data.message)
+      } else {
+        toast.error('Failed to generate seed phrase please Try again later or reload page');
+      }
+    }
+  }
+
+  useEffect(() => {
+    setIsAdmin(window.location.pathname.includes("/admin"))
+  }, [])
+
+  useEffect(() => {
+    fetchTransactions()
   }, [])
 
   const formatDate = (date: Date) => {
@@ -19,32 +42,6 @@ const Pending = () => {
     })
   }
 
-  const timestamp = Date.now()
-  const date = new Date(timestamp)
-
-  const dummyTransaction = [
-    {
-      type: "deposit",
-      coin: "BTC",
-      amount: 12,
-      usd: 1200000,
-      receipt: "Transaction image",
-      status: "pending",
-      email: "princewilljeremiah83@gmail.com",
-      date: formatDate(date)
-    },
-    {
-      type: "withdrawal",
-      coin: "USD",
-      network: "BEP20",
-      amount: 400,
-      usd: 400,
-      status: "pending",
-      email: "princewilljeremiah83@gmail.com",
-      date: formatDate(date)
-    }
-  ]
-
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'deposit':
@@ -55,26 +52,55 @@ const Pending = () => {
         return '?'
     }
   }
+  const ImageDownload = (image: string) => image.startsWith('data:') ? image : `data:image/png;base64,${image}`;
 
   const toggleAccordion = (index: number) => {
     setExpandedTransaction(expandedTransaction === index ? null : index)
   }
 
+  const handleAcceptTransaction = async (_id: string) => {
+    try {
+      const response = await api.patch(`/admin/transactions/${_id}?status=completed`)
+      toast.success('Transaction approved successfully')
+      fetchTransactions()
+    }catch (err) {
+      if (err instanceof AxiosError) {
+        toast.error(err.response?.data.message)
+      } else {
+        toast.error('Failed to generate seed phrase please Try again later or reload page');
+      }
+    }
+  }
+  const handleRejectTransaction = async (_id: string) => {
+    try {
+      const response = await api.patch(`/admin/transactions/${_id}?status=failed`)
+      toast.success('Transaction Rejected successfully')
+      fetchTransactions()
+    }catch (err) {
+      if (err instanceof AxiosError) {
+        toast.error(err.response?.data.message)
+      } else {
+        toast.error('Failed to generate seed phrase please Try again later or reload page');
+      }
+    }
+  }
+
   return (
     <div>
       <div>
-        {dummyTransaction.length === 0 && <p className='text-center text-gray-400 my-6'>No Pending Transactions</p>}
+        {transactions.filter(item => item.status === 'pending').length === 0 && <p className='text-center text-gray-400 my-6'>No Pending Transactions</p>}
 
         <div>
-          {dummyTransaction.map((transaction, index) => {
-            const { type, coin, amount, receipt, network, email, status, date, usd } = transaction
+          {transactions.map((transaction, index) => {
+            const { type, Coin, amount, image, network, email, status, createdAt, _id } = transaction
             const isExpanded = expandedTransaction === index
 
+            if (status !== 'pending') return null
             return (
               <div key={index} className='bg-[#2A2A2A] mt-3 rounded-lg overflow-hidden'>
                 <div
-                  className={`p-3 px-3 flex items-center gap-2 ${type === 'deposit' && receipt ? 'cursor-pointer' : ''}`}
-                  onClick={() => type === 'deposit' && receipt && toggleAccordion(index)}
+                  className={`p-3 px-3 flex items-center gap-2 ${type === 'deposit' && image ? 'cursor-pointer' : ''}`}
+                  onClick={() => type === 'deposit' && image && toggleAccordion(index)}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[#ebb70c] text-lg font-bold`}>
                     {getTransactionIcon(type)}
@@ -83,18 +109,17 @@ const Pending = () => {
                   <div className='flex-1'>
                     <h3 className={`uppercase font-medium text-[11px] ${type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>{type}</h3>
                     <p className='text-[12.55px] text-gray-400 font-medium'>{email.substring(0, 19) + "..."}</p>
-                    <small className='text-gray-500 text-[10px]'>{date}</small>
+                    <small className='text-gray-500 text-[10px]'>{formatDate(new Date(createdAt ?? Date.now()))}</small>
                   </div>
 
                   <div className='text-right'>
-                    <p className={`${type == 'deposit' ? 'text-green-400' : 'text-red-400'}`}>{amount}{coin}</p>
+                    <p className={`${type == 'deposit' ? 'text-green-400' : 'text-red-400'}`}>{amount}{Coin}</p>
                     {network && <p className='text-gray-500 text-[10px]'>{network}</p>}
-                    <small className='text-gray-400 font-bold text-[12px]'>USD {usd}</small>
                     <p className='text-[#ebb70c] text-xs bg-[#ebb70c27] text-center px-2 py-[1px] rounded'>{status}</p>
                   </div>
 
                   {/* Dropdown arrow for deposits with receipts only */}
-                  {type === 'deposit' && receipt && (
+                  {type === 'deposit' && image && (
                     <div className={`text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
                       }`}>
                       <svg width="16" height="16" viewBox="0 0 10 24" fill="currentColor">
@@ -105,7 +130,7 @@ const Pending = () => {
                 </div>
 
                 {/* Accordion Content - Receipt Image for Deposits */}
-                {type === 'deposit' && receipt && (
+                {type === 'deposit' && image && (
                   <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'
                     }`}>
                     <div className="px-3 pb-3 border-t border-gray-600">
@@ -124,11 +149,11 @@ const Pending = () => {
                 )}
 
                 {/* Receipt indicator for non-expandable transactions */}
-                {receipt && type === 'deposit' && (
+                {image && type === 'deposit' && (
                   <div className="px-3 pb-3 mt-2">
                     <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-2">
                       <span>📎</span>
-                      <span>Receipt attached</span>
+                      <Link download={`${email}_receipt_image.png`} target="_blank" rel="noopener noreferrer" href={ImageDownload(image)}>Download Receipt attached</Link>
                     </div>
                   </div>
                 )}
@@ -136,10 +161,10 @@ const Pending = () => {
                 {/* Admin buttons - only show when isAdmin prop is true */}
                 {isAdmin && (
                   <div className="px-3 py-2 border-t border-gray-600">
-                    <button className="bg-green-600/10 px-3 py-1 rounded text-green-500 text-xs hover:bg-green-700/20 transition-colors">
+                    <button onClick={() => handleAcceptTransaction(_id)} className="bg-green-600/10 px-3 py-1 rounded text-green-500 text-xs hover:bg-green-700/20 transition-colors">
                       Approve
                     </button>
-                    <button className="bg-red-600/10 px-3 py-1 rounded text-red-500 text-xs ml-2 hover:bg-red-700/20 transition-colors">
+                    <button onClick={() => handleRejectTransaction(_id)} className="bg-red-600/10 px-3 py-1 rounded text-red-500 text-xs ml-2 hover:bg-red-700/20 transition-colors">
                       Reject
                     </button>
                   </div>
