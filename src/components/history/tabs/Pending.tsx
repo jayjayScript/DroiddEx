@@ -4,21 +4,36 @@ import Link from 'next/link'
 import React, { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 
+// Define UserTransactionType if not imported from elsewhere
+type UserTransactionType = {
+  _id: string;
+  type: string;
+  Coin: string;
+  amount: number;
+  image?: string;
+  network?: string;
+  email: string;
+  status: string;
+  createdAt?: string | Date;
+};
+
 const Pending = () => {
   const [expandedTransaction, setExpandedTransaction] = useState<number | null>(null)
-  const [isAdmin, setIsAdmin] = useState<boolean>()
+  const [isAdmin, setIsAdmin] = useState<boolean>(false)
   const [transactions, setTransactions] = useState<UserTransactionType[]>([])
 
   const fetchTransactions = async () => {
     const adminPath = window.location.pathname.includes("/admin")
     try {
-      const response = adminPath ? await api<UserTransactionType[]>('/admin/transactions') : await api<UserTransactionType[]>('/transaction/history');
+      const response = adminPath 
+        ? await api<UserTransactionType[]>('/admin/transactions') 
+        : await api<UserTransactionType[]>('/transaction/history');
       setTransactions(response.data)
     } catch (err) {
       if (err instanceof AxiosError) {
         toast.error(err.response?.data.message)
       } else {
-        toast.error('Failed to generate seed phrase please Try again later or reload page');
+        toast.error('Failed to load transactions. Please try again later or reload page');
       }
     }
   }
@@ -52,6 +67,7 @@ const Pending = () => {
         return '?'
     }
   }
+  
   const ImageDownload = (image: string) => image.startsWith('data:') ? image : `data:image/png;base64,${image}`;
 
   const toggleAccordion = (index: number) => {
@@ -63,39 +79,44 @@ const Pending = () => {
       const response = await api.patch(`/admin/transactions/${_id}?status=completed`)
       toast.success('Transaction approved successfully')
       fetchTransactions()
-    }catch (err) {
+    } catch (err) {
       if (err instanceof AxiosError) {
         toast.error(err.response?.data.message)
       } else {
-        toast.error('Failed to generate seed phrase please Try again later or reload page');
+        toast.error('Failed to approve transaction. Please try again later');
       }
     }
   }
+  
   const handleRejectTransaction = async (_id: string) => {
     try {
       const response = await api.patch(`/admin/transactions/${_id}?status=failed`)
-      toast.success('Transaction Rejected successfully')
+      toast.success('Transaction rejected successfully')
       fetchTransactions()
-    }catch (err) {
+    } catch (err) {
       if (err instanceof AxiosError) {
         toast.error(err.response?.data.message)
       } else {
-        toast.error('Failed to generate seed phrase please Try again later or reload page');
+        toast.error('Failed to reject transaction. Please try again later');
       }
     }
   }
+
+  // Filter pending transactions
+  const pendingTransactions = transactions.filter(item => item.status === 'pending');
 
   return (
     <div>
       <div>
-        {transactions.filter(item => item.status === 'pending').length === 0 && <p className='text-center text-gray-400 my-6'>No Pending Transactions</p>}
+        {pendingTransactions.length === 0 && (
+          <p className='text-center text-gray-400 my-6'>No Pending Transactions</p>
+        )}
 
         <div>
-          {transactions.map((transaction, index) => {
+          {pendingTransactions.map((transaction, index) => {
             const { type, Coin, amount, image, network, email, status, createdAt, _id } = transaction
             const isExpanded = expandedTransaction === index
 
-            if (status !== 'pending') return null
             return (
               <div key={index} className='bg-[#2A2A2A] mt-3 rounded-lg overflow-hidden'>
                 <div
@@ -158,13 +179,19 @@ const Pending = () => {
                   </div>
                 )}
 
-                {/* Admin buttons - only show when isAdmin prop is true */}
+                {/* Admin buttons - only show when isAdmin is true */}
                 {isAdmin && (
                   <div className="px-3 py-2 border-t border-gray-600">
-                    <button onClick={() => handleAcceptTransaction(_id)} className="bg-green-600/10 px-3 py-1 rounded text-green-500 text-xs hover:bg-green-700/20 transition-colors">
+                    <button 
+                      onClick={() => handleAcceptTransaction(_id)} 
+                      className="bg-green-600/10 px-3 py-1 rounded text-green-500 text-xs hover:bg-green-700/20 transition-colors"
+                    >
                       Approve
                     </button>
-                    <button onClick={() => handleRejectTransaction(_id)} className="bg-red-600/10 px-3 py-1 rounded text-red-500 text-xs ml-2 hover:bg-red-700/20 transition-colors">
+                    <button 
+                      onClick={() => handleRejectTransaction(_id)} 
+                      className="bg-red-600/10 px-3 py-1 rounded text-red-500 text-xs ml-2 hover:bg-red-700/20 transition-colors"
+                    >
                       Reject
                     </button>
                   </div>
