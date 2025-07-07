@@ -3,12 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, User, DollarSign, Edit3, AlertCircle, Eye, EyeOff, Copy } from "lucide-react";
 import TransactionHistory from "@/components/history/TransactionHistory";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { getAllUsers } from "@/lib/admin";
-import type { user as BackendUser } from "@/lib/admin";
+import type { user as BackendUser, user } from "@/lib/admin";
 import Link from "next/link";
 import { updateUser } from "@/lib/updateUser";
 import toast from "react-hot-toast";
+import api from "@/lib/axios";
+import Cookies from 'js-cookie';
 
 interface Transaction {
   id: string;
@@ -84,12 +86,20 @@ export default function UserDetailPage() {
   const [editValues, setEditValues] = useState<EditValues>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const router = useRouter()
 
   useEffect(() => {
     async function fetchUser() {
       setLoading(true);
-      // Fetch all users and find by _id
-      const allUsers: BackendUser[] = await getAllUsers();
+      const adminToken = Cookies.get("adminToken");
+
+      if (!adminToken) {
+        router.replace("/admin/auth/");
+        return;
+      }
+      api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
+      const response = await api<user[]>('admin/users/');
+      const allUsers = response.data
       const foundUser = allUsers.find(u => u._id === id);
       if (foundUser) {
         setUser({
@@ -589,7 +599,7 @@ export default function UserDetailPage() {
           </div>
         </div>
 
-  
+
         {/* Coin Holdings Section */}
         <div className="rounded-xl shadow-sm border mt-6" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
           <div className="p-6">
@@ -687,7 +697,7 @@ export default function UserDetailPage() {
               <p className="text-gray-400 text-sm mt-1">Latest account activity</p>
             </div>
 
-            <TransactionHistory/>
+            <TransactionHistory />
           </div>
         </div>
       </div>

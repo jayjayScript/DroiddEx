@@ -3,16 +3,14 @@ import api from "./axios";
 import Cookies from "js-cookie";
 
 
-export const DepositAPI = async (coin: string, amount: number, image: string) => {
-  console.log("=== DEPOSIT API DEBUG ===");
-  console.log("Received parameters:", { coin, amount, image });
+export const DepositAPI = async (Coin: string, amount: number, image: string, network: string) => {
 
   const token = Cookies.get('token');
   if (!token) throw new Error('No token');
 
   // Prepare JSON payload
   const payload = {
-    coin,
+    Coin,
     amount,
     image: image, // This is a base64 string, not a File
   };

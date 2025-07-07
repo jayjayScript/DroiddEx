@@ -118,6 +118,11 @@ type UserContextType = {
    setUser: React.Dispatch<React.SetStateAction<UserContextType['user']>>
 }
 
+type AllUserContextType = {
+  allUsers: UserType[]
+  setAllUsers: React.Dispatch<React.SetStateAction<AllUserContextType['allUsers']>>
+}
+
 type UserResponse = {
   users: UserType[],
   limit: number
