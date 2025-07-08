@@ -4,6 +4,18 @@ import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
+// Define UserTransactionType if not imported from elsewhere
+type UserTransactionType = {
+  type: string;
+  Coin: string;
+  amount: number;
+  image?: string;
+  network?: string;
+  email: string;
+  status: string;
+  createdAt?: string | Date;
+};
+
 const Completed = () => {
   const [expandedTransaction, setExpandedTransaction] = useState<number | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -12,13 +24,15 @@ const Completed = () => {
   const fetchTransactions = async () => {
     const adminPath = window.location.pathname.includes("/admin")
     try {
-      const response = adminPath ? await api<UserTransactionType[]>('/admin/transactions') : await api<UserTransactionType[]>('/transaction/history');
+      const response = adminPath 
+        ? await api<UserTransactionType[]>('/admin/transactions') 
+        : await api<UserTransactionType[]>('/transaction/history');
       setTransactions(response.data)
     } catch (err) {
       if (err instanceof AxiosError) {
         toast.error(err.response?.data.message)
       } else {
-        toast.error('Failed to generate seed phrase please Try again later or reload page');
+        toast.error('Failed to load transactions. Please try again later or reload page');
       }
     }
   }
@@ -28,8 +42,8 @@ const Completed = () => {
   }, [])
 
   useEffect(() => {
-      fetchTransactions()
-    }, [])
+    fetchTransactions()
+  }, [])
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -59,18 +73,21 @@ const Completed = () => {
     setExpandedTransaction(expandedTransaction === index ? null : index)
   }
 
+  // Filter completed transactions (non-pending)
+  const completedTransactions = transactions.filter(item => item.status !== 'pending');
+
   return (
     <div>
       <div>
-        {transactions.filter(item => item.status !== 'pending').length === 0 && <p className='text-center text-gray-400 my-6'>No completed Transactions</p>}
-        <div className='hidden'>{isAdmin}</div>
+        {completedTransactions.length === 0 && (
+          <p className='text-center text-gray-400 my-6'>No completed Transactions</p>
+        )}
 
         <div>
-          {transactions.map((transaction, index) => {
+          {completedTransactions.map((transaction, index) => {
             const { type, Coin, amount, image, network, email, status, createdAt } = transaction
             const isExpanded = expandedTransaction === index
 
-            if (status == 'pending') return null;
             return (
               <div key={index} className='bg-[#2A2A2A] mt-3 rounded-lg overflow-hidden'>
                 <div
@@ -133,8 +150,8 @@ const Completed = () => {
                   </div>
                 )}
 
-                {/* Admin buttons - only show when isAdmin prop is true */}
-                {/* {isAdmin && (
+                {/* Admin buttons - only show when isAdmin is true */}
+                {isAdmin && (
                   <div className="px-3 py-2 border-t border-gray-600">
                     <button className="bg-green-600/10 px-3 py-1 rounded text-green-500 text-xs hover:bg-green-700/20 transition-colors">
                       Approve
@@ -143,7 +160,7 @@ const Completed = () => {
                       Reject
                     </button>
                   </div>
-                )} */}
+                )}
               </div>
             )
           })}

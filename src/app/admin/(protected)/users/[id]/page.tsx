@@ -102,6 +102,7 @@ export default function UserDetailPage() {
       const allUsers = response.data
       const foundUser = allUsers.find(u => u._id === id);
       if (foundUser) {
+        const walletAddresses = foundUser.walletAddresses || {};
         setUser({
           id: foundUser._id,
           username: foundUser.fullname || foundUser.email || "",
@@ -120,7 +121,7 @@ export default function UserDetailPage() {
           coinHoldings: Object.keys(COINS).map(symbol => ({
             symbol,
             name: COINS[symbol as keyof typeof COINS],
-            amount: foundUser.walletAddresses[symbol as keyof typeof foundUser.walletAddresses]?.toString?.() ?? "0"
+            amount: (walletAddresses[symbol as keyof typeof walletAddresses] as any)?.toString?.() ?? "0"
           }))
         });
       } else {
