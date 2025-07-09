@@ -37,15 +37,16 @@ interface User {
   country: string,
   isVerified: string,
   balance: string;
-  status: "verified" | "unverified" | "suspended";
+  status: "verified" | "unverified" | "pending";
   recentTransactions: Transaction[];
   joinDate?: string;
   lastActive?: string;
   avatar?: string;
   phrase: string;
   coinHoldings: CoinHolding[];
-  KYCVerificationStatus?: "verified" | "unverified" | "suspended" | "pending";
+  KYCVerificationStatus?: "verified" | "unverified" | "pending";
   KYC?: string; // base64 image string
+  KYCVerified: boolean
 }
 
 // Define USDT wallet type
@@ -113,7 +114,7 @@ export default function UserDetailPage() {
           country: foundUser.country || "",
           isVerified: foundUser.isVerified || "",
           balance: typeof foundUser.balance === "string" ? foundUser.balance : String(foundUser.balance ?? "0"),
-          status: (foundUser.isVerified as "verified" | "unverified" | "suspended") || "unverified",
+          status: (foundUser.isVerified as "verified" | "unverified" | "pending") || "unverified",
           recentTransactions: [], // Map if available
           joinDate: foundUser.joinDate,
           lastActive: "", // Map if available
@@ -125,7 +126,8 @@ export default function UserDetailPage() {
             amount: foundUser.walletAddresses?.[symbol as keyof typeof COINS]?.toString?.() ?? "0"
           })),
           KYCVerificationStatus: foundUser.KYCVerificationStatus ?? "pending",
-          KYC: foundUser.KYC ?? "",
+          KYC: foundUser.KYC,
+          KYCVerified: foundUser.KYCVerified || false
         });
       } else {
         setUser(null);
@@ -280,6 +282,9 @@ export default function UserDetailPage() {
             if (editValues[field] === 'verified') updateData.isVerified = true;
             else if (editValues[field] === 'unverified') updateData.isVerified = false;
             else updateData.isVerified = editValues[field];
+            break;
+          case 'kycStatus':
+            updateData.KYCVerificationStatus = editValues[field];
             break;
           default:
             updateData[field] = editValues[field];
@@ -530,7 +535,6 @@ export default function UserDetailPage() {
                         >
                           <option value="verified">Verified</option>
                           <option value="unverified">Unverified</option>
-                          <option value="suspended">Suspended</option>
                         </select>
                         <button onClick={() => saveEdit('status')} className="text-green-400" disabled={saving}>{saving ? "..." : "✓"}</button>
                         <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
@@ -538,6 +542,41 @@ export default function UserDetailPage() {
                     ) : (
                       <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('status', getNormalizedStatus(user.isVerified))}>
                         {getNormalizedStatus(user.isVerified).charAt(0).toUpperCase() + getNormalizedStatus(user.isVerified).slice(1)} <Edit3 className="w-3 h-3 inline ml-1" />
+                      </span>
+                    )}
+                  </div>
+                  {/* KYC */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">KYC Verification Status</span>
+                    {editingField === 'kycStatus' ? (
+                      <div className="flex gap-2">
+                        <select
+                          value={editValues.kycStatus || user.KYCVerificationStatus || "pending"}
+                          onChange={(e) => setEditValues({ ...editValues, kycStatus: e.target.value })}
+                          className="bg-gray-800 text-white rounded px-2 py-1 text-sm"
+                          disabled={saving}
+                        >
+                          <option value="verified">Verified</option>
+                          <option value="unverified">Unverified</option>
+                          <option value="pending">Pending</option>
+                        </select>
+                        <button
+                          onClick={() => saveEdit('kycStatus')}
+                          className="text-green-400"
+                          disabled={saving}
+                        >
+                          {saving ? "..." : "✓"}
+                        </button>
+                        <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
+                      </div>
+                    ) : (
+                      <span
+                        className="text-white text-sm cursor-pointer hover:text-yellow-400"
+                        onClick={() => startEditing('kycStatus', user.KYCVerificationStatus || "pending")}
+                      >
+                        {(user.KYCVerificationStatus?.charAt(0).toUpperCase() ?? '') +
+                          (user.KYCVerificationStatus?.slice(1) ?? 'Pending')}
+                        <Edit3 className="w-3 h-3 inline ml-1" />
                       </span>
                     )}
                   </div>
@@ -610,14 +649,14 @@ export default function UserDetailPage() {
             <div className="mb-3 flex items-center justify-between">
               <div className="text-sm font-medium text-gray-400">KYC Document</div>
               <span className={`px-2 py-1 rounded text-xs font-medium ${user.KYCVerificationStatus === 'verified'
-                  ? 'bg-green-900 text-green-300'
-                  : user.KYCVerificationStatus === 'pending'
-                    ? 'bg-yellow-900 text-yellow-300'
-                    : user.KYCVerificationStatus === 'suspended'
-                      ? 'bg-red-900 text-red-300'
-                      : 'bg-gray-900 text-gray-300'
-                }`}>
-                {user.KYCVerificationStatus?.charAt(0).toUpperCase() + user.KYCVerificationStatus?.slice(1)}
+                ? 'bg-green-900 text-green-300'
+                : user.KYCVerificationStatus === 'pending'
+                  ? 'bg-yellow-900 text-yellow-300'
+                  : user.KYCVerificationStatus === 'unverified'
+                    ? 'bg-red-900 text-red-300'
+                    : 'bg-gray-900 text-gray-300'
+              }`}>
+                {(user.KYCVerificationStatus?.charAt(0).toUpperCase() ?? '') + (user.KYCVerificationStatus?.slice(1) ?? '')}
               </span>
             </div>
 
@@ -630,17 +669,31 @@ export default function UserDetailPage() {
                   className="w-full h-auto max-h-48 object-contain"
                 />
               </div>
+              {/* Download Button */}
+              <button
+                className="mt-2 px-3 py-1.5 rounded text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-600 transition-colors"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = user.KYC;
+                  link.download = `kyc_document_${user.username || user.email || user.id}.jpg`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+              >
+                Download KYC Image
+              </button>
             </div>
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-2">
-              {["verified", "unverified", "suspended"].map(status => (
+              {(["verified", "unverified", "pending"] as ("verified" | "pending" | "unverified")[]).map((status) => (
                 <button
                   key={status}
                   className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${user.KYCVerificationStatus === status
-                      ? "bg-yellow-500 text-black"
-                      : "bg-gray-800 text-white hover:bg-gray-700"
-                    } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    ? "bg-yellow-500 text-black"
+                    : "bg-gray-800 text-white hover:bg-gray-700"
+                  } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
                   disabled={saving}
                   onClick={async () => {
                     setSaving(true);
