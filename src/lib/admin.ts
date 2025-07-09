@@ -10,11 +10,13 @@ export type user = {
     address: string,
     country: string,
     balance: number,
+    wallet: any
     isVerified: string
     joinDate: string
     KYCVerificationStatus: 'verified' | 'pending' | 'unverified'
     KYC: string
     KYCVerified: boolean
+    ActivateBot: boolean
     depositStatus: [],
     withdrawStatus: [
         string
