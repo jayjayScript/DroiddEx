@@ -44,6 +44,8 @@ interface User {
   avatar?: string;
   phrase: string;
   coinHoldings: CoinHolding[];
+  KYCVerificationStatus?: "verified" | "unverified" | "suspended" | "pending";
+  KYC?: string; // base64 image string
 }
 
 // Define USDT wallet type
@@ -120,8 +122,10 @@ export default function UserDetailPage() {
           coinHoldings: Object.keys(COINS).map(symbol => ({
             symbol,
             name: COINS[symbol as keyof typeof COINS],
-            amount: foundUser.walletAddresses[symbol as keyof typeof foundUser.walletAddresses]?.toString?.() ?? "0"
-          }))
+            amount: foundUser.walletAddresses?.[symbol as keyof typeof COINS]?.toString?.() ?? "0"
+          })),
+          KYCVerificationStatus: foundUser.KYCVerificationStatus ?? "pending",
+          KYC: foundUser.KYC ?? "",
         });
       } else {
         setUser(null);
@@ -599,6 +603,65 @@ export default function UserDetailPage() {
           </div>
         </div>
 
+        {/* KYC Verification Section */}
+        {user.KYC && (
+          <div className="mt-4 p-3 rounded-lg bg-[#181818]">
+            {/* Header */}
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-400">KYC Document</div>
+              <span className={`px-2 py-1 rounded text-xs font-medium ${user.KYCVerificationStatus === 'verified'
+                  ? 'bg-green-900 text-green-300'
+                  : user.KYCVerificationStatus === 'pending'
+                    ? 'bg-yellow-900 text-yellow-300'
+                    : user.KYCVerificationStatus === 'suspended'
+                      ? 'bg-red-900 text-red-300'
+                      : 'bg-gray-900 text-gray-300'
+                }`}>
+                {user.KYCVerificationStatus?.charAt(0).toUpperCase() + user.KYCVerificationStatus?.slice(1)}
+              </span>
+            </div>
+
+            {/* Document Display */}
+            <div className="mb-3">
+              <div className="overflow-hidden rounded bg-black">
+                <img
+                  src={user.KYC}
+                  alt="KYC Document"
+                  className="w-full h-auto max-h-48 object-contain"
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-2">
+              {["verified", "unverified", "suspended"].map(status => (
+                <button
+                  key={status}
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${user.KYCVerificationStatus === status
+                      ? "bg-yellow-500 text-black"
+                      : "bg-gray-800 text-white hover:bg-gray-700"
+                    } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={saving}
+                  onClick={async () => {
+                    setSaving(true);
+                    try {
+                      await updateUser(user.email, { KYCVerificationStatus: status });
+                      setUser({ ...user, KYCVerificationStatus: status });
+                      toast.success(`KYC status set to ${status}`);
+                    } catch (e) {
+                      toast.error("Failed to update KYC status");
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
 
         {/* Coin Holdings Section */}
         <div className="rounded-xl shadow-sm border mt-6" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
@@ -701,6 +764,8 @@ export default function UserDetailPage() {
           </div>
         </div>
       </div>
+
+
     </div>
   );
 }
