@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { ArrowLeft, User, DollarSign, Edit3, AlertCircle, Eye, EyeOff, Copy } from "lucide-react";
 import TransactionHistory from "@/components/history/TransactionHistory";
 import { useParams, useRouter } from "next/navigation";
-import { getAllUsers } from "@/lib/admin";
 import type { user as BackendUser, user } from "@/lib/admin";
 import Link from "next/link";
 import { updateUser } from "@/lib/updateUser";
