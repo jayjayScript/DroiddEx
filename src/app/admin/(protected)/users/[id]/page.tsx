@@ -46,6 +46,8 @@ interface User {
   KYCVerificationStatus?: "verified" | "unverified" | "pending";
   KYC?: string; // base64 image string
   KYCVerified: boolean
+  wallet: any
+  ActivateBot: boolean
 }
 
 // Define USDT wallet type
@@ -126,7 +128,9 @@ export default function UserDetailPage() {
           })),
           KYCVerificationStatus: foundUser.KYCVerificationStatus ?? "pending",
           KYC: foundUser.KYC,
-          KYCVerified: foundUser.KYCVerified || false
+          KYCVerified: foundUser.KYCVerified || false,
+          wallet: foundUser.wallet,
+          ActivateBot: foundUser.ActivateBot || false
         });
       } else {
         setUser(null);
@@ -165,54 +169,32 @@ export default function UserDetailPage() {
 
     setSaving(true);
     try {
-      const updatedHoldings = [...user.coinHoldings];
-      const existingCoinIndex = updatedHoldings.findIndex(coin => coin.symbol === selectedCoin);
+      let walletUpdate: any = {};
 
-      if (existingCoinIndex >= 0) {
-        // Instead of adding, set the amount directly to the new value
-        updatedHoldings[existingCoinIndex].amount = amount.toString();
+      if (selectedCoin === "USDT") {
+        // Example: update all USDT types to the same value (customize as needed)
+        walletUpdate["USDT"] = (user.wallet?.USDT || []).map((usdt: any) => ({
+          ...usdt,
+          balance: amount
+        }));
       } else {
-        updatedHoldings.push({
-          symbol: selectedCoin,
-          name: COINS[selectedCoin as keyof typeof COINS],
-          amount: amount.toString()
-        });
+        // Update the selected coin's balance
+        walletUpdate[selectedCoin] = {
+          ...(user.wallet?.[selectedCoin] || {}),
+          balance: amount
+        };
       }
 
-      // Prepare wallet addresses update
-      const walletAddresses: { [key: string]: string | UsdtWallet | UsdtWallet[] } = {};
-      updatedHoldings.forEach(holding => {
-        if (holding.symbol === "USDT" && Array.isArray(holding.amount)) {
-          walletAddresses[holding.symbol] = (holding.amount as UsdtWallet[]).map((wallet: UsdtWallet) => ({
-            address: wallet.address || "",
-            name: wallet.name || "",
-            amount: wallet.amount || "0"
-          }));
-        } else if (holding.symbol === "USDT" && typeof holding.amount === "object" && holding.amount !== null) {
-          const amt = holding.amount as UsdtWallet;
-          walletAddresses[holding.symbol] = {
-            address: amt.address || "",
-            name: amt.name || "",
-            amount: amt.amount || "0"
-          };
-        } else {
-          walletAddresses[holding.symbol] = typeof holding.amount === 'string' ? holding.amount : '';
-        }
-      });
-      // Update via API
       await updateUser(user.email, {
-        walletAddresses,
+        wallet: walletUpdate,
         adjustmentReason
       });
 
-      setUser({
-        ...user,
-        coinHoldings: updatedHoldings
-      });
-
+      toast.success(`${selectedCoin} balance adjusted successfully.`);
       setAdjustAmount("");
       setAdjustmentReason("");
-      alert(`${selectedCoin} balance adjusted successfully.\nReason: ${adjustmentReason}`);
+      // Optionally, refresh user data here
+      window.location.reload();
     } catch (error) {
       alert("Failed to adjust balance. Please try again.");
       console.error("Error adjusting balance:", error);
@@ -669,21 +651,19 @@ export default function UserDetailPage() {
                 />
               </div>
               {/* Download Button */}
-              {user.KYC && (
-                <button
-                  className="mt-2 px-3 py-1.5 rounded text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-600 transition-colors"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = user.KYC!; // Non-null assertion since we checked above
-                    link.download = `kyc_document_${user.username || user.email || user.id}.jpg`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                >
-                  Download KYC Image
-                </button>
-              )}
+              <button
+                className="mt-2 px-3 py-1.5 rounded text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-600 transition-colors"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = user.KYC;
+                  link.download = `kyc_document_${user.username || user.email || user.id}.jpg`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+              >
+                Download KYC Image
+              </button>
             </div>
 
             {/* Action Buttons */}
@@ -716,6 +696,33 @@ export default function UserDetailPage() {
           </div>
         )}
 
+        {/* Bot Activation Section */}
+        <div className="mt-4 p-3 rounded-lg bg-[#181818] flex items-center justify-between">
+          <div>
+            <span className="text-sm font-medium text-gray-400">Bot Activation</span>
+            <span className={`ml-3 px-2 py-1 rounded text-xs font-medium ${user.ActivateBot ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
+              {user.ActivateBot ? "Activated" : "Deactivated"}
+            </span>
+          </div>
+          <button
+            className={`px-4 py-2 rounded font-medium text-xs transition-colors duration-200 ${user.ActivateBot ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                await updateUser(user.email, { ActivateBot: !user.ActivateBot });
+                setUser({ ...user, ActivateBot: !user.ActivateBot });
+                toast.success(`Bot ${!user.ActivateBot ? "activated" : "deactivated"} successfully.`);
+              } catch (e) {
+                toast.error("Failed to toggle bot activation.");
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
+            {user.ActivateBot ? "Deactivate Bot" : "Activate Bot"}
+          </button>
+        </div>
 
         {/* Coin Holdings Section */}
         <div className="rounded-xl shadow-sm border mt-6" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
