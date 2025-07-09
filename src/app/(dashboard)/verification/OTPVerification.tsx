@@ -3,7 +3,7 @@ import api from '@/lib/axios';
 import { useUserContext } from '@/store/userContext';
 import { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
 const OTPVerification = () => {
@@ -18,7 +18,7 @@ const OTPVerification = () => {
 
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
-  const getOtpCode = async () => {
+  const getOtpCode = useCallback(async() => {
     if (!user.email) return;
     try {
       const { data } = await api.patch(`/seed/sendCode?email=${user.email}`);
@@ -32,12 +32,12 @@ const OTPVerification = () => {
         );
       }
     }
-  }
+  },  [user.email])
   useEffect(() => {
     if (requestedRef.current) return
     requestedRef.current = true
     getOtpCode();
-  }, [user.email, getOtpCode]);
+  }, [getOtpCode]);
 
   // Timer effect
   useEffect(() => {

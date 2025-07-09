@@ -2,15 +2,15 @@ import api from "./axios";
 import Cookies from "js-cookie";
 type WalletEntry = {
   balance: number;
-  [key: string]: any; // Add specific keys later if you know them
+  [key: string]: unknown; // Add specific keys later if you know them
 };
 
-type USDTEntry = {
+export type USDTEntry = {
   balance: number;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
-type Wallet = {
+export type Wallet = {
   [coinSymbol: string]: WalletEntry | USDTEntry[];
 };
 export type user = {

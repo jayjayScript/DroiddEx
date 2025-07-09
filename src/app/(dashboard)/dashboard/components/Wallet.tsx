@@ -21,7 +21,7 @@ import { Poppins } from "next/font/google";
 import toast from "react-hot-toast";
 import Image from "next/image";
 import { useUserContext } from "@/store/userContext";
-import SubscriptionModal from "./SubscriptionModal";
+import SubscriptionModal, { WalletEntry } from "./SubscriptionModal";
 import { UserWallet } from "./SubscriptionModal";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
@@ -142,7 +142,7 @@ const Wallet = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Check if user still has enough balance (in case prices changed)
-      const userBalance = getTotalBalance(selectedCoin);
+      const userBalance = getTotalBalance(user.wallet, coins);
       if (userBalance < requiredAmount) {
         toast.error('Insufficient balance. Please try again.');
         setSubscriptionLoading(false);
@@ -273,10 +273,10 @@ const Wallet = () => {
   };
 
   // Updated getTotalBalance function with proper typing
-  const getTotalBalance = (wallet: any, coins: Coin[] = []): number => {
+  const getTotalBalance = (wallet: Wallet, coins: Coin[] = []): number => {
     if (!wallet || !coins || coins.length === 0) return 0;
 
-    return Object.entries(wallet).reduce<number>((total, [symbol, entry]: [string, any]) => {
+    return Object.entries(wallet).reduce<number>((total, [symbol, entry]: [string, WalletEntry]) => {
 
       const coinData = coins.find(coin => coin.symbol.toUpperCase() === symbol.toUpperCase());
       if (!coinData) return total
@@ -285,7 +285,7 @@ const Wallet = () => {
 
       if (Array.isArray(entry)) {
         const coinQuantity = entry.reduce(
-          (sub: number, item: any) => sub + (item.balance || 0),
+          (sub: number, item) => sub + (item.balance || 0),
           0
         );
         return total + (coinQuantity * currentPrice);
@@ -465,7 +465,7 @@ const Wallet = () => {
                   // Get the user's balance for this coin from user.wallet
                   let userBalance = 0;
                   if (user?.wallet) {
-                    const walletEntry = (user.wallet as any)[coin.symbol.toUpperCase()];
+                    const walletEntry = user.wallet[coin.symbol.toUpperCase() as keyof typeof user.wallet];
                     if (walletEntry) {
                       if (Array.isArray(walletEntry)) {
                         // For USDT or multi-network coins, sum all balances

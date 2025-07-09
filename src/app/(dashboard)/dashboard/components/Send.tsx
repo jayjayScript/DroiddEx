@@ -239,7 +239,7 @@ const Deposit = () => {
         selected.symbol,
         Number(myFormData.amount),
         compressedImageBase64,
-        selected.addresses[0]?.name || "default",
+        // selected.addresses[0]?.name || "default",
       );
       toast.success("Deposit submitted successfully!");
       

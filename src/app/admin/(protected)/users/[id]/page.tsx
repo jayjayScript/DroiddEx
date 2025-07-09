@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import api from "@/lib/axios";
 import Cookies from 'js-cookie';
 import Image from "next/image";
+import { Wallet } from "@/lib/admin";
 
 interface Transaction {
   id: string;
@@ -47,7 +48,7 @@ interface User {
   KYCVerificationStatus?: "verified" | "unverified" | "pending";
   KYC?: string; // base64 image string
   KYCVerified: boolean
-  wallet: any
+  wallet: Wallet
   ActivateBot: boolean
 }
 
@@ -165,13 +166,23 @@ export default function UserDetailPage() {
 
   type WalletEntry = {
     balance: number;
-    [key: string]: any; // if there are other fields like network, optional
+    [key: string]: unknown; // if there are other fields like network, optional
   };
 
   type WalletUpdate = {
     [coinSymbol: string]: WalletEntry | WalletEntry[];
   };
 
+  interface UsdtWalletEntry extends WalletEntry {
+    address: string;  // Make address required for USDT
+    network: string;  // Make network required for USDT
+  }
+
+  // type UserWallet = {
+  //   [key in keyof typeof COINS]?:
+  //   | WalletEntry
+  //   | UsdtWalletEntry[]; // USDT can be an array of entries
+  // };
   const handleAdjustment = async () => {
     const amount = parseFloat(adjustAmount);
     if (isNaN(amount)) return alert("Enter a valid amount");
@@ -183,7 +194,7 @@ export default function UserDetailPage() {
 
       if (selectedCoin === "USDT") {
         // Example: update all USDT types to the same value (customize as needed)
-        walletUpdate["USDT"] = (user.wallet?.USDT || []).map((usdt: any) => ({
+        walletUpdate["USDT"] = (user.wallet?.USDT as UsdtWalletEntry[] || []).map((usdt: UsdtWalletEntry) => ({
           ...usdt,
           balance: amount
         }));
