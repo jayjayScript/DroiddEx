@@ -12,6 +12,9 @@ export type user = {
     balance: number,
     isVerified: string
     joinDate: string
+    KYCVerificationStatus: 'verified' | 'pending' | 'unverified'
+    KYC: string
+    KYCVerified: boolean
     depositStatus: [],
     withdrawStatus: [
         string
