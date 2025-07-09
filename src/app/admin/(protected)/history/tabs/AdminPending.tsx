@@ -18,17 +18,13 @@ type UserTransactionType = {
   createdAt?: string | Date;
 };
 
-const Pending = () => {
+const AdminPendingTransactions = () => {
   const [expandedTransaction, setExpandedTransaction] = useState<number | null>(null)
-  const [isAdmin, setIsAdmin] = useState<boolean>(false)
   const [transactions, setTransactions] = useState<UserTransactionType[]>([])
 
   const fetchTransactions = async () => {
-    const adminPath = window.location.pathname.includes("/admin")
     try {
-      const response = adminPath 
-        ? await api<UserTransactionType[]>('/admin/transactions') 
-        : await api<UserTransactionType[]>('/transaction/history');
+      const response = await api<UserTransactionType[]>('/admin/transactions');
       setTransactions(response.data)
     } catch (err) {
       if (err instanceof AxiosError) {
@@ -38,10 +34,6 @@ const Pending = () => {
       }
     }
   }
-
-  useEffect(() => {
-    setIsAdmin(window.location.pathname.includes("/admin"))
-  }, [])
 
   useEffect(() => {
     fetchTransactions()
@@ -191,9 +183,9 @@ const Pending = () => {
                   </div>
                 )}
 
-                {/* Admin buttons - only show when isAdmin is true */}
-                {isAdmin && (
-                  <div className="px-3 py-2 border-t border-gray-600">
+                {/* Admin action buttons */}
+                <div className="px-3 py-2 border-t border-gray-600">
+                  <div className="flex gap-2">
                     <button 
                       onClick={() => handleAcceptTransaction(_id)} 
                       className="bg-green-600/10 px-3 py-1 rounded text-green-500 text-xs hover:bg-green-700/20 transition-colors"
@@ -202,12 +194,12 @@ const Pending = () => {
                     </button>
                     <button 
                       onClick={() => handleRejectTransaction(_id)} 
-                      className="bg-red-600/10 px-3 py-1 rounded text-red-500 text-xs ml-2 hover:bg-red-700/20 transition-colors"
+                      className="bg-red-600/10 px-3 py-1 rounded text-red-500 text-xs hover:bg-red-700/20 transition-colors"
                     >
                       Reject
                     </button>
                   </div>
-                )}
+                </div>
               </div>
             )
           })}
@@ -217,4 +209,4 @@ const Pending = () => {
   )
 }
 
-export default Pending
+export default AdminPendingTransactions

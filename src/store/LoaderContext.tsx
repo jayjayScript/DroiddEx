@@ -23,7 +23,7 @@ export const LoaderProvider = ({ children }: { children: ReactNode }) => {
       const timer = setTimeout(() => {
          setPageLoader(false)
       }, delay)
-      console.log(timer)
+      return timer
    };
 
    return (

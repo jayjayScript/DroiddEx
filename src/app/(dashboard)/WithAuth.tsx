@@ -37,7 +37,7 @@ const WithAuth = ({ children }: { children: React.ReactNode }) => {
     };
 
     getUser();
-  }, [router, showPageLoader, hidePageLoader, setUser, user.isVerified]);
+  }, [router,setUser,user.isVerified]);
 
   if (PageLoader || !user) {
     return null; // or return a spinner/loading UI

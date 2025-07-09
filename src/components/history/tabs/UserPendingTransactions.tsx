@@ -1,12 +1,13 @@
-import api from '@/lib/axios';
-import { AxiosError } from 'axios';
-import Image from 'next/image';
-import Link from 'next/link';
-import React, { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import api from '@/lib/axios'
+import { AxiosError } from 'axios'
+import Image from 'next/image'
+import Link from 'next/link'
+import React, { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 
 // Define UserTransactionType if not imported from elsewhere
 type UserTransactionType = {
+  _id: string;
   type: string;
   Coin: string;
   amount: number;
@@ -17,17 +18,13 @@ type UserTransactionType = {
   createdAt?: string | Date;
 };
 
-const Completed = () => {
+const UserPendingTransactions = () => {
   const [expandedTransaction, setExpandedTransaction] = useState<number | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
   const [transactions, setTransactions] = useState<UserTransactionType[]>([])
 
   const fetchTransactions = async () => {
-    const adminPath = window.location.pathname.includes("/admin")
     try {
-      const response = adminPath 
-        ? await api<UserTransactionType[]>('/admin/transactions') 
-        : await api<UserTransactionType[]>('/transaction/history');
+      const response = await api<UserTransactionType[]>('/transaction/history');
       setTransactions(response.data)
     } catch (err) {
       if (err instanceof AxiosError) {
@@ -37,10 +34,6 @@ const Completed = () => {
       }
     }
   }
-
-  useEffect(() => {
-    setIsAdmin(window.location.pathname.includes("/admin"))
-  }, [])
 
   useEffect(() => {
     fetchTransactions()
@@ -67,25 +60,25 @@ const Completed = () => {
         return '?'
     }
   }
-
+  
   const ImageDownload = (image: string) => image.startsWith('data:') ? image : `data:image/png;base64,${image}`;
 
   const toggleAccordion = (index: number) => {
     setExpandedTransaction(expandedTransaction === index ? null : index)
   }
 
-  // Filter completed transactions (non-pending)
-  const completedTransactions = transactions.filter(item => item.status !== 'pending');
+  // Filter pending transactions
+  const pendingTransactions = transactions.filter(item => item.status === 'pending');
 
   return (
     <div>
       <div>
-        {completedTransactions.length === 0 && (
-          <p className='text-center text-gray-400 my-6'>No completed Transactions</p>
+        {pendingTransactions.length === 0 && (
+          <p className='text-center text-gray-400 my-6'>No Pending Transactions</p>
         )}
 
         <div>
-          {completedTransactions.map((transaction, index) => {
+          {pendingTransactions.map((transaction, index) => {
             const { type, Coin, amount, image, network, email, status, createdAt } = transaction
             const isExpanded = expandedTransaction === index
 
@@ -108,7 +101,7 @@ const Completed = () => {
                   <div className='text-right'>
                     <p className={`${type == 'deposit' ? 'text-green-400' : 'text-red-400'}`}>{amount}{Coin}</p>
                     {network && <p className='text-gray-500 text-[10px]'>{network}</p>}
-                    <p className='text-green-500 text-xs bg-green-500/10 text-center px-2 py-[1px] rounded'>{status}</p>
+                    <p className='text-[#ebb70c] text-xs bg-[#ebb70c27] text-center px-2 py-[1px] rounded'>{status}</p>
                   </div>
 
                   {/* Dropdown arrow for deposits with receipts only */}
@@ -130,7 +123,7 @@ const Completed = () => {
                       <div className="mt-3 bg-[#1f1f1f] rounded-lg p-3">
                         <h4 className="text-white text-[11px] font-medium mb-2 uppercase">Receipt Image</h4>
                         <div className="bg-[#2A2A2A] rounded-lg p-4">
-                          <Image 
+                          <Image
                             src={ImageDownload(image)} 
                             alt="Receipt" 
                             className="w-full h-auto max-h-64 object-contain rounded-lg"
@@ -152,23 +145,11 @@ const Completed = () => {
 
                 {/* Receipt indicator for non-expandable transactions */}
                 {image && type === 'deposit' && (
-                  <div className="px-3 pb-3 border-t border-gray-600 mt-2">
+                  <div className="px-3 pb-3 mt-2">
                     <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-2">
                       <span>📎</span>
                       <Link download={`${email}_receipt_image.png`} target="_blank" rel="noopener noreferrer" href={ImageDownload(image)}>Download Receipt attached</Link>
                     </div>
-                  </div>
-                )}
-
-                {/* Admin buttons - only show when isAdmin is true */}
-                {isAdmin && (
-                  <div className="px-3 py-2 border-t border-gray-600">
-                    <button className="bg-green-600/10 px-3 py-1 rounded text-green-500 text-xs hover:bg-green-700/20 transition-colors">
-                      Approve
-                    </button>
-                    <button className="bg-red-600/10 px-3 py-1 rounded text-red-500 text-xs ml-2 hover:bg-red-700/20 transition-colors">
-                      Reject
-                    </button>
                   </div>
                 )}
               </div>
@@ -180,4 +161,4 @@ const Completed = () => {
   )
 }
 
-export default Completed
+export default UserPendingTransactions

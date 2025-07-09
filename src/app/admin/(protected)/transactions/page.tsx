@@ -1,4 +1,4 @@
-import TransactionHistory from '@/components/history/TransactionHistory'
+import TransactionHistory from '../history/TransactionHistory'
 import React from 'react'
 import { Icon } from '@iconify/react/dist/iconify.js'
 

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, User, DollarSign, Edit3, AlertCircle, Eye, EyeOff, Copy } from "lucide-react";
-import TransactionHistory from "@/components/history/TransactionHistory";
+import TransactionHistory from "../../history/TransactionHistory";
 import { useParams, useRouter } from "next/navigation";
 import type { user } from "@/lib/admin";
 import Link from "next/link";
@@ -345,6 +345,10 @@ export default function UserDetailPage() {
     );
   }
 
+  const isValidBase64Image = (str: string) => {
+    return str.startsWith('data:image/') && str.includes('base64,');
+  };
+
   return (
     <div className="md:max-w-[70%] mx-auto p-2 sm:p-2 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
       {/* Header */}
@@ -665,11 +669,15 @@ export default function UserDetailPage() {
             {/* Document Display */}
             <div className="mb-3">
               <div className="overflow-hidden rounded bg-black">
-                <Image
-                  src={user.KYC}
-                  alt="KYC Document"
-                  className="w-full h-auto max-h-48 object-contain"
-                />
+                {isValidBase64Image(user.KYC) && (
+                  <Image
+                    src={user.KYC}
+                    alt="KYC Document"
+                    className="w-full h-auto max-h-48 object-contain"
+                    width={200}
+                    height={200}
+                  />
+                )}
               </div>
               {/* Download Button */}
               {user.KYC && (

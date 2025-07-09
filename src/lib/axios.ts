@@ -5,10 +5,11 @@ const baseURL = 'https://droid4-backend.onrender.com'
 
 const api = axios.create({
   baseURL, // your NestJS backend
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // optional if you're using cookies
+
 });
 
 export default api;
