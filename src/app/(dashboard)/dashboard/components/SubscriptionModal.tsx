@@ -2,6 +2,7 @@ import { Icon } from "@iconify/react";
 import React from "react";
 import type { Coin } from "./Wallet";
 
+
 interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -237,7 +238,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 Confirm Payment
               </h3>
               <p className="text-gray-400 text-sm">
-                You're about to pay for the monthly bot subscription
+                You&spos;re about to pay for the monthly bot subscription
               </p>
             </div>
 

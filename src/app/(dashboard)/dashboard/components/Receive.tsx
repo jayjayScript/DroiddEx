@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { ChevronDown, Check, Send, Info, Copy, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 // import Cookies from "js-cookie";

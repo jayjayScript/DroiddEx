@@ -654,7 +654,7 @@ export default function UserDetailPage() {
                   : user.KYCVerificationStatus === 'unverified'
                     ? 'bg-red-900 text-red-300'
                     : 'bg-gray-900 text-gray-300'
-              }`}>
+                }`}>
                 {(user.KYCVerificationStatus?.charAt(0).toUpperCase() ?? '') + (user.KYCVerificationStatus?.slice(1) ?? '')}
               </span>
             </div>
@@ -669,19 +669,21 @@ export default function UserDetailPage() {
                 />
               </div>
               {/* Download Button */}
-              <button
-                className="mt-2 px-3 py-1.5 rounded text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-600 transition-colors"
-                onClick={() => {
-                  const link = document.createElement('a');
-                  link.href = user.KYC;
-                  link.download = `kyc_document_${user.username || user.email || user.id}.jpg`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                }}
-              >
-                Download KYC Image
-              </button>
+              {user.KYC && (
+                <button
+                  className="mt-2 px-3 py-1.5 rounded text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-600 transition-colors"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = user.KYC!; // Non-null assertion since we checked above
+                    link.download = `kyc_document_${user.username || user.email || user.id}.jpg`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                >
+                  Download KYC Image
+                </button>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -692,7 +694,7 @@ export default function UserDetailPage() {
                   className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${user.KYCVerificationStatus === status
                     ? "bg-yellow-500 text-black"
                     : "bg-gray-800 text-white hover:bg-gray-700"
-                  } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
                   disabled={saving}
                   onClick={async () => {
                     setSaving(true);
