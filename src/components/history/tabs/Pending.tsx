@@ -152,16 +152,25 @@ const Pending = () => {
 
                 {/* Accordion Content - Receipt Image for Deposits */}
                 {type === 'deposit' && image && (
-                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                     }`}>
                     <div className="px-3 pb-3 border-t border-gray-600">
                       <div className="mt-3 bg-[#1f1f1f] rounded-lg p-3">
                         <h4 className="text-white text-[11px] font-medium mb-2 uppercase">Receipt Image</h4>
-                        <div className="bg-[#2A2A2A] rounded-lg p-4 border border-dashed border-gray-600">
-                          <div className="text-center">
+                        <div className="bg-[#2A2A2A] rounded-lg p-4">
+                          <img 
+                            src={ImageDownload(image)} 
+                            alt="Receipt" 
+                            className="w-full h-auto max-h-64 object-contain rounded-lg"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                          <div className="text-center hidden">
                             <div className="text-2xl mb-1 text-[#ebb70c]">🧾</div>
-                            <p className="text-gray-400 text-[10px]">Receipt Preview</p>
-                            <p className="text-gray-500 text-[9px] mt-1">Tap to view full image</p>
+                            <p className="text-gray-400 text-[10px]">Failed to load image</p>
+                            <p className="text-gray-500 text-[9px] mt-1">Use download link below</p>
                           </div>
                         </div>
                       </div>
