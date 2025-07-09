@@ -36,7 +36,7 @@ const Waker = ({ children }: { children: React.ReactNode }) => {
         fetchData();
     }, []);
 
-    return <>{children}</>;
+    return <>{children} <span className='hidden'>{loaded}</span></>;
 }
 
 export default Waker

@@ -1,6 +1,18 @@
 import api from "./axios";
 import Cookies from "js-cookie";
+type WalletEntry = {
+  balance: number;
+  [key: string]: any; // Add specific keys later if you know them
+};
 
+type USDTEntry = {
+  balance: number;
+  [key: string]: any;
+};
+
+type Wallet = {
+  [coinSymbol: string]: WalletEntry | USDTEntry[];
+};
 export type user = {
     _id: string
     fullname?: string,
@@ -10,7 +22,7 @@ export type user = {
     address: string,
     country: string,
     balance: number,
-    wallet: any
+    wallet: Wallet
     isVerified: string
     joinDate: string
     KYCVerificationStatus: 'verified' | 'pending' | 'unverified'

@@ -1,5 +1,6 @@
 import api from '@/lib/axios';
 import { AxiosError } from 'axios';
+import Image from 'next/image';
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -129,7 +130,7 @@ const Completed = () => {
                       <div className="mt-3 bg-[#1f1f1f] rounded-lg p-3">
                         <h4 className="text-white text-[11px] font-medium mb-2 uppercase">Receipt Image</h4>
                         <div className="bg-[#2A2A2A] rounded-lg p-4">
-                          <img 
+                          <Image 
                             src={ImageDownload(image)} 
                             alt="Receipt" 
                             className="w-full h-auto max-h-64 object-contain rounded-lg"

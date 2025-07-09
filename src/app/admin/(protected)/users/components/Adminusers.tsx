@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Users, Eye, DollarSign, UserCheck, UserX, Filter, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getAllUsers, user } from '@/lib/admin';
+import { user } from '@/lib/admin';
 import toast from 'react-hot-toast';
 import api from '@/lib/axios';
 import Cookies from 'js-cookie';
@@ -61,7 +61,7 @@ const AdminUsers = () => {
       }
     };
     fetchUsers();
-  }, []);
+  }, [router]);
 
 
   const filteredUsers = users.filter((user) => {

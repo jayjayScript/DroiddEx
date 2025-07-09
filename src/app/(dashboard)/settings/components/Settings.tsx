@@ -184,6 +184,7 @@ const Settings = () => {
       setVerificationStatus('pending');
       toast('Verification submitted! Awaiting admin approval.');
       await refetchUserStatus();
+      console.log(response) 
     } catch (err) {
       if (err instanceof AxiosError) {
         toast.error(err.response?.data.message)
@@ -198,7 +199,7 @@ const Settings = () => {
       router.push('/verification')
       return
     }
-  }, [verificationStatus])
+  }, [verificationStatus, router])
 
   const handleSecondVerification = async () => {
     if (!selectedFile) {

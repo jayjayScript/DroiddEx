@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { useLoader } from "@/store/LoaderContext";
@@ -37,7 +37,7 @@ const WithAuth = ({ children }: { children: React.ReactNode }) => {
     };
 
     getUser();
-  }, [router]);
+  }, [router, showPageLoader, hidePageLoader, setUser, user.isVerified]);
 
   if (PageLoader || !user) {
     return null; // or return a spinner/loading UI

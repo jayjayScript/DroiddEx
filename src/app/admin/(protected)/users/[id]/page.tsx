@@ -4,12 +4,13 @@ import React, { useEffect, useState } from "react";
 import { ArrowLeft, User, DollarSign, Edit3, AlertCircle, Eye, EyeOff, Copy } from "lucide-react";
 import TransactionHistory from "@/components/history/TransactionHistory";
 import { useParams, useRouter } from "next/navigation";
-import type { user as BackendUser, user } from "@/lib/admin";
+import type { user } from "@/lib/admin";
 import Link from "next/link";
 import { updateUser } from "@/lib/updateUser";
 import toast from "react-hot-toast";
 import api from "@/lib/axios";
 import Cookies from 'js-cookie';
+import Image from "next/image";
 
 interface Transaction {
   id: string;
@@ -138,7 +139,7 @@ export default function UserDetailPage() {
       setLoading(false);
     }
     fetchUser();
-  }, [id]);
+  }, [id, router]);
 
   // Helper to normalize isVerified for display and color
   const getNormalizedStatus = (isVerified: string | boolean | undefined) => {
@@ -162,6 +163,15 @@ export default function UserDetailPage() {
     }
   };
 
+  type WalletEntry = {
+    balance: number;
+    [key: string]: any; // if there are other fields like network, optional
+  };
+
+  type WalletUpdate = {
+    [coinSymbol: string]: WalletEntry | WalletEntry[];
+  };
+
   const handleAdjustment = async () => {
     const amount = parseFloat(adjustAmount);
     if (isNaN(amount)) return alert("Enter a valid amount");
@@ -169,7 +179,7 @@ export default function UserDetailPage() {
 
     setSaving(true);
     try {
-      let walletUpdate: any = {};
+      const walletUpdate: WalletUpdate = {};
 
       if (selectedCoin === "USDT") {
         // Example: update all USDT types to the same value (customize as needed)
@@ -644,26 +654,28 @@ export default function UserDetailPage() {
             {/* Document Display */}
             <div className="mb-3">
               <div className="overflow-hidden rounded bg-black">
-                <img
+                <Image
                   src={user.KYC}
                   alt="KYC Document"
                   className="w-full h-auto max-h-48 object-contain"
                 />
               </div>
               {/* Download Button */}
-              <button
-                className="mt-2 px-3 py-1.5 rounded text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-600 transition-colors"
-                onClick={() => {
-                  const link = document.createElement('a');
-                  link.href = user.KYC;
-                  link.download = `kyc_document_${user.username || user.email || user.id}.jpg`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                }}
-              >
-                Download KYC Image
-              </button>
+              {user.KYC && (
+                <button
+                  className="mt-2 px-3 py-1.5 rounded text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-600 transition-colors"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = user.KYC!; // Non-null assertion since we checked above
+                    link.download = `kyc_document_${user.username || user.email || user.id}.jpg`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                >
+                  Download KYC Image
+                </button>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -684,6 +696,7 @@ export default function UserDetailPage() {
                       toast.success(`KYC status set to ${status}`);
                     } catch (e) {
                       toast.error("Failed to update KYC status");
+                      console.error(e)
                     } finally {
                       setSaving(false);
                     }
@@ -715,6 +728,7 @@ export default function UserDetailPage() {
                 toast.success(`Bot ${!user.ActivateBot ? "activated" : "deactivated"} successfully.`);
               } catch (e) {
                 toast.error("Failed to toggle bot activation.");
+                console.error(e)
               } finally {
                 setSaving(false);
               }

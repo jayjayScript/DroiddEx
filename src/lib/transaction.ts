@@ -3,7 +3,7 @@ import api from "./axios";
 import Cookies from "js-cookie";
 
 
-export const DepositAPI = async (Coin: string, amount: number, image: string, network: string) => {
+export const DepositAPI = async (Coin: string, amount: number, image: string) => {
 
   const token = Cookies.get('token');
   if (!token) throw new Error('No token');

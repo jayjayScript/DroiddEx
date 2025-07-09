@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import Image from "next/image";
 import { useUserContext } from "@/store/userContext";
 import SubscriptionModal from "./SubscriptionModal";
+import { UserWallet } from "./SubscriptionModal";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
 
@@ -296,6 +297,22 @@ const Wallet = () => {
     }, 0);
   }
 
+  const transformWalletToUserWallet = (wallet: Wallet): UserWallet => {
+    const userWallet: UserWallet = {};
+
+    // Assuming wallet has properties like wallet.BTC, wallet.ETH, etc.
+    Object.entries(wallet).forEach(([coinSymbol, walletData]) => {
+      if (walletData && typeof walletData === 'object') {
+        userWallet[coinSymbol] = {
+          balance: walletData.balance || 0,
+          // Add other properties as needed
+        };
+      }
+    });
+
+    return userWallet;
+  };
+
   return (
     <div className="min-h-screen md:max-w-[60%] mx-auto text-white p-4 pb-20">
       <div className="hidden">{copied}</div>
@@ -427,7 +444,7 @@ const Wallet = () => {
           onClose={() => setShowSubscriptionModal(false)}
           onSubscribe={handleSubscribe}
           loading={subscriptionLoading}
-          userWallet={user?.wallet}
+          userWallet={user?.wallet ? transformWalletToUserWallet(user.wallet) : {}}
           coins={coins}
         />
 

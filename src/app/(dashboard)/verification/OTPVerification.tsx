@@ -37,7 +37,7 @@ const OTPVerification = () => {
     if (requestedRef.current) return
     requestedRef.current = true
     getOtpCode();
-  }, [user.email]);
+  }, [user.email, getOtpCode]);
 
   // Timer effect
   useEffect(() => {

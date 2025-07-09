@@ -6,7 +6,7 @@ import Cookies from "js-cookie";
 import api from '@/lib/axios';
 
 const WithAdminAuth = ({ children }: { children: React.ReactNode }) => {
-   const { showPageLoader, hidePageLoader, PageLoader } = useLoader()
+   const { showPageLoader, hidePageLoader } = useLoader()
    const router = useRouter();
    useEffect(() => {
       const getAdmin = async () => {
@@ -29,7 +29,7 @@ const WithAdminAuth = ({ children }: { children: React.ReactNode }) => {
          }
       }
       getAdmin()
-   }, [router])
+   }, [router, hidePageLoader, showPageLoader])
    return (
       <>
          {children}

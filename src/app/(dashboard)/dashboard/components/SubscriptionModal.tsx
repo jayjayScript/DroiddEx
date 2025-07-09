@@ -2,13 +2,20 @@ import { Icon } from "@iconify/react";
 import React from "react";
 import type { Coin } from "./Wallet";
 
+export interface WalletEntry {
+  balance: number;
+  // Add other properties if needed
+}
+export interface UserWallet {
+  [coinSymbol: string]: WalletEntry | WalletEntry[];
+}
 
 interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubscribe: (selectedCoin: string, requiredAmount: number) => void;
   loading: boolean;
-  userWallet: any;
+  userWallet: UserWallet;
   coins: Coin[];
 }
 

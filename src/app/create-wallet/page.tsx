@@ -27,7 +27,7 @@ const Page = () => {
         toast.error('Email is missing');
         return;
       }
-      const response = await api<Boolean>(`/seed/checkUser?email=${form.email}`)
+      const response = await api<boolean>(`/seed/checkUser?email=${form.email}`)
       if (!response.data) {
         toast.error('User Already Exist, Please Use Another Email')
         return
