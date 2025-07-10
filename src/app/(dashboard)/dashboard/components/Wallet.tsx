@@ -116,7 +116,8 @@ const BotSectionSkeleton = () => (
 const Wallet = () => {
   const router = useRouter();
   const [coins, setCoins] = useState<Coin[]>([]);
-  const [activeBot, setActiveBot] = useState(false);
+  const { user, setUser } = useUserContext()
+  const [activeBot, setActiveBot] = useState(user.ActivateBot ?? false);
   const [activePage, setActivePage] = useState<string | null>(null);
   const [binaryString, setBinaryString] = useState(() => to8BitBinary(0));
   const { phrase } = useSelector((state: RootState) => state.user.value);
@@ -126,7 +127,6 @@ const Wallet = () => {
   const [coinsLoading, setCoinsLoading] = useState(true);
   const [userProfileLoading, setUserProfileLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const { user, setUser } = useUserContext()
 
   // Subscription related states
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
