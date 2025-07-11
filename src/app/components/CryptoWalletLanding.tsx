@@ -484,7 +484,7 @@ const CryptoWalletLanding = () => {
             </div>
 
               <div className="text-gray-400 text-sm text-center">
-                © {new Date().getFullYear()} WEB4 Wallet. All rights reserved. • Powered by Quantum Security
+                © 2023 WEB4 Wallet. All rights reserved. • Powered by Quantum Security
               </div>
 
               <div className="flex gap-4">

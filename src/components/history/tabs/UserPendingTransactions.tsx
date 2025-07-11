@@ -131,6 +131,8 @@ const UserPendingTransactions = () => {
                               e.currentTarget.style.display = 'none';
                               e.currentTarget.nextElementSibling?.classList.remove('hidden');
                             }}
+                            width={200}
+                            height={200}
                           />
                           <div className="text-center hidden">
                             <div className="text-2xl mb-1 text-[#ebb70c]">🧾</div>
