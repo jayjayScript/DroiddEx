@@ -4,8 +4,8 @@
 
 import React, { useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import TransactionHistory from '@/components/history/TransactionHistory';
 import Cookies from 'js-cookie';
+import TransactionHistory from '../history/TransactionHistory';
 
 
 const cards = [
@@ -64,7 +64,7 @@ const AdminDashboard = () => {
       {/* Recent Activity */}
       <div className="bg-[#1A1A1A] rounded-lg">
         <h2 className="text-lg font-semibold mb-2 p-4">Recent Activity</h2>
-        <TransactionHistory/>
+        <TransactionHistory />
       </div>
     </div>
   );

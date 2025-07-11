@@ -153,7 +153,7 @@ const AdminPendingTransactions = () => {
                       <div className="mt-3 bg-[#1f1f1f] rounded-lg p-3">
                         <h4 className="text-white text-[11px] font-medium mb-2 uppercase">Receipt Image</h4>
                         <div className="bg-[#2A2A2A] rounded-lg p-4">
-                          <Image
+                          <img
                             src={ImageDownload(image)} 
                             alt="Receipt" 
                             className="w-full h-auto max-h-64 object-contain rounded-lg"
