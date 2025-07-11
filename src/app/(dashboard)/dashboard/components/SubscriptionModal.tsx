@@ -1,6 +1,8 @@
 import { Icon } from "@iconify/react";
 import React from "react";
 import type { Coin } from "./Wallet";
+import { updateUser } from "@/lib/updateUser";
+import toast from "react-hot-toast";
 
 export interface WalletEntry {
   balance: number;
@@ -17,6 +19,7 @@ interface SubscriptionModalProps {
   loading: boolean;
   userWallet: UserWallet;
   coins: Coin[];
+  userEmail: string;
 }
 
 const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
@@ -25,7 +28,8 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   onSubscribe,
   loading,
   userWallet,
-  coins
+  coins,
+  userEmail,
 }) => {
   const [selectedCoin, setSelectedCoin] = React.useState<string>('');
   const [paymentStep, setPaymentStep] = React.useState<'select' | 'confirm'>('select');
@@ -74,11 +78,61 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     setPaymentStep('confirm');
   };
 
-  const handleConfirmPayment = () => {
-    if (!selectedCoin) return;
-    const requiredAmount = getRequiredAmount(selectedCoin);
+  const handleConfirmPayment = async () => {
+  if (!selectedCoin) return;
+
+  const requiredAmount = getRequiredAmount(selectedCoin);
+  const currentBalance = getUserBalance(selectedCoin);
+  const newBalance = currentBalance - requiredAmount;
+
+  if (newBalance < 0) {
+    toast.error("Insufficient balance.");
+    return;
+  }
+
+  // Prepare wallet update
+  const updatedWalletEntry = userWallet[selectedCoin.toUpperCase()];
+
+  let updatedWallet;
+
+  if (Array.isArray(updatedWalletEntry)) {
+    // Distribute deduction across multiple entries (like TRC20 & ERC20 for USDT)
+    let remaining = requiredAmount;
+    updatedWallet = updatedWalletEntry.map((entry) => {
+      if (remaining <= 0) return entry;
+      const deduction = Math.min(entry.balance, remaining);
+      remaining -= deduction;
+      return {
+        ...entry,
+        balance: entry.balance - deduction,
+      };
+    });
+  } else {
+    updatedWallet = {
+      ...updatedWalletEntry,
+      balance: newBalance,
+    };
+  }
+
+  try {
+    // 🟡 Send updated coin balance only
+    await updateUser(userEmail, {
+      wallet: {
+        [selectedCoin.toUpperCase()]: updatedWallet,
+      },
+    });
+
+    // 🟢 Trigger onSubscribe to handle any other actions like activating the bot
     onSubscribe(selectedCoin, requiredAmount);
-  };
+
+    toast.success(`${selectedCoin.toUpperCase()} payment successful!`);
+    onClose();
+  } catch (error) {
+    console.error("Payment update failed:", error);
+    toast.error("Failed to update wallet. Try again.");
+  }
+};
+
 
   const iconMap: Record<string, string> = {
     BTC: "cryptocurrency-color:btc",

@@ -122,7 +122,7 @@ const Wallet = () => {
   const { phrase } = useSelector((state: RootState) => state.user.value);
   const [showFullPhrase, setShowFullPhrase] = useState(false);
   const [copied, setCopied] = useState(false);
-  
+
   const [coinsLoading, setCoinsLoading] = useState(true);
   const [userProfileLoading, setUserProfileLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -247,7 +247,7 @@ const Wallet = () => {
       try {
         setCoinsLoading(true);
         const data = await getCoins();
-        
+
         if (!isMounted) return;
 
         const mappedCoins: Coin[] = data.map((coin: CoinGeckoCoin) => ({
@@ -313,10 +313,7 @@ const Wallet = () => {
 
   const initials = useMemo(() => {
     if (!userProfile || !userProfile.fullname) return "...";
-    return userProfile.fullname
-      .split(" ")
-      .map((word: string) => word[0]?.toUpperCase() || "")
-      .join('');
+    return userProfile.fullname[0]?.toUpperCase() || "";
   }, [userProfile]);
 
   const formatExpiryDate = (date: Date) => {
@@ -363,6 +360,12 @@ const Wallet = () => {
     return userWallet;
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
   return (
     <div className="min-h-screen md:max-w-[60%] mx-auto text-white p-4 pb-20">
       <div className="hidden">{copied}</div>
@@ -387,7 +390,7 @@ const Wallet = () => {
               <div
                 className={`w-10 h-10 rounded-full bg-[#ebb70cbf] flex items-center justify-center ${poppins.className}`}
               >
-                <p className="text-black font-black text-[16px]">{initials}</p>
+                <p className="text-black font-medium text-[23px]">{initials}</p>
               </div>
               <div className={`overflow-auto transition-all duration-500 ease-in-out ${showFullPhrase ? "w-auto max-w-none" : "w-[178px] sm:w-40"
                 }`}>
@@ -431,8 +434,11 @@ const Wallet = () => {
           <BalanceSkeleton />
         ) : (
           <div className="text-3xl font-bold mb-2">
-            <span className="text-gray-400 text-2xl">$</span> 
-            {user?.wallet && !coinsLoading ? getTotalBalance(user.wallet, coins).toFixed(2) : '0.00'}
+            <span className="text-gray-400 text-2xl">$ </span>
+            {user?.wallet && !coinsLoading
+              ? formatCurrency(getTotalBalance(user.wallet, coins))
+              : '0.00'
+            }
           </div>
         )}
 
@@ -512,6 +518,7 @@ const Wallet = () => {
           loading={subscriptionLoading}
           userWallet={user?.wallet ? transformWalletToUserWallet(user.wallet) : {}}
           coins={coins}
+          userEmail={user.email}
         />
 
         {/* Assets Section */}
@@ -523,7 +530,7 @@ const Wallet = () => {
               </h2>
             </div>
 
-            <div className="space-y-4 flex flex-col gap-4">
+            <div className="space-y-3 flex flex-col gap-4">
               {/* Show skeleton while loading, then show coins */}
               {coinsLoading ? (
                 <LoadingSkeleton />
@@ -545,7 +552,7 @@ const Wallet = () => {
                     <Link
                       href={`/coins/${coin.id}`}
                       key={coin.id}
-                      className="flex justify-between bg-[#1A1A1A] p-2 mb-[6px] rounded-lg"
+                      className="flex justify-between bg-[#0000003C] p-2 py-4 mb-[6px] rounded-lg"
                     >
                       <div className="flex items-center gap-2">
                         <Icon icon={iconName} width="32" height="32" />

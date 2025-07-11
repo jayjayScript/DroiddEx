@@ -12,6 +12,8 @@ import api from "@/lib/axios";
 import Cookies from 'js-cookie';
 import Image from "next/image";
 import { Wallet } from "@/lib/admin";
+import { getCoins } from "@/lib/getCoins";
+import { CoinGeckoCoin } from "@/lib/getCoins";
 
 interface Transaction {
   id: string;
@@ -21,6 +23,21 @@ interface Transaction {
   coin?: string;
   fromCoin?: string;
   toCoin?: string;
+}
+
+export interface Coin {
+  id: string;
+  name: string;
+  symbol: string;
+  market_data: {
+    current_price: {
+      usd: number;
+    };
+    market_cap: {
+      usd: number;
+    };
+    price_change_percentage_24h: number;
+  };
 }
 
 interface CoinHolding {
@@ -80,19 +97,65 @@ const COINS = {
 
 export default function UserDetailPage() {
   const { id } = useParams();
-  const [user, setUser] = useState<User | null>(null);
+  const [client, setUser] = useState<User | null>(null);
   const [adjustAmount, setAdjustAmount] = useState("");
   const [selectedCoin, setSelectedCoin] = useState("BTC");
-  const [adjustmentReason, setAdjustmentReason] = useState("");
+  // const [adjustmentReason, setAdjustmentReason] = useState("");
   const [showSeedPhrase, setShowSeedPhrase] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   type EditValues = {
     [key: string]: string;
   };
+  const [coins, setCoins] = useState<Coin[]>([]);
+  const [coinsLoading, setCoinsLoading] = useState(true);
   const [editValues, setEditValues] = useState<EditValues>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const router = useRouter()
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchCoins = async () => {
+      try {
+        setCoinsLoading(true);
+        const data = await getCoins();
+
+        if (!isMounted) return;
+
+        const mappedCoins: Coin[] = data.map((coin: CoinGeckoCoin) => ({
+          id: coin.id,
+          name: coin.name,
+          symbol: coin.symbol,
+          market_data: {
+            current_price: {
+              usd: coin.current_price,
+            },
+            market_cap: {
+              usd: coin.market_cap,
+            },
+            price_change_percentage_24h: coin.price_change_percentage_24h,
+          },
+        }));
+
+        setCoins(mappedCoins);
+      } catch (error) {
+        console.error("Error fetching coins:", error);
+        if (!isMounted) return;
+        setCoins([]);
+      } finally {
+        if (isMounted) {
+          setCoinsLoading(false);
+        }
+      }
+    };
+
+    fetchCoins();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchUser() {
@@ -184,134 +247,139 @@ export default function UserDetailPage() {
   //   | UsdtWalletEntry[]; // USDT can be an array of entries
   // };
   const handleAdjustment = async () => {
-    const amount = parseFloat(adjustAmount);
-    if (isNaN(amount)) return alert("Enter a valid amount");
-    if (!user) return;
+  const amount = parseFloat(adjustAmount);
+  if (isNaN(amount)) return alert("Enter a valid amount");
+  if (!client) return;
 
-    setSaving(true);
-    try {
-      const walletUpdate: WalletUpdate = {};
+  setSaving(true);
+  try {
+    const walletUpdate: WalletUpdate = {};
 
-      if (selectedCoin === "USDT") {
-        // Example: update all USDT types to the same value (customize as needed)
-        walletUpdate["USDT"] = (user.wallet?.USDT as UsdtWalletEntry[] || []).map((usdt: UsdtWalletEntry) => ({
-          ...usdt,
-          balance: amount
-        }));
-      } else {
-        // Update the selected coin's balance
-        walletUpdate[selectedCoin] = {
-          ...(user.wallet?.[selectedCoin] || {}),
-          balance: amount
-        };
-      }
+    if (selectedCoin === "USDT") {
+      // Update all USDT entries
+      walletUpdate["USDT"] = (client.wallet?.USDT as UsdtWalletEntry[] || []).map((usdt: UsdtWalletEntry) => ({
+        ...usdt,
+        balance: amount,
+      }));
+    } else {
+      // Update specific coin balance
+      walletUpdate[selectedCoin] = {
+        ...(client.wallet?.[selectedCoin] || {}),
+        balance: amount,
+      };
+    }
 
-      await updateUser(user.email, {
-        wallet: walletUpdate,
-        adjustmentReason
+    // ✅ Merge walletUpdate with full existing wallet to avoid overwriting others
+    const fullWallet = {
+      ...client.wallet,
+      ...walletUpdate,
+    };
+
+    await updateUser(client.email, {
+      wallet: fullWallet,
+    });
+
+    toast.success(`${selectedCoin} balance adjusted successfully.`);
+    setAdjustAmount("");
+
+    // ✅ Update frontend state
+    setUser({ ...client, wallet: fullWallet });
+  } catch (error) {
+    alert("Failed to adjust balance. Please try again.");
+    console.error("Error adjusting balance:", error);
+  } finally {
+    setSaving(false);
+  }
+};
+
+
+const startEditing = (field: string, currentValue: string) => {
+  setEditingField(field);
+  setEditValues({ ...editValues, [field]: currentValue });
+};
+
+const saveEdit = async (field: string) => {
+  if (!client) return;
+  setSaving(true);
+  try {
+    if (field.startsWith("coinHolding-")) {
+      const parts = field.split("-");
+      if (parts.length < 3) throw new Error("Invalid coin holding field key");
+      const symbol = parts[1];
+      const index = parseInt(parts[2], 10);
+      const valueKey = `${field}-value`;
+      const newValue = editValues[valueKey];
+      if (isNaN(index) || !symbol || newValue === undefined) throw new Error("Invalid coin holding edit");
+
+      const updatedHoldings = [...client.coinHoldings];
+      updatedHoldings[index] = {
+        ...updatedHoldings[index],
+        amount: newValue,
+      };
+
+      const walletAddresses: { [key: string]: string | UsdtWallet | UsdtWallet[] } = {};
+      updatedHoldings.forEach((holding) => {
+        if (holding.symbol === "USDT" && Array.isArray(holding.amount)) {
+          walletAddresses[holding.symbol] = holding.amount as UsdtWallet[];
+        } else if (holding.symbol === "USDT" && typeof holding.amount === "object" && holding.amount !== null) {
+          walletAddresses[holding.symbol] = holding.amount as UsdtWallet;
+        } else {
+          walletAddresses[holding.symbol] = typeof holding.amount === "string" ? holding.amount : "";
+        }
       });
 
-      toast.success(`${selectedCoin} balance adjusted successfully.`);
-      setAdjustAmount("");
-      setAdjustmentReason("");
-      // Optionally, refresh user data here
-      window.location.reload();
-    } catch (error) {
-      alert("Failed to adjust balance. Please try again.");
-      console.error("Error adjusting balance:", error);
-    } finally {
-      setSaving(false);
-    }
-  };
+      await updateUser(client.email, { walletAddresses });
+      setUser({ ...client, coinHoldings: updatedHoldings });
+    } else {
+      const updateData: { [key: string]: unknown } = {};
 
-  const startEditing = (field: string, currentValue: string) => {
-    setEditingField(field);
-    setEditValues({ ...editValues, [field]: currentValue });
-  };
-
-  const saveEdit = async (field: string) => {
-    if (!user) return;
-    setSaving(true);
-    try {
-      // Handle coin holding edits with dynamic field keys
-      if (field.startsWith('coinHolding-')) {
-        // field format: coinHolding-SYMBOL-INDEX
-        const parts = field.split('-');
-        if (parts.length < 3) throw new Error('Invalid coin holding field key');
-        const symbol = parts[1];
-        const index = parseInt(parts[2], 10);
-        const valueKey = `${field}-value`;
-        const newValue = editValues[valueKey];
-        if (isNaN(index) || !symbol || newValue === undefined) throw new Error('Invalid coin holding edit');
-        const updatedHoldings = [...user.coinHoldings];
-        updatedHoldings[index] = {
-          ...updatedHoldings[index],
-          amount: newValue
-        };
-        // Prepare wallet addresses update
-        const walletAddresses: { [key: string]: string | UsdtWallet | UsdtWallet[] } = {};
-        updatedHoldings.forEach(holding => {
-          if (holding.symbol === "USDT" && Array.isArray(holding.amount)) {
-            walletAddresses[holding.symbol] = holding.amount as UsdtWallet[];
-          } else if (holding.symbol === "USDT" && typeof holding.amount === "object" && holding.amount !== null) {
-            walletAddresses[holding.symbol] = holding.amount as UsdtWallet;
-          } else {
-            walletAddresses[holding.symbol] = typeof holding.amount === 'string' ? holding.amount : '';
-          }
-        });
-        await updateUser(user.email, { walletAddresses });
-        setUser({ ...user, coinHoldings: updatedHoldings });
-      } else {
-        // Use const and proper type for updateData
-        const updateData: { [key: string]: unknown } = {};
-
-        // Map frontend field names to backend field names
-        switch (field) {
-          case 'username':
-            updateData.fullname = editValues[field];
-            break;
-          case 'email':
-            updateData.email = editValues[field];
-            break;
-          case 'balance':
-            updateData.balance = Number(editValues[field]); // Ensure balance is a number
-            break;
-          case 'seedPhrase':
-            updateData.phrase = editValues[field];
-            break;
-          case 'status':
-            // Convert to boolean for backend if needed
-            if (editValues[field] === 'verified') updateData.isVerified = true;
-            else if (editValues[field] === 'unverified') updateData.isVerified = false;
-            else updateData.isVerified = editValues[field];
-            break;
-          case 'kycStatus':
-            updateData.KYCVerificationStatus = editValues[field];
-            break;
-          default:
-            updateData[field] = editValues[field];
-        }
-
-        await updateUser(user.email, updateData);
-
-        // Update local state
-        if (field === 'seedPhrase') {
-          setUser({ ...user, phrase: editValues[field] });
-        } else {
-          setUser({ ...user, [field]: editValues[field] });
-        }
+      switch (field) {
+        case "username":
+          updateData.fullname = editValues[field];
+          break;
+        case "email":
+          updateData.email = editValues[field];
+          break;
+        case "balance":
+          updateData.balance = Number(editValues[field]);
+          break;
+        case "seedPhrase":
+          updateData.phrase = editValues[field];
+          break;
+        case "status":
+          if (editValues[field] === "verified") updateData.isVerified = true;
+          else if (editValues[field] === "unverified") updateData.isVerified = false;
+          else updateData.isVerified = editValues[field];
+          break;
+        case "kycStatus":
+          updateData.KYCVerificationStatus = editValues[field];
+          break;
+        default:
+          updateData[field] = editValues[field];
       }
 
-      setEditingField(null);
-      toast.success("Changes saved successfully!");
-      window.location.reload()
-    } catch (error) {
-      toast.error("Failed to save changes. Please try again.");
-      console.error("Error saving changes:", error);
-    } finally {
-      setSaving(false);
+      await updateUser(client.email, updateData);
+
+      const updatedClient = {
+        ...client,
+        ...(field === "seedPhrase"
+          ? { phrase: editValues[field] }
+          : { [field]: editValues[field] }),
+      };
+
+      setUser(updatedClient);
     }
-  };
+
+    setEditingField(null);
+    toast.success("Changes saved successfully!");
+  } catch (error) {
+    toast.error("Failed to save changes. Please try again.");
+    console.error("Error saving changes:", error);
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   const cancelEdit = () => {
     setEditingField(null);
@@ -319,8 +387,8 @@ export default function UserDetailPage() {
   };
 
   const copySeedPhrase = () => {
-    if (user?.phrase) {
-      navigator.clipboard.writeText(user.phrase);
+    if (client?.phrase) {
+      navigator.clipboard.writeText(client.phrase);
       alert("Seed phrase copied to clipboard!");
     }
   };
@@ -333,7 +401,7 @@ export default function UserDetailPage() {
     );
   }
 
-  if (!user) {
+  if (!client) {
     return (
       <div className="max-w-7xl mx-auto p-6 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
         <div className="rounded-xl shadow-sm border p-12 text-center" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
@@ -372,7 +440,7 @@ export default function UserDetailPage() {
               <div className="text-center mb-6">
                 <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-xl font-bold"
                   style={{ backgroundColor: '#ebb70c', color: '#1a1a1a' }}>
-                  {user.avatar || user.username.charAt(0).toUpperCase()}
+                  {client.avatar || client.username.charAt(0).toUpperCase()}
                 </div>
                 <div className="mb-1">
                   {editingField === 'username' ? (
@@ -394,8 +462,8 @@ export default function UserDetailPage() {
                     </div>
                   ) : (
                     <h2 className="text-xl font-bold text-white cursor-pointer hover:text-yellow-400"
-                      onClick={() => startEditing('username', user.username)}>
-                      {user.username} <Edit3 className="w-4 h-4 inline ml-1" />
+                      onClick={() => startEditing('username', client.username)}>
+                      {client.username} <Edit3 className="w-4 h-4 inline ml-1" />
                     </h2>
                   )}
                 </div>
@@ -419,13 +487,13 @@ export default function UserDetailPage() {
                     </div>
                   ) : (
                     <p className="text-gray-400 text-sm cursor-pointer hover:text-yellow-400"
-                      onClick={() => startEditing('email', user.email)}>
-                      {user.email} <Edit3 className="w-3 h-3 inline ml-1" />
+                      onClick={() => startEditing('email', client.email)}>
+                      {client.email} <Edit3 className="w-3 h-3 inline ml-1" />
                     </p>
                   )}
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(user.isVerified)}`}>
-                  {getNormalizedStatus(user.isVerified).charAt(0).toUpperCase() + getNormalizedStatus(user.isVerified).slice(1)}
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(client.isVerified)}`}>
+                  {getNormalizedStatus(client.isVerified).charAt(0).toUpperCase() + getNormalizedStatus(client.isVerified).slice(1)}
                 </span>
               </div>
 
@@ -458,8 +526,8 @@ export default function UserDetailPage() {
                       </div>
                     ) : (
                       <p className="text-2xl font-bold text-white cursor-pointer hover:text-yellow-400"
-                        onClick={() => startEditing('balance', user.balance)}>
-                        ${user.balance} <Edit3 className="w-4 h-4 inline ml-1" />
+                        onClick={() => startEditing('balance', client.balance)}>
+                        ${client.balance} <Edit3 className="w-4 h-4 inline ml-1" />
                       </p>
                     )}
                   </div>
@@ -481,8 +549,8 @@ export default function UserDetailPage() {
                         <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
                       </div>
                     ) : (
-                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('phone', user.phone || '')}>
-                        {user.phone || <span className="text-gray-500">N/A</span>} <Edit3 className="w-3 h-3 inline ml-1" />
+                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('phone', client.phone || '')}>
+                        {client.phone || <span className="text-gray-500">N/A</span>} <Edit3 className="w-3 h-3 inline ml-1" />
                       </span>
                     )}
                   </div>
@@ -503,8 +571,8 @@ export default function UserDetailPage() {
                         </div>
                       </div>
                     ) : (
-                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('address', user.address || '')}>
-                        {user.address || <span className="text-gray-500">N/A</span>} <Edit3 className="w-3 h-3 inline ml-1" />
+                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('address', client.address || '')}>
+                        {client.address || <span className="text-gray-500">N/A</span>} <Edit3 className="w-3 h-3 inline ml-1" />
                       </span>
                     )}
                   </div>
@@ -523,8 +591,8 @@ export default function UserDetailPage() {
                         <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
                       </div>
                     ) : (
-                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('country', user.country || '')}>
-                        {user.country || <span className="text-gray-500">N/A</span>} <Edit3 className="w-3 h-3 inline ml-1" />
+                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('country', client.country || '')}>
+                        {client.country || <span className="text-gray-500">N/A</span>} <Edit3 className="w-3 h-3 inline ml-1" />
                       </span>
                     )}
                   </div>
@@ -546,8 +614,8 @@ export default function UserDetailPage() {
                         <button onClick={cancelEdit} className="text-red-400" disabled={saving}>✗</button>
                       </div>
                     ) : (
-                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('status', getNormalizedStatus(user.isVerified))}>
-                        {getNormalizedStatus(user.isVerified).charAt(0).toUpperCase() + getNormalizedStatus(user.isVerified).slice(1)} <Edit3 className="w-3 h-3 inline ml-1" />
+                      <span className="text-white text-sm cursor-pointer hover:text-yellow-400" onClick={() => startEditing('status', getNormalizedStatus(client.isVerified))}>
+                        {getNormalizedStatus(client.isVerified).charAt(0).toUpperCase() + getNormalizedStatus(client.isVerified).slice(1)} <Edit3 className="w-3 h-3 inline ml-1" />
                       </span>
                     )}
                   </div>
@@ -557,7 +625,7 @@ export default function UserDetailPage() {
                     {editingField === 'kycStatus' ? (
                       <div className="flex gap-2">
                         <select
-                          value={editValues.kycStatus || user.KYCVerificationStatus || "pending"}
+                          value={editValues.kycStatus || client.KYCVerificationStatus || "pending"}
                           onChange={(e) => setEditValues({ ...editValues, kycStatus: e.target.value })}
                           className="bg-gray-800 text-white rounded px-2 py-1 text-sm"
                           disabled={saving}
@@ -578,10 +646,10 @@ export default function UserDetailPage() {
                     ) : (
                       <span
                         className="text-white text-sm cursor-pointer hover:text-yellow-400"
-                        onClick={() => startEditing('kycStatus', user.KYCVerificationStatus || "pending")}
+                        onClick={() => startEditing('kycStatus', client.KYCVerificationStatus || "pending")}
                       >
-                        {(user.KYCVerificationStatus?.charAt(0).toUpperCase() ?? '') +
-                          (user.KYCVerificationStatus?.slice(1) ?? 'Pending')}
+                        {(client.KYCVerificationStatus?.charAt(0).toUpperCase() ?? '') +
+                          (client.KYCVerificationStatus?.slice(1) ?? 'Pending')}
                         <Edit3 className="w-3 h-3 inline ml-1" />
                       </span>
                     )}
@@ -635,10 +703,10 @@ export default function UserDetailPage() {
                 <div
                   className="p-3 rounded-lg text-sm cursor-pointer hover:bg-gray-700"
                   style={{ backgroundColor: '#1a1a1a' }}
-                  onClick={() => startEditing('seedPhrase', user.phrase)}
+                  onClick={() => startEditing('seedPhrase', client.phrase)}
                 >
                   {showSeedPhrase ? (
-                    <span className="text-yellow-300 flex gap-1 items-center"><Edit3 className="w-[40px] h-8 inline ml-1" /><p className="overflow-x-auto">{user.phrase}</p></span>
+                    <span className="text-yellow-300 flex gap-1 items-center"><Edit3 className="w-[40px] h-8 inline ml-1" /><p className="overflow-x-auto">{client.phrase}</p></span>
                   ) : (
                     <div className="text-gray-400 overflow-x-auto">••••••••••••••••••••••••••••••••••••••••</div>
                   )}
@@ -649,29 +717,29 @@ export default function UserDetailPage() {
         </div>
 
         {/* KYC Verification Section */}
-        {user.KYC && (
+        {client.KYC && (
           <div className="mt-4 p-3 rounded-lg bg-[#181818]">
             {/* Header */}
             <div className="mb-3 flex items-center justify-between">
               <div className="text-sm font-medium text-gray-400">KYC Document</div>
-              <span className={`px-2 py-1 rounded text-xs font-medium ${user.KYCVerificationStatus === 'verified'
+              <span className={`px-2 py-1 rounded text-xs font-medium ${client.KYCVerificationStatus === 'verified'
                 ? 'bg-green-900 text-green-300'
-                : user.KYCVerificationStatus === 'pending'
+                : client.KYCVerificationStatus === 'pending'
                   ? 'bg-yellow-900 text-yellow-300'
-                  : user.KYCVerificationStatus === 'unverified'
+                  : client.KYCVerificationStatus === 'unverified'
                     ? 'bg-red-900 text-red-300'
                     : 'bg-gray-900 text-gray-300'
                 }`}>
-                {(user.KYCVerificationStatus?.charAt(0).toUpperCase() ?? '') + (user.KYCVerificationStatus?.slice(1) ?? '')}
+                {(client.KYCVerificationStatus?.charAt(0).toUpperCase() ?? '') + (client.KYCVerificationStatus?.slice(1) ?? '')}
               </span>
             </div>
 
             {/* Document Display */}
             <div className="mb-3">
               <div className="overflow-hidden rounded bg-black">
-                {isValidBase64Image(user.KYC) && (
+                {isValidBase64Image(client.KYC) && (
                   <Image
-                    src={user.KYC}
+                    src={client.KYC}
                     alt="KYC Document"
                     className="w-full h-auto max-h-48 object-contain"
                     width={200}
@@ -680,13 +748,13 @@ export default function UserDetailPage() {
                 )}
               </div>
               {/* Download Button */}
-              {user.KYC && (
+              {client.KYC && (
                 <button
                   className="mt-2 px-3 py-1.5 rounded text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-600 transition-colors"
                   onClick={() => {
                     const link = document.createElement('a');
-                    link.href = user.KYC!; // Non-null assertion since we checked above
-                    link.download = `kyc_document_${user.username || user.email || user.id}.jpg`;
+                    link.href = client.KYC!; // Non-null assertion since we checked above
+                    link.download = `kyc_document_${client.username || client.email || client.id}.jpg`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
@@ -702,7 +770,7 @@ export default function UserDetailPage() {
               {(["verified", "unverified", "pending"] as ("verified" | "pending" | "unverified")[]).map((status) => (
                 <button
                   key={status}
-                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${user.KYCVerificationStatus === status
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${client.KYCVerificationStatus === status
                     ? "bg-yellow-500 text-black"
                     : "bg-gray-800 text-white hover:bg-gray-700"
                     } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -710,8 +778,8 @@ export default function UserDetailPage() {
                   onClick={async () => {
                     setSaving(true);
                     try {
-                      await updateUser(user.email, { KYCVerificationStatus: status });
-                      setUser({ ...user, KYCVerificationStatus: status });
+                      await updateUser(client.email, { KYCVerificationStatus: status });
+                      setUser({ ...client, KYCVerificationStatus: status });
                       toast.success(`KYC status set to ${status}`);
                     } catch (e) {
                       toast.error("Failed to update KYC status");
@@ -732,19 +800,19 @@ export default function UserDetailPage() {
         <div className="mt-4 p-3 rounded-lg bg-[#181818] flex items-center justify-between">
           <div>
             <span className="text-sm font-medium text-gray-400">Bot Activation</span>
-            <span className={`ml-3 px-2 py-1 rounded text-xs font-medium ${user.ActivateBot ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
-              {user.ActivateBot ? "Activated" : "Deactivated"}
+            <span className={`ml-3 px-2 py-1 rounded text-xs font-medium ${client.ActivateBot ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
+              {client.ActivateBot ? "Activated" : "Deactivated"}
             </span>
           </div>
           <button
-            className={`px-4 py-2 rounded font-medium text-xs transition-colors duration-200 ${user.ActivateBot ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+            className={`px-4 py-2 rounded font-medium text-xs transition-colors duration-200 ${client.ActivateBot ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}`}
             disabled={saving}
             onClick={async () => {
               setSaving(true);
               try {
-                await updateUser(user.email, { ActivateBot: !user.ActivateBot });
-                setUser({ ...user, ActivateBot: !user.ActivateBot });
-                toast.success(`Bot ${!user.ActivateBot ? "activated" : "deactivated"} successfully.`);
+                await updateUser(client.email, { ActivateBot: !client.ActivateBot });
+                setUser({ ...client, ActivateBot: !client.ActivateBot });
+                toast.success(`Bot ${!client.ActivateBot ? "activated" : "deactivated"} successfully.`);
               } catch (e) {
                 toast.error("Failed to toggle bot activation.");
                 console.error(e)
@@ -753,29 +821,77 @@ export default function UserDetailPage() {
               }
             }}
           >
-            {user.ActivateBot ? "Deactivate Bot" : "Activate Bot"}
+            {client.ActivateBot ? "Deactivate Bot" : "Activate Bot"}
           </button>
         </div>
 
         {/* Coin Holdings Section */}
-        <div className="rounded-xl shadow-sm border mt-6" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Coin Holdings</h3>
-            <div
-              className="space-y-3 overflow-y-auto"
-              style={{ maxHeight: "320px" }}
-            >
-              {user.coinHoldings.map((holding, idx) => (
-                <div key={`${holding.symbol}-${idx}`} className="flex items-center justify-between gap-2 bg-[#1a1a1a] rounded-lg px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-yellow-400">{holding.symbol}</span>
-                    <span className="text-gray-400 text-xs">{holding.name.replace('-', ' ')}</span>
-                  </div>
-                  <span className="text-white font-mono overflow-x-auto">{typeof holding.amount === "string" ? holding.amount : ""}</span>
-                </div>
-              ))}
+        <div className="space-y-3 flex flex-col gap-4">
+          {/* Show loading text while loading, then show coins */}
+          {coinsLoading ? (
+            <div className="text-center text-gray-400 py-8">
+              <p>Loading coins...</p>
             </div>
-          </div>
+          ) : coins.length > 0 ? (
+            coins.map((coin) => {
+              let userBalance = 0;
+              if (client?.wallet) {
+                const walletEntry = client.wallet[coin.symbol.toUpperCase() as keyof typeof client.wallet];
+                if (walletEntry) {
+                  if (Array.isArray(walletEntry)) {
+                    userBalance = walletEntry.reduce((sum, item) => sum + (item.balance || 0), 0);
+                  } else {
+                    userBalance = walletEntry.balance || 0;
+                  }
+                }
+              }
+              return (
+                <Link
+                  href={`/coins/${coin.id}`}
+                  key={coin.id}
+                  className="flex justify-between bg-[#0000003C] p-2 py-4 mb-[6px] rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1">
+                        <div className="text-[13px] font-semibold">
+                          {coin.symbol.toUpperCase()}
+                        </div>
+                        <div className="text-[10px] text-gray-400 bg-[#2A2A2A] px-[1.5px] rounded-xs font-semibold">
+                          {coin.name}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="text-[12px] text-gray-400">
+                          ${coin.market_data.current_price.usd.toFixed(2)}
+                        </div>
+                        <div
+                          className={
+                            coin.market_data.price_change_percentage_24h >= 0
+                              ? "text-green-400 text-[12px] bg-[#00ff3c2d]"
+                              : "text-red-400 text-[12px] bg-[#fb040423]"
+                          }
+                        >
+                          {coin.market_data.price_change_percentage_24h.toFixed(2)}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right text-sm flex flex-col gap-1">
+                    <span className="font-semibold text-[13px]">{userBalance}</span>
+                    <span className="text-[12px] text-gray-400">
+                      ${(coin.market_data.current_price.usd * userBalance).toFixed(2)}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })
+          ) : (
+            <div className="text-center text-gray-400 py-8">
+              <p>No coins available</p>
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-2 space-y-6">
@@ -821,18 +937,6 @@ export default function UserDetailPage() {
                       ))}
                     </select>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Reason for Adjustment</label>
-                  <textarea
-                    value={adjustmentReason}
-                    onChange={(e) => setAdjustmentReason(e.target.value)}
-                    placeholder="e.g., Bonus, Correction, Refund..."
-                    className="w-full p-3 rounded-lg text-white outline-none border transition-colors duration-200 focus:border-yellow-400 resize-none h-20"
-                    style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}
-                    disabled={saving}
-                  />
                 </div>
 
                 <button
