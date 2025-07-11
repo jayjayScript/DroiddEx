@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import Link from 'next/link';
-import Image from 'next/image';
-import logo from '@/assets/web4-removebg-preview.png'
 
 const CryptoWalletLanding = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -101,7 +99,7 @@ const CryptoWalletLanding = () => {
     {
       icon: 'tdesign:swap',
       title: 'Swap',
-      description: 'Exchange between 500+ cryptocurrencies instantly',
+      description: 'Exchange between 10+ cryptocurrencies instantly',
       color: 'from-purple-400 to-pink-500'
     },
     {
@@ -159,7 +157,7 @@ const CryptoWalletLanding = () => {
         <nav className="relative z-50 px-4 py-4 md:px-8 backdrop-blur-sm border-b border-white/5" style={{ backgroundColor: 'rgba(26, 26, 26, 0.4)' }}>
           <div className="flex items-center justify-between max-w-6xl mx-auto">
             <div className="flex items-center space-x-3">
-              <Image src={logo} height={70} width={70} alt="WEB4 Wallet Logo"/>
+              <p className="font-semibold text-[#ebb70c] uppercase">Web4.0</p>
             </div>
 
             {/* Desktop Menu */}
@@ -236,15 +234,14 @@ const CryptoWalletLanding = () => {
               Buy, trade, and hold{' '}
               <br className="hidden md:block" />
               <span style={{ color: '#ebb70c' }}>
-                500+ cryptocurrencies
+                Top Altcoins 
               </span>
-              <br className="hidden md:block" />
-              on <span style={{ color: '#ebb70c' }} className="font-black">WEB4 WALLET</span>
+              <br className="hidden md:block" /> on <span style={{ color: '#ebb70c' }} className="font-black">WEB4 WALLET</span>
             </h1>
 
             <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
               Experience the ultimate in crypto security with our AI-powered wallet featuring
-              quantum-resistant encryption and zero-fee transactions.
+              quantum-resistant encryption and 24/7 trades
             </p>
 
             {/* Email Signup */}
@@ -281,16 +278,16 @@ const CryptoWalletLanding = () => {
                 <div className="text-gray-400 text-sm">24h trading volume on WEB4 Wallet exchange</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl md:text-3xl font-bold mb-2" style={{ color: '#ebb70c' }}>500+</div>
+                <div className="text-2xl md:text-3xl font-bold mb-2" style={{ color: '#ebb70c' }}>10+</div>
                 <div className="text-gray-400 text-sm">Cryptocurrencies listed</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl md:text-3xl font-bold mb-2" style={{ color: '#ebb70c' }}>90 Million</div>
-                <div className="text-gray-400 text-sm">Registered users who trust WEB4 Wallet</div>
+                <div className="text-2xl md:text-3xl font-bold mb-2" style={{ color: '#ebb70c' }}>1.5 Million</div>
+                <div className="text-gray-400 text-sm">Registered users on WEB4 Wallet</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl md:text-3xl font-bold mb-2" style={{ color: '#ebb70c' }}>&lt;0.10%</div>
-                <div className="text-gray-400 text-sm">Lowest transaction fees</div>
+                <div className="text-2xl md:text-3xl font-bold mb-2" style={{ color: '#ebb70c' }}>0%</div>
+                <div className="text-gray-400 text-sm">Swap fees</div>
               </div>
             </div>
           </div>
@@ -433,7 +430,7 @@ const CryptoWalletLanding = () => {
                     <Icon icon="fluent:bot-28-filled" className="w-16 h-16 mx-auto" style={{ color: '#ebb70c' }} />
                   </div>
 
-                  <h3 className="text-2xl font-bold mb-4 text-white">Security AI Guardian</h3>
+                  <h3 className="text-2xl font-bold mb-4 text-white">WEB4 AI Bot</h3>
 
                   <div className="font-mono text-sm p-4 rounded-lg mb-4 border tracking-wider" 
                        style={{ 
@@ -447,11 +444,11 @@ const CryptoWalletLanding = () => {
                   <div className="space-y-2 text-gray-300 text-sm">
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span>Real-time threat monitoring</span>
+                      <span>Real-time trade signals</span>
                     </div>
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                      <span>AI anomaly detection</span>
+                      <span>Multiple Trading Strategies</span>
                     </div>
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#ebb70c' }}></div>
@@ -467,13 +464,13 @@ const CryptoWalletLanding = () => {
         {/* Trusted Partners */}
         <div className="py-12" style={{ backgroundColor: 'rgba(10, 10, 10, 0.3)' }}>
           <div className="max-w-6xl mx-auto text-center">
-            <h3 className="text-xl font-bold mb-8" style={{ color: '#ebb70c' }}>Trusted by Top Exchanges & Platforms</h3>
+            <h3 className="text-2xl font-bold mb-8 " style={{ color: '#ebb70c' }}>In COLLABORATION with...</h3>
             <div className="flex flex-wrap items-center justify-center gap-12 opacity-60 hover:opacity-100 transition-opacity">
-              <Icon icon="token-branded:binance" className="h-12 w-12 grayscale hover:grayscale-0 transition-all duration-300" />
-              <Icon icon="token-branded:coinbase" className="h-10 w-10 grayscale hover:grayscale-0 transition-all duration-300" />
-              <Icon icon="token-branded:kraken" className="h-10 w-10 grayscale hover:grayscale-0 transition-all duration-300" />
-              <Icon icon="token-branded:okx" className="h-8 w-8 grayscale hover:grayscale-0 transition-all duration-300" />
-              <Icon icon="token-branded:kucoin" className="h-10 w-10 grayscale hover:grayscale-0 transition-all duration-300" />
+              <Icon icon="token-branded:binance" className="h-12 w-12 transition-all duration-300" />
+              <Icon icon="token-branded:coinbase" className="h-10 w-10 transition-all duration-300" />
+              <Icon icon="token-branded:kraken" className="h-10 w-10 transition-all duration-300" />
+              <Icon icon="token-branded:okx" className="h-8 w-8 bg-gray-500 transition-all duration-300" />
+              <Icon icon="token-branded:kucoin" className="h-10 w-10 transition-all duration-300" />
             </div>
           </div>
         </div>
@@ -483,7 +480,7 @@ const CryptoWalletLanding = () => {
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center space-x-3">
-              <Image src={logo} height={70} width={70} alt="WEB4 Wallet Logo"/>
+              <p className="font-semibold text-gray-400 uppercase">Web4.0</p>
             </div>
 
               <div className="text-gray-400 text-sm text-center">

@@ -140,6 +140,10 @@ const Wallet = () => {
     setTimeout(() => setCopied(false), 1500);
   };
 
+  // useEffect(() => {
+  //   console.log(user)
+  // },[])
+
   const iconMap: Record<string, string> = {
     BTC: "cryptocurrency-color:btc",
     ETH: "cryptocurrency-color:eth",
@@ -378,7 +382,7 @@ const Wallet = () => {
         ) : (
           <Icon onClick={() => router.push("/")} className="cursor-pointer text-gray-400" icon="bxs:home" width="24" height="24" />
         )}
-        <p className="text-gray-400 font-semibold">Web4.0</p>
+        <p className="font-semibold text-[#ebb70c] uppercase">Web4.0</p>
       </header>
 
       <div className="my-2">
@@ -474,7 +478,7 @@ const Wallet = () => {
                   icon="fluent:bot-28-filled"
                   width="50"
                   height="50"
-                  className={`transition-all duration-500 ${activeBot ? "text-green-500" : hasActiveSubscription ? "text-[#ebb70c]" : "text-gray-500"
+                  className={`transition-all duration-500 ${activeBot ? "text-[#ebb70c]" : hasActiveSubscription ? "text-[#ebb70c]" : "text-gray-500"
                     }`}
                 />
                 <button
@@ -486,7 +490,7 @@ const Wallet = () => {
                     width="24"
                     height="24"
                     className={`cursor-pointer transition-all duration-300 ${activeBot
-                      ? "rotate-animation text-green-500 animate-spin"
+                      ? "rotate-animation text-[#ebb70c] animate-spin"
                       : hasActiveSubscription
                         ? "text-[#ebb70c] hover:text-[#ffba1a]"
                         : "text-gray-500 hover:text-gray-400"
@@ -495,7 +499,7 @@ const Wallet = () => {
                 </button>
               </div>
               <div
-                className={`ml-3 font-mono text-[11.4px] font-bold p-2 rounded transition-all duration-300 ${activeBot ? "text-green-500 bg-green-500/10" : hasActiveSubscription ? "text-[#ebb70c] bg-[#ebb70c]/10" : "text-gray-500 bg-gray-500/10"
+                className={`ml-3 font-mono text-[11.4px] font-bold p-2 rounded transition-all duration-300 ${activeBot ? "text-[#ebb70c] bg-[#ebb70c]/10" : hasActiveSubscription ? "text-[#ebb70c] bg-[#ebb70c]/10" : "text-gray-500 bg-gray-500/10"
                   }`}
               >
                 {binaryString}
@@ -511,7 +515,7 @@ const Wallet = () => {
           </div>
         )}
 
-        <SubscriptionModal
+        {user.ActivateBot == true ? "" : <SubscriptionModal
           isOpen={showSubscriptionModal}
           onClose={() => setShowSubscriptionModal(false)}
           onSubscribe={handleSubscribe}
@@ -519,13 +523,13 @@ const Wallet = () => {
           userWallet={user?.wallet ? transformWalletToUserWallet(user.wallet) : {}}
           coins={coins}
           userEmail={user.email}
-        />
+        />}
 
         {/* Assets Section */}
         {activePage === null && (
           <div>
             <div>
-              <h2 className="text-[#ebb70c] text-[18px] font-bold p-1 px-4 my-2 rounded-xs">
+              <h2 className="text-gray-400 text-[18px] font-bold p-1 px-4 my-2 rounded-xs">
                 Assets
               </h2>
             </div>

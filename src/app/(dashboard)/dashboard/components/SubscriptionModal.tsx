@@ -78,7 +78,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     setPaymentStep('confirm');
   };
 
-  const handleConfirmPayment = async () => {
+const handleConfirmPayment = async () => {
   if (!selectedCoin) return;
 
   const requiredAmount = getRequiredAmount(selectedCoin);
@@ -115,18 +115,29 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   }
 
   try {
-    // 🟡 Send updated coin balance only
+    // ✅ FIXED: Preserve all existing wallet entries, only update the selected coin
+    const fullWalletUpdate = {
+      ...userWallet, // Keep all existing coin balances
+      [selectedCoin.toUpperCase()]: updatedWallet, // Update only the coin used for payment
+    };
+
     await updateUser(userEmail, {
-      wallet: {
-        [selectedCoin.toUpperCase()]: updatedWallet,
-      },
+      wallet: fullWalletUpdate, // Send the complete wallet with all coins
+      ActivateBot: true, // Activate the bot
     });
 
-    // 🟢 Trigger onSubscribe to handle any other actions like activating the bot
+    // 🟢 Trigger onSubscribe to handle any other actions
     onSubscribe(selectedCoin, requiredAmount);
 
-    toast.success(`${selectedCoin.toUpperCase()} payment successful!`);
+    // Show success message
+    toast.success(`${selectedCoin.toUpperCase()} payment successful! Trading bot activated.`);
+    
+    // Close modal first
     onClose();
+    
+    // ✅ Keep the reload to fetch fresh bot state - now it won't affect balances
+    window.location.reload();
+    
   } catch (error) {
     console.error("Payment update failed:", error);
     toast.error("Failed to update wallet. Try again.");
@@ -244,8 +255,8 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                         onClick={() => hasEnough && handleCoinSelect(coin.symbol)}
                         disabled={!hasEnough}
                         className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${hasEnough
-                            ? 'bg-[#2A2A2A] border-[#313130] hover:bg-[#3A3A3A] hover:border-[#ebb70c] cursor-pointer'
-                            : 'bg-[#1A1A1A] border-[#2A2A2A] opacity-50 cursor-not-allowed'
+                          ? 'bg-[#2A2A2A] border-[#313130] hover:bg-[#3A3A3A] hover:border-[#ebb70c] cursor-pointer'
+                          : 'bg-[#1A1A1A] border-[#2A2A2A] opacity-50 cursor-not-allowed'
                           }`}
                       >
                         <div className="flex items-center gap-3">
