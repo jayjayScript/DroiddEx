@@ -10,7 +10,6 @@ import { getCoins } from "@/lib/getCoins";
 import { CoinGeckoCoin } from "@/lib/getCoins";
 import { getUserProfile } from "@/lib/auth";
 import { useMemo } from "react";
-import logo from "@/assets/web4-removebg-preview.png"
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,7 +17,6 @@ import SellPage from "./Sell";
 import Deposit from "./Send";
 import TransactionHistory from "@/components/history/TransactionHistory";
 import { Poppins } from "next/font/google";
-import Image from "next/image";
 import { useUserContext } from "@/store/userContext";
 import SubscriptionModal, { WalletEntry } from "./SubscriptionModal";
 import { UserWallet } from "./SubscriptionModal";
@@ -320,14 +318,6 @@ const Wallet = () => {
     return userProfile.fullname[0]?.toUpperCase() || "";
   }, [userProfile]);
 
-  const formatExpiryDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
   const getTotalBalance = (wallet: Wallet, coins: Coin[] = []): number => {
     if (!wallet || !coins || coins.length === 0) return 0;
 
@@ -507,8 +497,8 @@ const Wallet = () => {
             </div>
             <small className="font-medium text-center text-[10px] my-1 ms-[2.6rem] text-gray-400 flex items-center justify-center gap-1">
               <Icon icon="material-symbols:security" width="12" height="12" />
-              {hasActiveSubscription
-                ? `Subscription expires: ${subscriptionExpiry ? formatExpiryDate(subscriptionExpiry) : 'Unknown'} ⚠`
+              {hasActiveSubscription || user.ActivateBot == true
+                ? `trades are encrypted in binary codes`
                 : 'Subscribe to activate bot ⚠'
               }
             </small>
@@ -638,11 +628,11 @@ const Wallet = () => {
       <div>
         <div className="p-2 py-6 border-b" style={{ borderColor: '#3a3a3a' }}>
           <div className="flex items-center space-x-3">
-            <Image src={logo} height={40} width={40} alt="Logo" />
+            <p className="font-semibold text-[#ebb70c] uppercase">Web4.0</p>
             <div>
               <h1 className="text-[15px] font-bold text-white">Transaction History</h1>
             </div>
-          </div>
+          </div>  
         </div>
         <TransactionHistory />
       </div>
