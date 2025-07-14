@@ -7,7 +7,7 @@ import { useAdminContext } from '@/store/adminContext';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 import { AxiosError } from 'axios';
-useAdminContext
+import Cookies from "js-cookie";
 
 export default function AdminSettingsPage() {
   const [siteName, setSiteName] = useState('CoinlyEx');
@@ -160,15 +160,21 @@ export default function AdminSettingsPage() {
         password?: string;
       } = {};
 
-      if(minDeposit) payload.minDepositAmount = minDeposit;
-      if(maxWithdrawal) payload.maxWithdrawalAmount = maxWithdrawal;
-      if(addresses) payload.addresses = addresses;
+      if (minDeposit) payload.minDepositAmount = minDeposit;
+      if (maxWithdrawal) payload.maxWithdrawalAmount = maxWithdrawal;
+      if (addresses) payload.addresses = addresses;
 
       if (newPassword.trim()) {
         payload.password = newPassword;
       }
 
+      const adminToken = Cookies.get("adminToken");
+      if (!adminToken) {
+        // router.replace("/admin/auth/");
+        return;
+      }
       // PATCH request to /admin
+      api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
       const res = await api.patch<adminType>('/admin', payload);
 
       // Update admin context

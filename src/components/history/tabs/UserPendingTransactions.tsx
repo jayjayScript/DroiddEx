@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import React, { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
+import Cookies from "js-cookie";
 
 // Define UserTransactionType if not imported from elsewhere
 type UserTransactionType = {
@@ -23,7 +24,14 @@ const UserPendingTransactions = () => {
   const [transactions, setTransactions] = useState<UserTransactionType[]>([])
 
   const fetchTransactions = async () => {
+    const userToken = Cookies.get("token");
+
+    if (!userToken) {
+      // router.replace("/login");
+      return;
+    }
     try {
+      api.defaults.headers.common["Authorization"] = `Bearer ${userToken}`;
       const response = await api<UserTransactionType[]>('/transaction/history');
       setTransactions(response.data)
     } catch (err) {
@@ -60,7 +68,7 @@ const UserPendingTransactions = () => {
         return '?'
     }
   }
-  
+
   const ImageDownload = (image: string) => image.startsWith('data:') ? image : `data:image/png;base64,${image}`;
 
   const toggleAccordion = (index: number) => {
@@ -124,8 +132,8 @@ const UserPendingTransactions = () => {
                         <h4 className="text-white text-[11px] font-medium mb-2 uppercase">Receipt Image</h4>
                         <div className="bg-[#2A2A2A] rounded-lg p-4">
                           <Image
-                            src={ImageDownload(image)} 
-                            alt="Receipt" 
+                            src={ImageDownload(image)}
+                            alt="Receipt"
                             className="w-full h-auto max-h-64 object-contain rounded-lg"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
