@@ -2,15 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminLogin} from '@/lib/auth';
+import { adminLogin } from '@/lib/auth';
 import Cookies from 'js-cookie';
 import toast from 'react-hot-toast';
+import { AxiosError } from 'axios';
 
 
 interface LoginForm {
-    email: string;
-    password: string;
-  }
+  email: string;
+  password: string;
+}
 
 const LoginComponent = () => {
   const router = useRouter();
@@ -43,9 +44,11 @@ const LoginComponent = () => {
       toast.success('Login Successful!')
       router.push('/admin');
     } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } }
-      setLoading(false);
-      toast.error(error.response?.data?.message || 'Login failed');
+      if (err instanceof AxiosError) {
+        toast.error('Failed to save settings: ' + err.response?.data.message);
+      } else {
+        toast.error('Failed To log in')
+      }
     }
   };
 

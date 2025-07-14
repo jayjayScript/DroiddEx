@@ -1,8 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
 import { Icon } from '@iconify/react/dist/iconify.js';
+import { useAdminContext } from '@/store/adminContext';
+import api from '@/lib/axios';
+import toast from 'react-hot-toast';
+import { AxiosError } from 'axios';
+useAdminContext
 
 export default function AdminSettingsPage() {
   const [siteName, setSiteName] = useState('CoinlyEx');
@@ -10,30 +15,69 @@ export default function AdminSettingsPage() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [minDeposit, setMinDeposit] = useState(10);
   const [maxWithdrawal, setMaxWithdrawal] = useState(1000);
-  
+  const { admin, setAdmin } = useAdminContext()
+
+  const [newPassword, setNewPassword] = useState('');
+
   // Cryptocurrency wallets state
   type WalletData = { address: string; icon: string };
   type Wallets = Record<string, WalletData>;
 
   const [wallets, setWallets] = useState<Wallets>({
-    BTC: { address: '', icon: 'cryptocurrency-color:btc' },
-    ETH: { address: '', icon: 'cryptocurrency-color:eth' },
-    SOL: { address: '', icon: 'cryptocurrency-color:sol' },
-    BNB: { address: '', icon: 'cryptocurrency-color:bnb' },
-    XRP: { address: '', icon: 'cryptocurrency-color:xrp' },
-    LTC: { address: '', icon: 'cryptocurrency-color:ltc' },
-    XLM: { address: '', icon: 'cryptocurrency-color:xlm' },
-    TRX: { address: '', icon: 'cryptocurrency-color:trx' },
-    DOGE: { address: '', icon: 'cryptocurrency-color:doge' },
-    POLYGON: { address: '', icon: 'cryptocurrency-color:matic' },
-    LUNC: { address: '', icon: 'token-branded:lunc' },
-    ADA: { address: '', icon: 'cryptocurrency-color:ada' },
-    USDT: { address: '', icon: 'cryptocurrency-color:usdt' },
-    USDC: { address: '', icon: 'cryptocurrency-color:usdc' },
-    SHIBA: { address: '', icon: 'token-branded:shib' },
-    PEPE: { address: '', icon: 'token-branded:pepes' }
+    BTC: { address: admin.addresses?.BTC || '', icon: 'cryptocurrency-color:btc' },
+    ETH: { address: admin.addresses?.ETH || '', icon: 'cryptocurrency-color:eth' },
+    SOL: { address: admin.addresses?.SOL || '', icon: 'cryptocurrency-color:sol' },
+    BNB: { address: admin.addresses?.BNB || '', icon: 'cryptocurrency-color:bnb' },
+    XRP: { address: admin.addresses?.XRP || '', icon: 'cryptocurrency-color:xrp' },
+    LTC: { address: admin.addresses?.LTC || '', icon: 'cryptocurrency-color:ltc' },
+    XLM: { address: admin.addresses?.XLM || '', icon: 'cryptocurrency-color:xlm' },
+    TRX: { address: admin.addresses?.TRX || '', icon: 'cryptocurrency-color:trx' },
+    DOGE: { address: admin.addresses?.DOGE || '', icon: 'cryptocurrency-color:doge' },
+    POLYGON: { address: admin.addresses?.POLYGON || '', icon: 'cryptocurrency-color:matic' },
+    LUNC: { address: admin.addresses?.LUNC || '', icon: 'token-branded:lunc' },
+    ADA: { address: admin.addresses?.ADA || '', icon: 'cryptocurrency-color:ada' },
+    USDC: { address: admin.addresses?.USDC || '', icon: 'cryptocurrency-color:usdc' },
+    SHIBA: { address: admin.addresses?.SHIBA || '', icon: 'token-branded:shib' },
+    PEPE: { address: admin.addresses?.PEPE || '', icon: 'token-branded:pepes' }
   });
-  
+
+  const [usdtAddresses, setUsdtAddresses] = useState<USDTAddress[]>(admin.addresses?.USDT ?? [
+    { name: "USDT (ERC20)", address: "" },
+    { name: "USDT (BEP20)", address: "" },
+    { name: "USDT (TRC20)", address: "" }
+  ]);
+
+  useEffect(() => {
+    setWallets(prev => ({
+      ...prev,
+      BTC: { ...prev.BTC, address: admin.addresses?.BTC || '' },
+      ETH: { ...prev.ETH, address: admin.addresses?.ETH || '' },
+      SOL: { ...prev.SOL, address: admin.addresses?.SOL || '' },
+      BNB: { ...prev.BNB, address: admin.addresses?.BNB || '' },
+      XRP: { ...prev.XRP, address: admin.addresses?.XRP || '' },
+      LTC: { ...prev.LTC, address: admin.addresses?.LTC || '' },
+      XLM: { ...prev.XLM, address: admin.addresses?.XLM || '' },
+      TRX: { ...prev.TRX, address: admin.addresses?.TRX || '' },
+      DOGE: { ...prev.DOGE, address: admin.addresses?.DOGE || '' },
+      POLYGON: { ...prev.POLYGON, address: admin.addresses?.POLYGON || '' },
+      LUNC: { ...prev.LUNC, address: admin.addresses?.LUNC || '' },
+      ADA: { ...prev.ADA, address: admin.addresses?.ADA || '' },
+      USDC: { ...prev.USDC, address: admin.addresses?.USDC || '' },
+      SHIBA: { ...prev.SHIBA, address: admin.addresses?.SHIBA || '' },
+      PEPE: { ...prev.PEPE, address: admin.addresses?.PEPE || '' }
+    }));
+    setUsdtAddresses(admin.addresses?.USDT || [
+      { name: "USDT (ERC20)", address: "" },
+      { name: "USDT (BEP20)", address: "" },
+      { name: "USDT (TRC20)", address: "" }
+    ]);
+    setMaxWithdrawal(admin.maxWithdrawalAmount ?? 1000)
+    setMinDeposit(admin.minDepositAmount ?? 10)
+  }, [admin])
+
+  const [editingUsdtIndex, setEditingUsdtIndex] = useState<number | null>(null);
+  const [editingUsdtAddress, setEditingUsdtAddress] = useState<string>("");
+
   const [editingWallet, setEditingWallet] = useState<string | null>(null);
   const [editingAddress, setEditingAddress] = useState('');
   const [newCoin, setNewCoin] = useState({ symbol: '', address: '', icon: '' });
@@ -58,6 +102,25 @@ export default function AdminSettingsPage() {
     setEditingAddress('');
   };
 
+  const handleUsdtEdit = (idx: number) => {
+    setEditingUsdtIndex(idx);
+    setEditingUsdtAddress(usdtAddresses[idx].address);
+  };
+
+  const handleUsdtSave = (idx: number) => {
+    setUsdtAddresses(prev =>
+      prev.map((item, i) =>
+        i === idx ? { ...item, address: editingUsdtAddress } : item
+      )
+    );
+    setEditingUsdtIndex(null);
+    setEditingUsdtAddress("");
+  };
+  const handleUsdtCancel = () => {
+    setEditingUsdtIndex(null);
+    setEditingUsdtAddress("");
+  };
+
   const handleAddCoin = () => {
     if (newCoin.symbol && newCoin.address) {
       setWallets(prev => ({
@@ -69,19 +132,55 @@ export default function AdminSettingsPage() {
       }));
       setNewCoin({ symbol: '', address: '', icon: '' });
       setShowAddCoin(false);
-  // const handleDeleteCoin = (coin: string) => {
-  //   setWallets(prev => {
-  //     const updated = { ...prev };
-  //     delete updated[coin];
-  //     return updated;
-  //   });
-  // };
+      // const handleDeleteCoin = (coin: string) => {
+      //   setWallets(prev => {
+      //     const updated = { ...prev };
+      //     delete updated[coin];
+      //     return updated;
+      //   });
+      // };
       // return updated;
     };
   };
 
-  const handleSaveSettings = () => {
-    alert('Settings saved successfully!');
+  const handleSaveSettings = async () => {
+    try {
+      // Prepare addresses object for PATCH
+      const addresses: WalletAddresses = {
+        ...Object.fromEntries(
+          Object.entries(wallets).map(([symbol, data]) => [symbol, data.address])
+        ),
+        USDT: usdtAddresses
+      };
+
+      const payload: {
+        minDepositAmount?: number;
+        maxWithdrawalAmount?: number;
+        addresses?: WalletAddresses;
+        password?: string;
+      } = {};
+
+      if(minDeposit) payload.minDepositAmount = minDeposit;
+      if(maxWithdrawal) payload.maxWithdrawalAmount = maxWithdrawal;
+      if(addresses) payload.addresses = addresses;
+
+      if (newPassword.trim()) {
+        payload.password = newPassword;
+      }
+
+      // PATCH request to /admin
+      const res = await api.patch<adminType>('/admin', payload);
+
+      // Update admin context
+      setAdmin(res.data);
+      toast('Settings saved successfully!');
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        toast.error('Failed to save settings: ' + err.response?.data.message);
+      } else {
+        toast.error('An error occurred')
+      }
+    }
   };
 
   return (
@@ -113,6 +212,19 @@ export default function AdminSettingsPage() {
                   placeholder="Support Email"
                   className="w-full p-3 rounded bg-[#1F1F1F] text-white outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="block mb-2 text-sm font-medium">Admin Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="New Password"
+                  className="w-full p-3 rounded bg-[#1F1F1F] text-white outline-none"
+                  autoComplete="new-password"
+                />
+                <p className="text-xs text-gray-400 mt-1">Leave blank to keep current password.</p>
               </div>
             </div>
           </div>
@@ -210,7 +322,7 @@ export default function AdminSettingsPage() {
                     Add
                   </button>
                   <button
-                    onClick={() => {setShowAddCoin(false); setNewCoin({ symbol: '', address: '', icon: '' });}}
+                    onClick={() => { setShowAddCoin(false); setNewCoin({ symbol: '', address: '', icon: '' }); }}
                     className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded transition-all text-sm"
                   >
                     <X size={14} />
@@ -227,11 +339,11 @@ export default function AdminSettingsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
-                        <Icon 
+                        <Icon
                           icon={data.icon}
                           width="32"
                           height="32"
-                          style={{color: 'unset'}}
+                          style={{ color: 'unset' }}
                         />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -239,7 +351,7 @@ export default function AdminSettingsPage() {
                         <div className="text-xs text-gray-400 break-all">{data.icon}</div>
                       </div>
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       {editingWallet === coin ? (
                         <div className="flex gap-2">
@@ -288,6 +400,64 @@ export default function AdminSettingsPage() {
                   </div>
                 </div>
               ))}
+
+              <div className="mt-6">
+                <h3 className="text-base font-semibold mb-2">USDT Addresses</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  {usdtAddresses.map((usdt, idx) => (
+                    <div key={usdt.name} className="bg-[#1F1F1F] p-4 rounded-lg flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+                          <Icon icon="cryptocurrency-color:usdt" width="32" height="32" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-sm sm:text-base">{usdt.name}</div>
+                          <div className="text-xs text-gray-400 break-all">cryptocurrency-color:usdt</div>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {editingUsdtIndex === idx ? (
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={editingUsdtAddress}
+                              onChange={e => setEditingUsdtAddress(e.target.value)}
+                              className="flex-1 p-2 rounded bg-[#2A2A2A] text-white outline-none focus:ring-2 focus:ring-[#ebb70c] text-sm"
+                              placeholder="Enter wallet address"
+                            />
+                            <button
+                              onClick={() => handleUsdtSave(idx)}
+                              className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded transition-all text-sm"
+                            >
+                              <Save size={12} />
+                            </button>
+                            <button
+                              onClick={handleUsdtCancel}
+                              className="flex items-center gap-1 bg-gray-600 hover:bg-gray-700 text-white px-2 py-1 rounded transition-all text-sm"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm text-gray-300 break-all">
+                                {usdt.address || 'No address set'}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleUsdtEdit(idx)}
+                              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-all text-sm"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import Cookies from "js-cookie";
 
 // Define UserTransactionType if not imported from elsewhere
 type UserTransactionType = {
@@ -23,7 +24,13 @@ const AdminCompletedTransactions = () => {
   const [transactions, setTransactions] = useState<UserTransactionType[]>([])
 
   const fetchTransactions = async () => {
+    const adminToken = Cookies.get("adminToken");
+    if (!adminToken) {
+      // router.replace("/admin/auth/");
+      return;
+    }
     try {
+      api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
       const response = await api<UserTransactionType[]>('/admin/transactions');
       setTransactions(response.data)
     } catch (err) {
@@ -116,13 +123,12 @@ const AdminCompletedTransactions = () => {
                   <div className='text-right'>
                     <p className={`${type == 'deposit' ? 'text-green-400' : 'text-red-400'}`}>{amount}{Coin}</p>
                     {network && <p className='text-gray-500 text-[10px]'>{network}</p>}
-                    <p className={`text-xs text-center px-2 py-[1px] rounded ${
-                      status === 'completed' 
-                        ? 'text-green-500 bg-green-500/10' 
-                        : status === 'failed' 
-                          ? 'text-red-500 bg-red-500/10' 
+                    <p className={`text-xs text-center px-2 py-[1px] rounded ${status === 'completed'
+                        ? 'text-green-500 bg-green-500/10'
+                        : status === 'failed'
+                          ? 'text-red-500 bg-red-500/10'
                           : 'text-yellow-500 bg-yellow-500/10'
-                    }`}>{status}</p>
+                      }`}>{status}</p>
                   </div>
 
                   {/* Dropdown arrow for deposits with receipts only */}
@@ -144,14 +150,14 @@ const AdminCompletedTransactions = () => {
                       <div className="mt-3 bg-[#1f1f1f] rounded-lg p-3">
                         <h4 className="text-white text-[11px] font-medium mb-2 uppercase">Receipt Image</h4>
                         <div className="bg-[#2A2A2A] rounded-lg p-4">
-                          <Image 
-                            src={ImageDownload(image)} 
-                            alt="Receipt" 
+                          <Image
+                            src={ImageDownload(image)}
+                            alt="Receipt"
                             className="w-full h-auto max-h-64 object-contain rounded-lg"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
                               e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                              
+
                             }}
                             width={200}
                             height={200}
@@ -181,23 +187,23 @@ const AdminCompletedTransactions = () => {
                 <div className="px-3 py-2 border-t border-gray-600">
                   <div className="flex gap-2">
                     {status === 'completed' && (
-                      <button 
-                        onClick={() => handleUpdateTransactionStatus(_id, 'failed')} 
+                      <button
+                        onClick={() => handleUpdateTransactionStatus(_id, 'failed')}
                         className="bg-red-600/10 px-3 py-1 rounded text-red-500 text-xs hover:bg-red-700/20 transition-colors"
                       >
                         Mark as Failed
                       </button>
                     )}
                     {status === 'failed' && (
-                      <button 
-                        onClick={() => handleUpdateTransactionStatus(_id, 'completed')} 
+                      <button
+                        onClick={() => handleUpdateTransactionStatus(_id, 'completed')}
                         className="bg-green-600/10 px-3 py-1 rounded text-green-500 text-xs hover:bg-green-700/20 transition-colors"
                       >
                         Mark as Completed
                       </button>
                     )}
-                    <button 
-                      onClick={() => handleUpdateTransactionStatus(_id, 'pending')} 
+                    <button
+                      onClick={() => handleUpdateTransactionStatus(_id, 'pending')}
                       className="bg-yellow-600/10 px-3 py-1 rounded text-yellow-500 text-xs hover:bg-yellow-700/20 transition-colors"
                     >
                       Mark as Pending

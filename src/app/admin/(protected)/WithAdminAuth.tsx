@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect } from 'react'
 import Cookies from "js-cookie";
 import api from '@/lib/axios';
+import { useAdminContext } from '@/store/adminContext';
 
 const WithAdminAuth = ({ children }: { children: React.ReactNode }) => {
    const { showPageLoader, hidePageLoader } = useLoader()
+   const { setAdmin } = useAdminContext()
    const router = useRouter();
    useEffect(() => {
       const getAdmin = async () => {
@@ -19,8 +21,8 @@ const WithAdminAuth = ({ children }: { children: React.ReactNode }) => {
          }
          try {
             api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
-            // const response = await api.get<UserType>("/profile/");
-            // //   setUser(response.data);
+            const response = await api.get<adminType>("/admin/");
+            setAdmin(response.data)
             hidePageLoader()
          } catch (error) {
             hidePageLoader()
@@ -29,7 +31,7 @@ const WithAdminAuth = ({ children }: { children: React.ReactNode }) => {
          }
       }
       getAdmin()
-   }, [router, hidePageLoader, showPageLoader])
+   }, [router])
    return (
       <>
          {children}

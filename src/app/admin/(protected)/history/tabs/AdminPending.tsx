@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import React, { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
+import Cookies from "js-cookie";
 
 // Define UserTransactionType if not imported from elsewhere
 type UserTransactionType = {
@@ -23,7 +24,13 @@ const AdminPendingTransactions = () => {
   const [transactions, setTransactions] = useState<UserTransactionType[]>([])
 
   const fetchTransactions = async () => {
+    const adminToken = Cookies.get("adminToken");
+    if (!adminToken) {
+      // router.replace("/admin/auth/");
+      return;
+    }
     try {
+      api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
       const response = await api<UserTransactionType[]>('/admin/transactions');
       setTransactions(response.data)
     } catch (err) {
@@ -60,7 +67,7 @@ const AdminPendingTransactions = () => {
         return '?'
     }
   }
-  
+
   const ImageDownload = (image: string) => image.startsWith('data:') ? image : `data:image/png;base64,${image}`;
 
   const toggleAccordion = (index: number) => {
@@ -81,7 +88,7 @@ const AdminPendingTransactions = () => {
       }
     }
   }
-  
+
   const handleRejectTransaction = async (_id: string) => {
     try {
       const response = await api.patch(`/admin/transactions/${_id}?status=failed`)
@@ -154,8 +161,8 @@ const AdminPendingTransactions = () => {
                         <h4 className="text-white text-[11px] font-medium mb-2 uppercase">Receipt Image</h4>
                         <div className="bg-[#2A2A2A] rounded-lg p-4">
                           <img
-                            src={ImageDownload(image)} 
-                            alt="Receipt" 
+                            src={ImageDownload(image)}
+                            alt="Receipt"
                             className="w-full h-auto max-h-64 object-contain rounded-lg"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
@@ -186,14 +193,14 @@ const AdminPendingTransactions = () => {
                 {/* Admin action buttons */}
                 <div className="px-3 py-2 border-t border-gray-600">
                   <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleAcceptTransaction(_id)} 
+                    <button
+                      onClick={() => handleAcceptTransaction(_id)}
                       className="bg-green-600/10 px-3 py-1 rounded text-green-500 text-xs hover:bg-green-700/20 transition-colors"
                     >
                       Approve
                     </button>
-                    <button 
-                      onClick={() => handleRejectTransaction(_id)} 
+                    <button
+                      onClick={() => handleRejectTransaction(_id)}
                       className="bg-red-600/10 px-3 py-1 rounded text-red-500 text-xs hover:bg-red-700/20 transition-colors"
                     >
                       Reject
