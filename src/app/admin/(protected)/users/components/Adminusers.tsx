@@ -7,10 +7,15 @@ import { user } from '@/lib/admin';
 import toast from 'react-hot-toast';
 import api from '@/lib/axios';
 import Cookies from 'js-cookie';
+import { deleteUser } from '@/lib/updateUser';
 
 const AdminUsers = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; email: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   interface User {
     fullname?: string;
     email: string;
@@ -33,6 +38,115 @@ const AdminUsers = () => {
     router.push(`/admin/users/${userId}`);
   };
 
+  // Updated to pass both id and email for deletion
+  const handleDeleteUser = (userId: string, userEmail: string) => {
+    setUserToDelete({ id: userId, email: userEmail });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      console.log('Attempting to delete user:', userToDelete.email);
+      
+      // Call the deleteUser function with email
+      const response = await deleteUser(userToDelete.email);
+      console.log('Delete response:', response);
+      
+      // Remove user from local state using the ID for filtering
+      setUsers(users.filter(user => user.id !== userToDelete.id));
+      toast.success("User deleted successfully.");
+      
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      
+      // More detailed error handling
+      if (error instanceof Error) {
+        toast.error(`Error deleting user: ${error.message}`);
+      } else {
+        toast.error("An unexpected error occurred while deleting the user.");
+      }
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+    }
+  };
+
+  // Alternative direct API call using email (if the imported function doesn't work)
+  // const confirmDeleteUserDirect = async () => {
+  //   if (!userToDelete) return;
+    
+  //   setIsDeleting(true);
+  //   try {
+  //     const adminToken = Cookies.get("adminToken");
+      
+  //     if (!adminToken) {
+  //       toast.error("Admin token not found. Please log in again.");
+  //       router.replace("/admin/auth/");
+  //       return;
+  //     }
+
+  //     console.log('Attempting to delete user with email:', userToDelete.email);
+      
+  //     // Direct API call to delete user by email
+  //     api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
+  //     const response = await api.delete(`/admin/users/${userToDelete.email}`);
+      
+  //     console.log('Delete response:', response);
+      
+  //     // Remove user from local state using the ID for filtering
+  //     setUsers(users.filter(user => user.id !== userToDelete.id));
+  //     toast.success("User deleted successfully.");
+      
+  //   } catch (error: any) {
+  //     console.error("Error deleting user:", error);
+      
+  //     // More detailed error handling
+  //     if (error.response) {
+  //       // Server responded with error status
+  //       const statusCode = error.response.status;
+  //       const errorMessage = error.response.data?.message || error.response.statusText;
+        
+  //       console.error(`Delete failed with status ${statusCode}:`, errorMessage);
+        
+  //       switch (statusCode) {
+  //         case 401:
+  //           toast.error("Authentication failed. Please log in again.");
+  //           router.replace("/admin/auth/");
+  //           break;
+  //         case 403:
+  //           toast.error("You do not have permission to delete this user.");
+  //           break;
+  //         case 404:
+  //           toast.error("User not found or already deleted.");
+  //           break;
+  //         case 500:
+  //           toast.error("Server error occurred. Please try again.");
+  //           break;
+  //         default:
+  //           toast.error(errorMessage || "Failed to delete user.");
+  //       }
+  //     } else if (error.request) {
+  //       // Network error
+  //       toast.error("Network error. Please check your connection.");
+  //     } else {
+  //       toast.error("An unexpected error occurred.");
+  //     }
+  //   } finally {
+  //     setIsDeleting(false);
+  //     setShowDeleteModal(false);
+  //     setUserToDelete(null);
+  //   }
+  // };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setUserToDelete(null);
+  };
+
   useEffect(() => {
     const fetchUsers = async () => {
       const adminToken = Cookies.get("adminToken");
@@ -49,20 +163,18 @@ const AdminUsers = () => {
           fullname: user.fullname,
           email: user.email,
           balance: user.balance,
-          status: user.isVerified, // Make sure this matches your filter values
+          status: user.isVerified ? 'verified' : 'unverified',
           joinDate: user.joinDate,
           id: user._id,
         }));
         setUsers(usersList);
       } catch (error) {
-        // handle error
         toast.error('Failed to get users')
         console.log(error)
       }
     };
     fetchUsers();
   }, [router]);
-
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch = (user.fullname ?? '').toLowerCase().includes(search.toLowerCase()) ||
@@ -105,6 +217,17 @@ const AdminUsers = () => {
       default:
         return null;
     }
+  };
+
+  // Helper to get user initials for avatar
+  const getUserInitials = (fullname?: string, email?: string) => {
+    if (fullname) {
+      return fullname.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
+    if (email) {
+      return email.slice(0, 2).toUpperCase();
+    }
+    return 'U';
   };
 
   return (
@@ -168,9 +291,9 @@ const AdminUsers = () => {
             <div className="p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a' }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Active Users</p>
+                  <p className="text-gray-400 text-sm">Verified Users</p>
                   <p className="text-2xl font-bold text-green-400">
-                    {users.filter(u => u.status === 'active').length}
+                    {users.filter(u => u.status === 'verified').length}
                   </p>
                 </div>
                 <UserCheck className="w-8 h-8 text-green-400" />
@@ -203,12 +326,12 @@ const AdminUsers = () => {
                     <div>
                       <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-medium"
                         style={{ backgroundColor: '#ebb70c', color: '#1a1a1a' }}>
-                        {user.avatar}
+                        {getUserInitials(user.fullname, user.email)}
                       </div>
                     </div>
                     <div className="flex-1">
                       <div className='flex items-center justify-between'>
-                        <h3 className="text-white font-medium text-[14px]">{user.fullname ? user.fullname : ''}</h3>
+                        <h3 className="text-white font-medium text-[14px]">{user.fullname || 'No Name'}</h3>
                         <span className={`px-1 py-1 rounded-full text-[8px] font-medium flex items-center space-x-1 ${getStatusColor(user.status)}`}>
                           {getStatusIcon(user.status)}
                           <span>{getNormalizedStatus(user.status).charAt(0).toUpperCase() + getNormalizedStatus(user.status).slice(1)}</span>
@@ -216,18 +339,17 @@ const AdminUsers = () => {
                       </div>
                       <p className="text-gray-400 text-[12px]">{user.email}</p>
                     </div>
-
                   </div>
 
                   {/* User Details */}
                   <div className="space-y-3 mb-6">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 text-sm">Balance</span>
-                      <span className="text-white font-semibold text-lg">{user.balance}</span>
+                      <span className="text-white font-semibold text-lg">${user.balance}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 text-sm">Join Date</span>
-                      <span className="text-gray-300 text-sm">{user.joinDate}</span>
+                      <span className="text-gray-300 text-sm">{new Date(user.joinDate).toLocaleDateString()}</span>
                     </div>
                   </div>
 
@@ -258,6 +380,7 @@ const AdminUsers = () => {
                     </button>
                     <button
                       className="flex-1 p-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors duration-200 flex items-center justify-center space-x-1"
+                      onClick={() => handleDeleteUser(user.id.toString(), user.email)}
                       title="Delete User">
                       <Trash2 className="w-4 h-4" />
                       <span className="text-sm font-medium">Delete</span>
@@ -285,10 +408,10 @@ const AdminUsers = () => {
               </span>
               <div className="flex space-x-4">
                 <span className="text-green-400">
-                  Active: {filteredUsers.filter(u => u.status === 'active').length}
+                  Verified: {filteredUsers.filter(u => u.status === 'verified').length}
                 </span>
                 <span className="text-yellow-400">
-                  Inactive: {filteredUsers.filter(u => u.status === 'inactive').length}
+                  Unverified: {filteredUsers.filter(u => u.status === 'unverified').length}
                 </span>
                 <span className="text-red-400">
                   Suspended: {filteredUsers.filter(u => u.status === 'suspended').length}
@@ -298,6 +421,34 @@ const AdminUsers = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && userToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#2a2a2a] p-6 rounded-lg shadow-lg border border-[#3a3a3a] w-full max-w-sm mx-auto">
+            <h2 className="text-xl font-bold text-white mb-4">Confirm Deletion</h2>
+            <p className="text-gray-300 mb-2">Are you sure you want to delete this user?</p>
+            <p className="text-gray-400 text-sm mb-6">Email: {userToDelete.email}</p>
+            <p className="text-red-400 text-sm mb-6">This action cannot be undone.</p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700 transition-colors duration-200"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteUser}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors duration-200 disabled:opacity-50"
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

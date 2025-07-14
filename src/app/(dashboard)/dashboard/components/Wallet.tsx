@@ -318,14 +318,6 @@ const Wallet = () => {
     return userProfile.fullname[0]?.toUpperCase() || "";
   }, [userProfile]);
 
-  const formatExpiryDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
   const getTotalBalance = (wallet: Wallet, coins: Coin[] = []): number => {
     if (!wallet || !coins || coins.length === 0) return 0;
 
@@ -505,8 +497,8 @@ const Wallet = () => {
             </div>
             <small className="font-medium text-center text-[10px] my-1 ms-[2.6rem] text-gray-400 flex items-center justify-center gap-1">
               <Icon icon="material-symbols:security" width="12" height="12" />
-              {hasActiveSubscription
-                ? `Subscription expires: ${subscriptionExpiry ? formatExpiryDate(subscriptionExpiry) : 'Unknown'} ⚠`
+              {hasActiveSubscription || user.ActivateBot == true
+                ? `trades are encrypted in binary codes`
                 : 'Subscribe to activate bot ⚠'
               }
             </small>
@@ -640,7 +632,7 @@ const Wallet = () => {
             <div>
               <h1 className="text-[15px] font-bold text-white">Transaction History</h1>
             </div>
-          </div>
+          </div>  
         </div>
         <TransactionHistory />
       </div>
