@@ -6,18 +6,47 @@ import Link from "next/link";
 // Import your real wallet address data source
 import { walletAddresses } from "@/lib/wallet"; // Adjust the path if needed
 
-// Build coins array from walletAddresses
-const coins = Object.keys(walletAddresses).map((symbol) => {
-  const walletData = walletAddresses[symbol];
+// Define proper types for your wallet data
+type WalletAddress = {
+  name?: string;
+  address: string;
+  network?: string;
+};
+
+type WalletData = WalletAddress | WalletAddress[];
+
+type Coin = {
+  symbol: string;
+  name: string;
+  addresses: WalletAddress[];
+};
+
+// Build coins array from walletAddresses with proper type handling
+const coins: Coin[] = Object.keys(walletAddresses).map((symbol) => {
+  const walletData = walletAddresses[symbol] as WalletData;
+  
+  let name: string;
+  let addresses: WalletAddress[];
+
+  if (Array.isArray(walletData)) {
+    // If it's an array, get name from first item and use all addresses
+    name = walletData[0]?.name || symbol;
+    addresses = walletData;
+  } else {
+    // If it's a single object, use its name and wrap in array
+    name = walletData?.name || symbol;
+    addresses = [walletData];
+  }
+
   return {
     symbol,
-    name: (Array.isArray(walletData) ? walletData[0]?.name : walletData?.name) || symbol,
-    addresses: Array.isArray(walletData) ? walletData : [walletData],
+    name,
+    addresses,
   };
 });
 
 const Buy = () => {
-  const [selected, setSelected] = useState(coins[0]);
+  const [selected, setSelected] = useState<Coin>(coins[0]);
   const [amount, setAmount] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
