@@ -76,6 +76,10 @@ const AdminCompletedTransactions = () => {
     setExpandedTransaction(expandedTransaction === index ? null : index)
   }
 
+  const toggleWalletAddress = (index: number) => {
+    setExpandedWalletAddress(expandedWalletAddress === index ? null : index)
+  }
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       toast.success('Wallet address copied to clipboard!');
