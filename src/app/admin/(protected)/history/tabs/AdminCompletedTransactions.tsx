@@ -76,6 +76,14 @@ const AdminCompletedTransactions = () => {
     setExpandedTransaction(expandedTransaction === index ? null : index)
   }
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success('Wallet address copied to clipboard!');
+    }).catch(() => {
+      toast.error('Failed to copy wallet address');
+    });
+  }
+
   const handleUpdateTransactionStatus = async (_id: string, newStatus: string) => {
     try {
       const response = await api.patch(`/admin/transactions/${_id}?status=${newStatus}`)
