@@ -3,24 +3,27 @@ import React, { useState } from "react";
 import { Icon } from "@iconify/react";
 import { buyCoins } from "@/components/constants";
 import Link from "next/link";
+// Import your real wallet address data source
+import { walletAddresses } from "@/lib/wallet"; // Adjust the path if needed
+
+// Build coins array from walletAddresses
+const coins = Object.keys(walletAddresses).map((symbol) => {
+  const walletData = walletAddresses[symbol];
+  return {
+    symbol,
+    name: (Array.isArray(walletData) ? walletData[0]?.name : walletData?.name) || symbol,
+    addresses: Array.isArray(walletData) ? walletData : [walletData],
+  };
+});
 
 const Buy = () => {
-  const [coin, setCoin] = useState("Bitcoin");
+  const [selected, setSelected] = useState(coins[0]);
   const [amount, setAmount] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const walletAddresses: Record<string, string> = {
-    Bitcoin: "bc1qxyz123bitcoinwallet",
-    Ethereum: "0xABCDEF123ethereum",
-    USDT: "TXYZ1234567usdtwallet",
-    Solana: "solXYZ789solwallet",
-  };
-
-  const coinList = Object.keys(walletAddresses);
-
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(walletAddresses[coin]);
+    navigator.clipboard.writeText(selected.addresses[0]?.address || "");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -36,7 +39,7 @@ const Buy = () => {
         </div>
 
         <div className="space-y-6 sm:space-y-8">
-          {/* Custom Dropdown */}
+          {/* Coin Dropdown */}
           <div className="relative">
             <label className="block text-sm font-medium mb-3 text-white">
               Select Coin
@@ -48,7 +51,7 @@ const Buy = () => {
                          hover:bg-[#333333] transition-all duration-200 ease-in-out
                          focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black"
               >
-                <span className="text-lg font-medium">{coin}</span>
+                <span className="text-lg font-medium">{selected.symbol}</span>
                 <Icon
                   icon="mdi:chevron-down"
                   className={`text-2xl transition-transform duration-300 ease-in-out ${
@@ -56,7 +59,7 @@ const Buy = () => {
                   }`}
                 />
               </button>
-              
+
               {/* Dropdown Menu */}
               <div
                 className={`absolute top-full left-0 right-0 mt-2 bg-[#2A2A2A] rounded-xl 
@@ -67,18 +70,18 @@ const Buy = () => {
                             : "opacity-0 -translate-y-2 scale-95 pointer-events-none"
                           }`}
               >
-                {coinList.map((item, index) => (
+                {coins.map((coin, index) => (
                   <div
-                    key={item}
+                    key={coin.symbol}
                     onClick={() => {
-                      setCoin(item);
+                      setSelected(coin);
                       setShowDropdown(false);
                     }}
                     className={`px-4 py-3 hover:bg-[#3A3A3A] cursor-pointer transition-colors duration-200
-                              ${index !== coinList.length - 1 ? "border-b border-[#3A3A3A]" : ""}
-                              ${coin === item ? "bg-[#3A3A3A] text-white" : ""}`}
+                              ${index !== coins.length - 1 ? "border-b border-[#3A3A3A]" : ""}
+                              ${selected.symbol === coin.symbol ? "bg-[#3A3A3A] text-white" : ""}`}
                   >
-                    <span className="font-medium">{item}</span>
+                    <span className="font-medium">{coin.symbol}</span>
                   </div>
                 ))}
               </div>
@@ -113,15 +116,15 @@ const Buy = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-semibold mb-2 text-white">
-                  Wallet Address for {coin}
+                  Wallet Address for {selected.symbol}
                 </h3>
                 <div className="bg-[#1A1A1A] rounded-lg p-3">
                   <code className="text-sm text-white break-all font-mono">
-                    {walletAddresses[coin]}
+                    {selected.addresses[0]?.address || "No address available"}
                   </code>
                 </div>
               </div>
-              
+
               <button
                 onClick={copyToClipboard}
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium
