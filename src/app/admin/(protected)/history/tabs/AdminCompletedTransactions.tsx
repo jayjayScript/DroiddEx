@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import Cookies from "js-cookie";
 import { Icon } from '@iconify/react/dist/iconify.js'
 
-// Define UserTransactionType if not imported from elsewhere
+// Define UserTransactionType with all required properties
 type UserTransactionType = {
   _id: string;
   type: string;
@@ -15,7 +15,7 @@ type UserTransactionType = {
   amount: number;
   image?: string;
   network?: string;
-  withdrawWalletAddress?: string;
+  withdrawWalletAddress?: string; // Added missing property
   email: string;
   status: string;
   createdAt?: string | Date;
@@ -23,6 +23,7 @@ type UserTransactionType = {
 
 const AdminCompletedTransactions = () => {
   const [expandedTransaction, setExpandedTransaction] = useState<number | null>(null)
+  const [expandedWalletAddress, setExpandedWalletAddress] = useState<number | null>(null) // Added missing state
   const [transactions, setTransactions] = useState<UserTransactionType[]>([])
 
   const fetchTransactions = async () => {
@@ -115,8 +116,9 @@ const AdminCompletedTransactions = () => {
 
         <div>
           {completedTransactions.map((transaction, index) => {
-            const { type, Coin, amount, image, network, email, status, createdAt, _id } = transaction
+            const { type, Coin, amount, image, network, email, status, createdAt, _id, withdrawWalletAddress } = transaction
             const isExpanded = expandedTransaction === index
+            const isWalletExpanded = expandedWalletAddress === index // Added missing variable
 
             return (
               <div key={index} className='bg-[#2A2A2A] mt-3 rounded-lg overflow-hidden'>
@@ -175,6 +177,10 @@ const AdminCompletedTransactions = () => {
                                 />
                               </button>
                             )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <small className='text-gray-500 text-[10px]'>{formatDate(new Date(createdAt ?? Date.now()))}</small>
                   </div>
 
@@ -215,7 +221,6 @@ const AdminCompletedTransactions = () => {
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
                               e.currentTarget.nextElementSibling?.classList.remove('hidden');
-
                             }}
                             width={200}
                             height={200}
