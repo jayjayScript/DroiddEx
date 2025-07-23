@@ -131,6 +131,50 @@ const AdminCompletedTransactions = () => {
                   <div className='flex-1'>
                     <h3 className={`uppercase font-medium text-[11px] ${type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>{type}</h3>
                     <p className='text-[12.55px] text-gray-400 font-medium'>{email.substring(0, 19) + "..."}</p>
+                    {type === 'withdrawal' && withdrawWalletAddress && (
+                      <div className="mt-1">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className='text-[12.55px] text-white font-medium font-mono break-all'>
+                              {isWalletExpanded 
+                                ? withdrawWalletAddress 
+                                : withdrawWalletAddress.length > 25 
+                                  ? `${withdrawWalletAddress.slice(0, 25)}...` 
+                                  : withdrawWalletAddress
+                              }
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {/* Copy button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyToClipboard(withdrawWalletAddress);
+                              }}
+                              className="p-1 hover:bg-gray-600 rounded transition-colors"
+                              title="Copy wallet address"
+                            >
+                              <Icon icon="solar:copy-bold-duotone" width="16" height="16" />
+                            </button>
+
+                            {/* Toggle button for long addresses */}
+                            {withdrawWalletAddress.length > 25 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleWalletAddress(index);
+                                }}
+                                className="p-1 hover:bg-gray-600 rounded transition-colors"
+                                title={isWalletExpanded ? "Show less" : "Show more"}
+                              >
+                                <Icon 
+                                  icon={isWalletExpanded ? "ant-design:up-outlined" : "ant-design:down-outlined"} 
+                                  width="16" 
+                                  height="16" 
+                                />
+                              </button>
+                            )}
                     <small className='text-gray-500 text-[10px]'>{formatDate(new Date(createdAt ?? Date.now()))}</small>
                   </div>
 
