@@ -14,7 +14,7 @@ type UserTransactionType = {
   amount: number;
   image?: string;
   network?: string;
-  
+  withdrawWalletAddress?: string;
   email: string;
   status: string;
   createdAt?: string | Date;
