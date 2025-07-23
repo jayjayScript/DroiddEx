@@ -18,8 +18,7 @@ import Deposit from "./Send";
 import TransactionHistory from "@/components/history/TransactionHistory";
 import { Poppins } from "next/font/google";
 import { useUserContext } from "@/store/userContext";
-import SubscriptionModal, { WalletEntry } from "./SubscriptionModal";
-import { UserWallet } from "./SubscriptionModal";
+import SubscriptionModal, { WalletEntry, UserWallet } from "./SubscriptionModal";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["700"] });
 
@@ -210,22 +209,31 @@ const Wallet = () => {
         const updatedWallet = { ...user.wallet };
         const walletEntry = updatedWallet[selectedCoin.toUpperCase() as keyof typeof updatedWallet];
 
-        if (Array.isArray(walletEntry)) {
-          let remainingAmount = requiredAmount;
-          for (let i = 0; i < walletEntry.length && remainingAmount > 0; i++) {
-            const available = walletEntry[i].balance || 0;
-            const deductAmount = Math.min(available, remainingAmount);
-            walletEntry[i].balance = available - deductAmount;
-            remainingAmount -= deductAmount;
+        if (walletEntry) {
+          if (Array.isArray(walletEntry)) {
+            let remainingAmount = requiredAmount;
+            for (let i = 0; i < walletEntry.length && remainingAmount > 0; i++) {
+              const currentEntry = walletEntry[i];
+              // Type guard to ensure we're working with an entry that has balance
+              if (currentEntry && 'balance' in currentEntry && typeof currentEntry.balance === 'number') {
+                const available = Number(currentEntry.balance) || 0;
+                const deductAmount = Math.min(available, remainingAmount);
+                (currentEntry as WalletEntry).balance = available - deductAmount;
+                remainingAmount -= deductAmount;
+              }
+            }
+          } else if ('balance' in walletEntry && typeof walletEntry.balance === 'number') {
+            // Handle single wallet entry
+            const available = Number(walletEntry.balance) || 0;
+            const deductAmount = Math.min(available, requiredAmount);
+            (walletEntry as WalletEntry).balance = available - deductAmount;
           }
-        } else {
-          walletEntry.balance = (walletEntry.balance || 0) - requiredAmount;
-        }
 
-        setUser({
-          ...user,
-          wallet: updatedWallet
-        });
+          setUser({
+            ...user,
+            wallet: updatedWallet
+          });
+        }
       }
 
       const expiryDate = new Date();
@@ -359,6 +367,18 @@ const Wallet = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(amount);
+  };
+
+  const getBalanceFromWalletEntry = (entry: { balance: unknown }): number => {
+    if (!entry || typeof entry !== 'object') return 0;
+
+    if ('balance' in entry) {
+      const balance = entry.balance;
+      if (typeof balance === 'number') return balance;
+      if (typeof balance === 'string') return parseFloat(balance) || 0;
+    }
+
+    return 0;
   };
   return (
     <div className="min-h-screen md:max-w-[60%] mx-auto text-white p-4 pb-20">
@@ -536,9 +556,15 @@ const Wallet = () => {
                     const walletEntry = user.wallet[coin.symbol.toUpperCase() as keyof typeof user.wallet];
                     if (walletEntry) {
                       if (Array.isArray(walletEntry)) {
-                        userBalance = walletEntry.reduce((sum, item) => sum + (item.balance || 0), 0);
+                        userBalance = walletEntry.reduce((sum, item) => {
+                          // Only sum if item has a balance property
+                          if (item && typeof item === "object" && "balance" in item && typeof item.balance === "number") {
+                            return sum + getBalanceFromWalletEntry(item);
+                          }
+                          return sum;
+                        }, 0);
                       } else {
-                        userBalance = walletEntry.balance || 0;
+                        userBalance = getBalanceFromWalletEntry(walletEntry);
                       }
                     }
                   }
@@ -632,7 +658,7 @@ const Wallet = () => {
             <div>
               <h1 className="text-[15px] font-bold text-white">Transaction History</h1>
             </div>
-          </div>  
+          </div>
         </div>
         <TransactionHistory />
       </div>

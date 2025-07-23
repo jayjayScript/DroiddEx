@@ -14,6 +14,7 @@ type UserTransactionType = {
   amount: number;
   image?: string;
   network?: string;
+  
   email: string;
   status: string;
   createdAt?: string | Date;

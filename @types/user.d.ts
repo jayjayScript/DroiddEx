@@ -10,7 +10,6 @@ interface WalletItem {
 interface USDTAddress {
   name: string;             // e.g. "USDT (ERC20)"
   address: string;
-  balance: number;
 }
 
 /* ────────────────────────────────
