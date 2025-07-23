@@ -5,6 +5,7 @@ import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import Cookies from "js-cookie";
+import { Icon } from '@iconify/react/dist/iconify.js'
 
 // Define UserTransactionType if not imported from elsewhere
 type UserTransactionType = {
