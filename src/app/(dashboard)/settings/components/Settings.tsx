@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { updateFullname, updateCountry, updatePhone, updateAddress } from "@/lib/profile";
 import toast from "react-hot-toast";
-import { getAllUsers } from "@/lib/admin"; // Import the getAllUsers function
+// Remove admin import - we'll use a user-specific API instead
 import api from "@/lib/axios";
 import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
@@ -53,66 +53,39 @@ const Settings = () => {
   const [copied, setCopied] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Fetch user status and details from backend
-  // useEffect(() => {
-  //   const fetchUserStatus = async () => {
-  //     try {
-  //       const users = await getAllUsers();
-  //       const currentUser = users.find(u => u.email === email);
-  //       // Prefer verificationStatus, fallback to isVerified for legacy
-  //       let status = currentUser?.verificationStatus;
-  //       // Robust normalization for isVerified (can be boolean, string, or number)
-  //       if (!status && currentUser?.isVerified !== undefined) {
-  //         const isVerified = currentUser.isVerified;
-  //         if (typeof isVerified === 'boolean') {
-  //           status = isVerified ? 'verified' : 'unverified';
-  //         } else if (typeof isVerified === 'string') {
-  //           const normalized = isVerified.trim().toLowerCase();
-  //           if (normalized === 'true' || normalized === 'verified') status = 'verified';
-  //           else if (normalized === 'false' || normalized === 'unverified') status = 'unverified';
-  //           else if (normalized === 'pending') status = 'pending';
-  //         } else if (typeof isVerified === 'number') {
-  //           status = isVerified === 1 ? 'verified' : 'unverified';
-  //         }
-  //       }
-  //       const validStatuses = ['unverified', 'pending', 'verified'];
-  //       if (status && validStatuses.includes(status)) {
-  //         setVerificationStatus(status as VerificationStatus);
-  //       } else {
-  //         setVerificationStatus('unverified');
-  //       }
-  //       // Update user info from backend if available
-  //       if (currentUser) {
-  //         setUserInfo(prev => ({
-  //           ...prev,
-  //           fullName: currentUser.fullname || prev.fullName,
-  //           country: currentUser.country || prev.country,
-  //           phoneNumber: currentUser.phone || prev.phoneNumber,
-  //           address: currentUser.address || prev.address,
-  //           // email and seedPhrase remain from Redux
-  //         }));
-  //       }
-  //     } catch (error) {
-  //       toast.error('Failed to get users');
-  //       setVerificationStatus('unverified');
-  //       console.log(error);
-  //     }
-  //   };
-  //   fetchUserStatus();
-  // }, [user]);
-
   // Refetch user status/details after verification actions
   const refetchUserStatus = async () => {
     try {
-      const users = await getAllUsers();
-      const currentUser = users.find(u => u.email === email);
-      const status = currentUser?.verificationStatus
+      console.log('Attempting to fetch user profile...'); // Debug log
+
+      // Use the existing profile endpoint
+      const response = await api.get('/profile');
+      const currentUser = response.data;
+
+      console.log('Profile fetched successfully:'); // Debug log
+
+      const status = currentUser?.verificationStatus;
       const validStatuses = ['unverified', 'pending', 'verified'];
+
+      let newStatus: VerificationStatus = 'unverified';
       if (status && validStatuses.includes(status)) {
-        setVerificationStatus(status as VerificationStatus);
-      } else {
-        setVerificationStatus('unverified');
+        newStatus = status as VerificationStatus;
       }
+
+      setVerificationStatus(newStatus);
+
+      // Update KYC status as well
+      if (currentUser?.KYCVerificationStatus) {
+        setKYCVerificationStatus(currentUser.KYCVerificationStatus);
+      }
+
+      // Handle routing here after state is confirmed from server
+      if (newStatus === 'pending') {
+        console.log('User has pending verification, routing to /verification'); // Debug log
+        router.push('/verification');
+        return; // Exit early to prevent further execution
+      }
+
       if (currentUser) {
         setUserInfo(prev => ({
           ...prev,
@@ -121,13 +94,73 @@ const Settings = () => {
           phoneNumber: currentUser.phone || prev.phoneNumber,
           address: currentUser.address || prev.address,
         }));
+
+        // Update the user context with fresh data
+        setUser({
+          ...user,
+          verificationStatus: newStatus,
+          KYCVerificationStatus: currentUser.KYCVerificationStatus || user.KYCVerificationStatus,
+          fullname: currentUser.fullname || user.fullname,
+          country: currentUser.country || user.country,
+          phone: currentUser.phone || user.phone,
+          address: currentUser.address || user.address,
+        });
       }
     } catch (error) {
-      toast.error('Failed to refresh user');
-      console.error(error)
-      setVerificationStatus('unverified');
+      console.error('Error fetching user profile:', error);
+
+      // Handle authentication errors
+      if (error instanceof AxiosError) {
+        if (error.response?.status === 401) {
+          console.log('Authentication failed - using fallback routing logic');
+          // User is not authenticated, fall back to context data
+          if (user?.verificationStatus === 'pending') {
+            console.log('Context shows pending verification, routing to /verification');
+            router.push('/verification');
+            return;
+          }
+
+          toast.error('Unable to verify authentication. Using saved data.');
+          setVerificationStatus(user?.verificationStatus || 'unverified');
+          return;
+        }
+
+        // Handle other HTTP errors
+        toast.error(`Failed to fetch profile: ${error.response?.status}`);
+      } else {
+        toast.error('Network error occurred');
+      }
+
+      // For any error, fall back to using context data for routing
+      if (user?.verificationStatus === 'pending') {
+        console.log('Error occurred but context shows pending - routing to /verification');
+        router.push('/verification');
+        return;
+      }
+
+      setVerificationStatus(user?.verificationStatus || 'unverified');
     }
   };
+
+  // Check authentication and handle routing on mount
+  useEffect(() => {
+    console.log('Component mounted, user context:', { email, verificationStatus: user?.verificationStatus });
+
+    // First priority: Check context data for immediate routing
+    if (user?.verificationStatus === 'pending') {
+      console.log('Context shows pending verification - routing immediately');
+      router.push('/verification');
+      return;
+    }
+
+    // Second priority: Try to fetch fresh data from server if user is logged in
+    if (email && user) {
+      console.log('User is logged in, attempting to fetch fresh profile data');
+      refetchUserStatus();
+    } else {
+      console.log('No user context available');
+    }
+  }, [email, user?.verificationStatus]); // Watch both email and verification status
 
   const handleEdit = (field: keyof UserInfo) => {
     setEditingField(field);
@@ -183,8 +216,10 @@ const Settings = () => {
       const response = await api.patch("/profile/verificationStatus", { verificationStatus: 'pending' });
       setVerificationStatus('pending');
       toast('Verification submitted! Awaiting admin approval.');
+
+      // Refetch status and handle routing
       await refetchUserStatus();
-      console.log(response) 
+      console.log(response)
     } catch (err) {
       if (err instanceof AxiosError) {
         toast.error(err.response?.data.message)
@@ -193,13 +228,6 @@ const Settings = () => {
       }
     }
   };
-
-  useEffect(() => {
-    if (verificationStatus === 'pending') {
-      router.push('/verification')
-      return
-    }
-  }, [verificationStatus, router])
 
   const handleSecondVerification = async () => {
     if (!selectedFile) {
@@ -274,6 +302,58 @@ const Settings = () => {
     const displayValue = isSeedPhrase && !showFullSeed
       ? userInfo[field]?.substring(0, 20) + "..."
       : userInfo[field];
+
+
+    // const clearAllCookies = () => {
+    //   // Get all cookies
+    //   const cookies = document.cookie.split(";");
+
+    //   // Clear each cookie
+    //   cookies.forEach(cookie => {
+    //     const eqPos = cookie.indexOf("=");
+    //     const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+
+    //     // Clear for current domain
+    //     document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+
+    //     // Clear for parent domain (if applicable)
+    //     const domain = window.location.hostname;
+    //     document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain}`;
+
+    //     // Clear for subdomain
+    //     if (domain.includes('.')) {
+    //       const parentDomain = '.' + domain.split('.').slice(-2).join('.');
+    //       document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${parentDomain}`;
+    //     }
+    //   });
+    // };
+
+    // const handleLogout = () => {
+    //   // Clear all cookies
+    //   clearAllCookies();
+
+    //   // Clear local storage
+    //   localStorage.clear();
+    //   sessionStorage.clear();
+
+    //   // Clear user context
+    //   setUser({
+    //     email: '',
+    //     phrase: '',
+    //     fullname: '',
+    //     country: '',
+    //     phone: '',
+    //     address: '',
+    //     verificationStatus: 'unverified',
+    //     KYCVerificationStatus: 'unverified'
+    //   } as UserType);
+
+    //   // Show success message
+    //   toast.success('Logged out successfully');
+
+    //   // Redirect to login page
+    //   router.push('/login');
+    // };
 
     return (
       <div
@@ -360,10 +440,17 @@ const Settings = () => {
             </div>
           </div>
         ) : (
-          <div className="relative">
+          <div className="relative flex items-center gap-2">
             <p className={`${displayValue ? 'text-white' : 'text-gray-500'} ${isSeedPhrase ? 'font-mono text-sm' : 'text-base'} break-words`}>
               {displayValue || `Enter your ${fieldLabels[field].toLowerCase()}`}
             </p>
+            {/* Show verification status for email field */}
+            {field === 'email' && verificationStatus !== 'unverified' && (
+              <p className="text-green-400 bg-green-400/10 p-1 rounded-[5px] text-[10px] mt-1 flex items-center gap-1">
+                <Icon icon="mdi:check-circle" width="14" height="14" />
+                {verificationStatus === 'verified' ? 'Verified' : 'Verification Pending'}
+              </p>
+            )}
             {copied === field && (
               <div className="absolute -top-8 right-0 bg-[#ebb70c] text-black px-2 py-1 rounded text-xs font-medium animate-pulse">
                 Copied!
@@ -549,6 +636,22 @@ const Settings = () => {
           <p>• Regularly review your account activity</p>
         </div>
       </div>
+
+      {/* <div className="mt-6 bg-[#1A1A1A] p-6 rounded-xl shadow-md">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-2">Account Actions</h3>
+            <p className="text-gray-400 text-sm">Clear your session and logout</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 flex items-center gap-2"
+          >
+            <Icon icon="mdi:logout" width="18" height="18" />
+            Logout
+          </button>
+        </div>
+      </div> */}
     </div>
   );
 };
