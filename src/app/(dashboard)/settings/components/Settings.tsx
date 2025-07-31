@@ -5,14 +5,13 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import { updateFullname, updateCountry, updatePhone, updateAddress } from "@/lib/profile";
 import toast from "react-hot-toast";
 import { logout } from "@/store/user";
-import { UseDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 // Remove admin import - we'll use a user-specific API instead
 import api from "@/lib/axios";
 import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/store/userContext";
 import imageCompression from 'browser-image-compression';
-import { useDispatch } from "react-redux";
 
 interface UserInfo {
   fullName: string;
