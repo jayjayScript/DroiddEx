@@ -5,6 +5,7 @@ import Link from 'next/link';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 import { AxiosError } from 'axios';
+import { Icon } from '@iconify/react/dist/iconify.js';
 
 const Page = () => {
   const router = useRouter();
@@ -46,44 +47,50 @@ const Page = () => {
   };
 
   return (
-    <div className="bg-[#121212] h-[94.5vh] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-[#1E1E1E] rounded-lg shadow-lg p-8 translate-y-[-10%]">
-        <h2 className="text-white text-2xl font-semibold mb-6 text-center">Sign Up</h2>
+    <div className="bg-[#121212] h-[99.8vh] px-4">
+      <Link href='/' className='cursor-pointer'>
+        <Icon icon="ic:outline-home" width={27} height={27} className="text-[#ebb70c] translate-y-[20px] " />
+      </Link>
 
-        {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
+      <div className='flex items-center justify-center translate-y-[50%]'>
+        <div className="w-full max-w-md bg-[#1E1E1E] rounded-lg shadow-lg p-8 translate-y-[-10%]">
+          <h2 className="text-white text-2xl font-semibold mb-6 text-center">Sign Up</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {[{ label: 'Email', name: 'email', type: 'email', placeholder: 'you@example.com' }].map(
-            ({ label, name, type, placeholder }) => (
-              <div key={name}>
-                <label className="text-sm text-gray-300 mb-1 block">{label}</label>
-                <input
-                  type={type}
-                  name={name}
-                  value={form[name as keyof typeof form]}
-                  onChange={handleChange}
-                  placeholder={placeholder}
-                  className="w-full p-3 rounded bg-[#2A2A2A] text-white outline-none focus:ring-2 focus:ring-[#ebb70c]"
-                  required
-                />
-              </div>
-            )
-          )}
+          {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
 
-          <button
-            type="submit"
-            className="w-full text-[#fff] bg-[#ebb70c] hover:scale-105 transition-all duration-300 ease-in-out font-semibold py-3 rounded cursor-pointer"
-            disabled={loading}
-          >
-            {loading ? 'Generating Phrase...' : 'Proceed'}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {[{ label: 'Email', name: 'email', type: 'email', placeholder: 'you@example.com' }].map(
+              ({ label, name, type, placeholder }) => (
+                <div key={name}>
+                  <label className="text-sm text-gray-300 mb-1 block">{label}</label>
+                  <input
+                    type={type}
+                    name={name}
+                    value={form[name as keyof typeof form]}
+                    onChange={handleChange}
+                    placeholder={placeholder}
+                    className="w-full p-3 rounded bg-[#2A2A2A] text-white outline-none focus:ring-2 focus:ring-[#ebb70c]"
+                    required
+                  />
+                </div>
+              )
+            )}
 
-        <div className="text-[#fff] mt-5">
-          Already have an account?{' '}
-          <Link href="./login" className="text-[#ebb70c] cursor-pointer">
-            Login
-          </Link>
+            <button
+              type="submit"
+              className="w-full text-[#fff] bg-[#ebb70c] hover:scale-105 transition-all duration-300 ease-in-out font-semibold py-3 rounded cursor-pointer"
+              disabled={loading}
+            >
+              {loading ? 'Generating Phrase...' : 'Proceed'}
+            </button>
+          </form>
+
+          <div className="text-[#fff] mt-5">
+            Already have an account?{' '}
+            <Link href="./login" className="text-[#ebb70c] cursor-pointer">
+              Login
+            </Link>
+          </div>
         </div>
       </div>
     </div>

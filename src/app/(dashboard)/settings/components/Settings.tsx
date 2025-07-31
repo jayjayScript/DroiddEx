@@ -4,12 +4,15 @@ import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { updateFullname, updateCountry, updatePhone, updateAddress } from "@/lib/profile";
 import toast from "react-hot-toast";
+import { logout } from "@/store/user";
+import { UseDispatch } from "react-redux";
 // Remove admin import - we'll use a user-specific API instead
 import api from "@/lib/axios";
 import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/store/userContext";
 import imageCompression from 'browser-image-compression';
+import { useDispatch } from "react-redux";
 
 interface UserInfo {
   fullName: string;
@@ -52,6 +55,13 @@ const Settings = () => {
   const [showFullSeed, setShowFullSeed] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const dispatch = useDispatch();
+
+  const handleLogout = () => {
+    dispatch(logout());
+    router.push('/login');
+  };
+  
 
   // Refetch user status/details after verification actions
   const refetchUserStatus = async () => {
@@ -303,57 +313,6 @@ const Settings = () => {
       ? userInfo[field]?.substring(0, 20) + "..."
       : userInfo[field];
 
-
-    // const clearAllCookies = () => {
-    //   // Get all cookies
-    //   const cookies = document.cookie.split(";");
-
-    //   // Clear each cookie
-    //   cookies.forEach(cookie => {
-    //     const eqPos = cookie.indexOf("=");
-    //     const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-
-    //     // Clear for current domain
-    //     document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-
-    //     // Clear for parent domain (if applicable)
-    //     const domain = window.location.hostname;
-    //     document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain}`;
-
-    //     // Clear for subdomain
-    //     if (domain.includes('.')) {
-    //       const parentDomain = '.' + domain.split('.').slice(-2).join('.');
-    //       document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${parentDomain}`;
-    //     }
-    //   });
-    // };
-
-    // const handleLogout = () => {
-    //   // Clear all cookies
-    //   clearAllCookies();
-
-    //   // Clear local storage
-    //   localStorage.clear();
-    //   sessionStorage.clear();
-
-    //   // Clear user context
-    //   setUser({
-    //     email: '',
-    //     phrase: '',
-    //     fullname: '',
-    //     country: '',
-    //     phone: '',
-    //     address: '',
-    //     verificationStatus: 'unverified',
-    //     KYCVerificationStatus: 'unverified'
-    //   } as UserType);
-
-    //   // Show success message
-    //   toast.success('Logged out successfully');
-
-    //   // Redirect to login page
-    //   router.push('/login');
-    // };
 
     return (
       <div
@@ -637,7 +596,7 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* <div className="mt-6 bg-[#1A1A1A] p-6 rounded-xl shadow-md">
+      <div className="mt-6 bg-[#1A1A1A] p-6 rounded-xl shadow-md">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-white mb-2">Account Actions</h3>
@@ -651,7 +610,7 @@ const Settings = () => {
             Logout
           </button>
         </div>
-      </div> */}
+      </div>
     </div>
   );
 };
