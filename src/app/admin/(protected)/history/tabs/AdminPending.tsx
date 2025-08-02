@@ -12,6 +12,7 @@ type UserTransactionType = {
   _id: string;
   type: string;
   Coin: string;
+  fromCoin: string;
   amount: number;
   image?: string;
   network?: string;
