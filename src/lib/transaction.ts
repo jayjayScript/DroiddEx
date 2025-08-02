@@ -90,8 +90,8 @@ export const swapCoins = async (from: string, to: string, amount: number): Promi
   if (!token) throw new Error('No token');
   try {
     const res = await api.post(
-      '/profile/crypto/swap',
-      { from, to, amount },
+      '/transaction/swap',
+      { fromCoin: from, Coin: to, amount },
       {
         headers: {
           Authorization: `Bearer ${token}`,

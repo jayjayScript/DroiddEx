@@ -167,7 +167,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
     const walletEntry = user.wallet[symbol.toUpperCase() as keyof typeof user.wallet];
     if (!walletEntry) return 0;
     
-    return getBalanceFromWalletEntry(walletEntry);
+    return getBalanceFromWalletEntry(walletEntry as  WalletEntry | WalletEntry[]);
   };
 
   // Calculate exchange rate and estimated output
