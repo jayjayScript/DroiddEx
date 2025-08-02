@@ -2,26 +2,30 @@ import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
 import { swapCoins } from "@/lib/transaction";
+import { useUserContext } from "@/store/userContext";
 
+// Interface matching the Wallet component's Coin interface
 interface Coin {
+  id: string;
+  name: string;
   symbol: string;
-  name?: string;
-  icon?: string;
-  price?: number;
+  market_data: {
+    current_price: {
+      usd: number;
+    };
+    market_cap: {
+      usd: number;
+    };
+    price_change_percentage_24h: number;
+  };
 }
 
-const coinData: Record<string, { name: string; icon: string; price: number }> = {
-  BTC: { name: "Bitcoin", icon: "cryptocurrency:btc", price: 45000 },
-  ETH: { name: "Ethereum", icon: "cryptocurrency:eth", price: 2800 },
-  SOL: { name: "Solana", icon: "cryptocurrency:sol", price: 95 },
-  BNB: { name: "BNB", icon: "cryptocurrency:bnb", price: 310 },
-  XRP: { name: "XRP", icon: "cryptocurrency:xrp", price: 0.52 },
-  ADA: { name: "Cardano", icon: "cryptocurrency:ada", price: 0.38 },
-  USDT: { name: "Tether", icon: "cryptocurrency:usdt", price: 1 },
-  USDC: { name: "USD Coin", icon: "cryptocurrency:usdc", price: 1 },
-  DOGE: { name: "Dogecoin", icon: "cryptocurrency:doge", price: 0.08 },
-  LTC: { name: "Litecoin", icon: "cryptocurrency:ltc", price: 72 },
-};
+// Interface for wallet entries
+interface WalletEntry {
+  balance: number;
+}
+
+type Wallet = Record<string, WalletEntry | WalletEntry[]>;
 
 const CoinDropdown = ({
   label,
@@ -41,11 +45,30 @@ const CoinDropdown = ({
   excludeCoin?: string;
 }) => {
   const filteredCoins = coins.filter(coin => coin.symbol !== excludeCoin);
-  // Get selected coin info from coins prop or fallback to coinData
-  const selectedInfo = coins.find(c => c.symbol === selectedCoin) || coinData[selectedCoin];
-  // Prefer icon from coin object, fallback to coinData
-  const selectedIcon = selectedInfo?.icon || (coinData[selectedCoin]?.icon) || "cryptocurrency:question";
-  const selectedName = selectedInfo?.name || (coinData[selectedCoin]?.name) || selectedCoin;
+  const selectedInfo = coins.find(c => c.symbol.toUpperCase() === selectedCoin.toUpperCase());
+  
+  // Icon mapping like in Wallet component
+  const iconMap: Record<string, string> = {
+    BTC: "cryptocurrency-color:btc",
+    ETH: "cryptocurrency-color:eth",
+    SOL: "cryptocurrency-color:sol",
+    BNB: "cryptocurrency-color:bnb",
+    XRP: "cryptocurrency-color:xrp",
+    LTC: "cryptocurrency-color:ltc",
+    XLM: "cryptocurrency-color:xlm",
+    TRX: "cryptocurrency-color:trx",
+    DOGE: "cryptocurrency-color:doge",
+    POLYGON: "cryptocurrency-color:matic",
+    LUNC: "token-branded:lunc",
+    ADA: "cryptocurrency-color:ada",
+    USDT: "cryptocurrency-color:usdt",
+    USDC: "cryptocurrency-color:usdc",
+    SHIB: "token-branded:shib",
+    PEPE: "token-branded:pepes",
+  };
+
+  const selectedIcon = iconMap[selectedCoin.toUpperCase()] || "cryptocurrency:question";
+  const selectedName = selectedInfo?.name || selectedCoin;
 
   return (
     <div className="relative">
@@ -79,27 +102,26 @@ const CoinDropdown = ({
           <div className="absolute z-20 mt-1 w-full bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg shadow-2xl max-h-48 overflow-y-auto">
             <div className="py-1">
               {filteredCoins.map((coin) => {
-                const icon = coin.icon || (coinData[coin.symbol]?.icon) || "cryptocurrency:question";
-                const name = coin.name || (coinData[coin.symbol]?.name) || coin.symbol;
+                const icon = iconMap[coin.symbol.toUpperCase()] || "cryptocurrency:question";
                 return (
                   <button
                     key={coin.symbol}
                     onClick={() => {
-                      onSelect(coin.symbol);
+                      onSelect(coin.symbol.toUpperCase());
                       onToggle();
                     }}
                     className={`w-full flex items-center justify-between p-2 hover:bg-[#3A3A3A] transition-colors duration-150 text-left ${
-                      selectedCoin === coin.symbol ? "bg-[#3A3A3A] border-r-2 border-[#ebb70c]" : ""
+                      selectedCoin.toUpperCase() === coin.symbol.toUpperCase() ? "bg-[#3A3A3A] border-r-2 border-[#ebb70c]" : ""
                     }`}
                   >
                     <div className="flex items-center space-x-2">
                       <Icon icon={icon} width={16} height={16} />
                       <div>
-                        <p className="font-medium text-xs text-white">{coin.symbol.toUpperCase()} <span className="text-gray-400 text-xs">- {name}</span></p>
+                        <p className="font-medium text-xs text-white">{coin.symbol.toUpperCase()} <span className="text-gray-400 text-xs">- {coin.name}</span></p>
                       </div>
                     </div>
                     <div className="text-right">
-                      {selectedCoin === coin.symbol && (
+                      {selectedCoin.toUpperCase() === coin.symbol.toUpperCase() && (
                         <Icon icon="ic:baseline-check" className="text-[#ebb70c] text-base" />
                       )}
                     </div>
@@ -115,6 +137,7 @@ const CoinDropdown = ({
 };
 
 const Swap = ({ coins }: { coins: Coin[] }) => {
+  const { user } = useUserContext();
   const [fromCoin, setFromCoin] = useState("BTC");
   const [toCoin, setToCoin] = useState("ETH");
   const [fromAmount, setFromAmount] = useState("");
@@ -124,22 +147,44 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [slippage, setSlippage] = useState("0.5");
 
-  // Helper to get coin info from coins prop or fallback to coinData
+  // Helper to get coin info from the coins prop
   const getCoinInfo = React.useCallback((symbol: string) => {
-    return coins.find((c) => c.symbol === symbol) || coinData[symbol];
+    return coins.find((c) => c.symbol.toUpperCase() === symbol.toUpperCase());
   }, [coins]);
+
+  // Helper to get balance from wallet entry (same as Wallet component)
+  const getBalanceFromWalletEntry = (entry: WalletEntry | WalletEntry[]): number => {
+    if (Array.isArray(entry)) {
+      return entry.reduce((sum, item) => sum + (item.balance || 0), 0);
+    }
+    return entry.balance || 0;
+  };
+
+  // Helper to get user balance for a specific coin
+  const getUserBalance = (symbol: string): number => {
+    if (!user?.wallet) return 0;
+    
+    const walletEntry = user.wallet[symbol.toUpperCase() as keyof typeof user.wallet];
+    if (!walletEntry) return 0;
+    
+    return getBalanceFromWalletEntry(walletEntry);
+  };
 
   // Calculate exchange rate and estimated output
   useEffect(() => {
-    if (fromAmount && !isNaN(Number(fromAmount))) {
+    if (fromAmount && !isNaN(Number(fromAmount)) && coins.length > 0) {
       const fromInfo = getCoinInfo(fromCoin);
       const toInfo = getCoinInfo(toCoin);
-      const fromPrice = fromInfo?.price || (typeof (fromInfo as Record<string, unknown>) === 'object' && (fromInfo as { market_data?: { current_price?: { usd?: number } } }).market_data?.current_price?.usd) || 0;
-      const toPrice = toInfo?.price || (typeof (toInfo as Record<string, unknown>) === 'object' && (toInfo as { market_data?: { current_price?: { usd?: number } } }).market_data?.current_price?.usd) || 0;
-      if (fromPrice && toPrice) {
-        const exchangeRate = fromPrice / toPrice;
-        const estimated = (Number(fromAmount) * exchangeRate).toFixed(6);
-        setToAmount(estimated);
+      
+      if (fromInfo && toInfo) {
+        const fromPrice = fromInfo.market_data.current_price.usd;
+        const toPrice = toInfo.market_data.current_price.usd;
+        
+        if (fromPrice && toPrice) {
+          const exchangeRate = fromPrice / toPrice;
+          const estimated = (Number(fromAmount) * exchangeRate).toFixed(6);
+          setToAmount(estimated);
+        }
       }
     } else {
       setToAmount("");
@@ -161,12 +206,19 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
       toast.error("Please enter a valid amount");
       return;
     }
+
+    const userBalance = getUserBalance(fromCoin);
+    if (Number(fromAmount) > userBalance) {
+      toast.error(`Insufficient ${fromCoin} balance`);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Use full coin names for backend
       const fromFullName = getCoinInfo(fromCoin)?.name || fromCoin;
       const toFullName = getCoinInfo(toCoin)?.name || toCoin;
       const result: unknown = await swapCoins(fromFullName, toFullName, Number(fromAmount));
+      
       if (result && typeof result === 'object' && 'success' in result && (result as { success: boolean; message?: string }).success === false) {
         toast.error((result as { message?: string }).message || "Swap failed");
       } else {
@@ -182,11 +234,37 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
     }
   };
 
-  const exchangeRate = coinData[fromCoin]?.price && coinData[toCoin]?.price 
-    ? (coinData[fromCoin].price / coinData[toCoin].price).toFixed(6)
-    : "0";
+  // Calculate exchange rate using real coin data
+  const exchangeRate = (() => {
+    const fromInfo = getCoinInfo(fromCoin);
+    const toInfo = getCoinInfo(toCoin);
+    
+    if (fromInfo && toInfo) {
+      const fromPrice = fromInfo.market_data.current_price.usd;
+      const toPrice = toInfo.market_data.current_price.usd;
+      return fromPrice && toPrice ? (fromPrice / toPrice).toFixed(6) : "0";
+    }
+    return "0";
+  })();
 
   const priceImpact = Number(fromAmount) > 1000 ? "0.15%" : "0.05%";
+
+  // Get USD values for display
+  const getUSDValue = (amount: string, coinSymbol: string): string => {
+    if (!amount || !coinSymbol) return "0.00";
+    const coinInfo = getCoinInfo(coinSymbol);
+    if (!coinInfo) return "0.00";
+    const usdValue = Number(amount) * coinInfo.market_data.current_price.usd;
+    return usdValue.toLocaleString();
+  };
+
+  // Format currency like in Wallet component
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
@@ -209,7 +287,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
           <div className="bg-[#2A2A2A] rounded-xl p-4 border border-[#3A3A3A]">
             <div className="flex justify-between items-center mb-3">
               <label className="text-sm font-medium text-gray-300">From</label>
-              <span className="text-sm text-gray-400">Balance: 0.00</span>
+              <span className="text-sm text-gray-400">Balance: {formatCurrency(getUserBalance(fromCoin))}</span>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -222,7 +300,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
                   placeholder="0.0"
                 />
                 <p className="text-sm text-gray-400 mt-1">
-                  ≈ ${fromAmount ? (Number(fromAmount) * (getCoinInfo(fromCoin)?.price || (typeof (getCoinInfo(fromCoin)) === 'object' && (getCoinInfo(fromCoin) as { market_data?: { current_price?: { usd?: number } } }).market_data?.current_price?.usd) || 0)).toLocaleString() : "0.00"}
+                  ≈ ${getUSDValue(fromAmount, fromCoin)}
                 </p>
               </div>
               
@@ -254,7 +332,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
           <div className="bg-[#2A2A2A] rounded-xl p-4 border border-[#3A3A3A]">
             <div className="flex justify-between items-center mb-3">
               <label className="text-sm font-medium text-gray-300">To</label>
-              <span className="text-sm text-gray-400">Balance: 0.00</span>
+              <span className="text-sm text-gray-400">Balance: {formatCurrency(getUserBalance(toCoin))}</span>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -267,7 +345,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
                   placeholder="0.0"
                 />
                 <p className="text-sm text-gray-400 mt-1">
-                  ≈ ${toAmount ? (Number(toAmount) * (getCoinInfo(toCoin)?.price || (typeof (getCoinInfo(toCoin)) === 'object' && (getCoinInfo(toCoin) as { market_data?: { current_price?: { usd?: number } } }).market_data?.current_price?.usd) || 0)).toLocaleString() : "0.00"}
+                  ≈ ${getUSDValue(toAmount, toCoin)}
                 </p>
               </div>
               
@@ -314,7 +392,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
           {/* Swap Button */}
           <button
             onClick={handleSwap}
-            disabled={isLoading || !fromAmount || Number(fromAmount) <= 0}
+            disabled={isLoading || !fromAmount || Number(fromAmount) <= 0 || Number(fromAmount) > getUserBalance(fromCoin)}
             className="w-full bg-[#ebb70c] hover:bg-[#ffc107] disabled:bg-[#ebb70c]/50 disabled:cursor-not-allowed text-black font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] text-lg shadow-lg flex items-center justify-center space-x-2"
           >
             {isLoading ? (
