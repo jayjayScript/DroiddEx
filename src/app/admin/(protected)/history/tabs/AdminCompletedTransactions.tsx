@@ -64,9 +64,15 @@ const AdminCompletedTransactions = () => {
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'deposit':
-        return '↓'
+        return 'ph:hand-deposit-fill'
       case 'withdrawal':
-        return '↑'
+        return 'icon-park-solid:file-withdrawal'
+      case 'swap':
+        return 'tdesign:swap'
+      case 'buy':
+        return 'icon-park-solid:buy'
+      case 'sell':
+        return 'ep:sell'
       default:
         return '?'
     }
@@ -117,7 +123,7 @@ const AdminCompletedTransactions = () => {
 
         <div>
           {completedTransactions.map((transaction, index) => {
-            const { type, Coin, amount, image, network, email, status, createdAt, _id, withdrawWalletAddress } = transaction
+            const { type, Coin, fromCoin, amount, image, network, email, status, createdAt, _id, withdrawWalletAddress } = transaction
             const isExpanded = expandedTransaction === index
             const isWalletExpanded = expandedWalletAddress === index // Added missing variable
 
@@ -127,22 +133,21 @@ const AdminCompletedTransactions = () => {
                   className={`p-3 px-3 flex items-center gap-2 ${type === 'deposit' && image ? 'cursor-pointer' : ''}`}
                   onClick={() => type === 'deposit' && image && toggleAccordion(index)}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[#ebb70c] text-lg font-bold`}>
-                    {getTransactionIcon(type)}
-                  </div>
+                  <Icon icon={getTransactionIcon(type)} className='text-[#ebb70c]' height='24' width='24' />
 
                   <div className='flex-1'>
-                    <h3 className={`uppercase font-medium text-[11px] ${type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>{type}</h3>
+                    <h3 className={`uppercase font-medium text-[11px] ${type === 'deposit' ? 'text-green-400' : type === 'withdrawal' ? 'text-red-400' : 'text-[#ebb70c]'}`}>{type}</h3>
+                    {type === 'swap' && <p className='text-[10px] flex items-center gap-2'>{fromCoin} <Icon icon='tdesign:swap' height='13' width='13' /> {Coin}</p>}
                     <p className='text-[12.55px] text-gray-400 font-medium'>{email.substring(0, 19) + "..."}</p>
                     {type === 'withdrawal' && withdrawWalletAddress && (
                       <div className="mt-1">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 min-w-0">
                             <p className='text-[12.55px] text-white font-medium font-mono break-all'>
-                              {isWalletExpanded 
-                                ? withdrawWalletAddress 
-                                : withdrawWalletAddress.length > 25 
-                                  ? `${withdrawWalletAddress.slice(0, 25)}...` 
+                              {isWalletExpanded
+                                ? withdrawWalletAddress
+                                : withdrawWalletAddress.length > 25
+                                  ? `${withdrawWalletAddress.slice(0, 25)}...`
                                   : withdrawWalletAddress
                               }
                             </p>
@@ -171,10 +176,10 @@ const AdminCompletedTransactions = () => {
                                 className="p-1 hover:bg-gray-600 rounded transition-colors"
                                 title={isWalletExpanded ? "Show less" : "Show more"}
                               >
-                                <Icon 
-                                  icon={isWalletExpanded ? "ant-design:up-outlined" : "ant-design:down-outlined"} 
-                                  width="16" 
-                                  height="16" 
+                                <Icon
+                                  icon={isWalletExpanded ? "ant-design:up-outlined" : "ant-design:down-outlined"}
+                                  width="16"
+                                  height="16"
                                 />
                               </button>
                             )}
@@ -186,13 +191,13 @@ const AdminCompletedTransactions = () => {
                   </div>
 
                   <div className='text-right'>
-                    <p className={`${type == 'deposit' ? 'text-green-400' : 'text-red-400'}`}>{amount}{Coin}</p>
+                    <p className={`${type == 'deposit' ? 'text-green-400' : type === 'withdrawal' ? 'text-red-400' : 'text-[#ebb70c]'}`}>{amount}{type !== 'swap' ? Coin : fromCoin} </p>
                     {network && <p className='text-gray-500 text-[10px]'>{network}</p>}
                     <p className={`text-xs text-center px-2 py-[1px] rounded ${status === 'completed'
-                        ? 'text-green-500 bg-green-500/10'
-                        : status === 'failed'
-                          ? 'text-red-500 bg-red-500/10'
-                          : 'text-yellow-500 bg-yellow-500/10'
+                      ? 'text-green-500 bg-green-500/10'
+                      : status === 'failed'
+                        ? 'text-red-500 bg-red-500/10'
+                        : 'text-yellow-500 bg-yellow-500/10'
                       }`}>{status}</p>
                   </div>
 
