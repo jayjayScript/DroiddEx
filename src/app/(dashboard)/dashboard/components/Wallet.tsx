@@ -647,7 +647,7 @@ const Wallet = () => {
 
         {activePage === "sell" && (
           <div>
-            <SellPage />
+            <SellPage coins={coins}/>
           </div>
         )}
       </div>
