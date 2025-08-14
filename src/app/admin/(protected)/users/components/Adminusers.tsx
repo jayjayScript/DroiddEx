@@ -3,11 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Users, Eye, DollarSign, UserCheck, UserX, Filter, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { user } from '@/lib/admin';
+import { user, Wallet, USDTEntry } from '@/lib/admin';
+// import {Coin} from '@/app/(dashboard)/dashboard/components/Wallet';
+import {Coin} from "@/app/(dashboard)/dashboard/components/Wallet";
 import toast from 'react-hot-toast';
 import api from '@/lib/axios';
 import Cookies from 'js-cookie';
 import { deleteUser } from '@/lib/updateUser';
+import {CoinGeckoCoin, getCoins} from "@/lib/getCoins";
+import {WalletEntry} from "@/app/(dashboard)/dashboard/components/SubscriptionModal";
 
 const AdminUsers = () => {
   const [search, setSearch] = useState('');
@@ -15,7 +19,7 @@ const AdminUsers = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: string; email: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   interface User {
     fullname?: string;
     email: string;
@@ -25,9 +29,11 @@ const AdminUsers = () => {
     avatar?: string;
     id: string | number;
     username?: string;
+    wallet?: Wallet;
   }
 
   const [users, setUsers] = useState<User[]>([])
+    const [coins, setCoins] = useState<Coin[]>([]);
   const router = useRouter();
 
   interface HandleViewUser {
@@ -46,22 +52,22 @@ const AdminUsers = () => {
 
   const confirmDeleteUser = async () => {
     if (!userToDelete) return;
-    
+
     setIsDeleting(true);
     try {
       console.log('Attempting to delete user:', userToDelete.email);
-      
+
       // Call the deleteUser function with email
       const response = await deleteUser(userToDelete.email);
       console.log('Delete response:', response);
-      
+
       // Remove user from local state using the ID for filtering
       setUsers(users.filter(user => user.id !== userToDelete.id));
       toast.success("User deleted successfully.");
-      
+
     } catch (error) {
       console.error("Error deleting user:", error);
-      
+
       // More detailed error handling
       if (error instanceof Error) {
         toast.error(`Error deleting user: ${error.message}`);
@@ -96,6 +102,7 @@ const AdminUsers = () => {
           fullname: user.fullname,
           email: user.email,
           balance: user.balance,
+          wallet: user.wallet,
           status: user.isVerified ? 'verified' : 'unverified',
           joinDate: user.joinDate,
           id: user._id,
@@ -108,6 +115,34 @@ const AdminUsers = () => {
     };
     fetchUsers();
   }, [router]);
+
+  useEffect(() => {
+      const fetchCoins = async () => {
+          try{
+              const data =  await getCoins();
+              const mappedCoins: Coin[] = data.map((coin: CoinGeckoCoin) => ({
+                  id: coin.id,
+                  name: coin.name,
+                  symbol: coin.symbol,
+                  market_data: {
+                      current_price: {
+                          usd: coin.current_price,
+                      },
+                      market_cap: {
+                          usd: coin.market_cap,
+                      },
+                      price_change_percentage_24h: coin.price_change_percentage_24h,
+                  },
+              }));
+              setCoins(mappedCoins)
+          } catch (e) {
+                console.error('Failed to fetch coins:', e);
+                toast.error('Failed to fetch coins');
+          }
+      }
+      fetchCoins();
+  }, [])
+
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch = (user.fullname ?? '').toLowerCase().includes(search.toLowerCase()) ||
@@ -162,6 +197,35 @@ const AdminUsers = () => {
     }
     return 'U';
   };
+
+    const getTotalBalance = (wallet: Wallet, coins: Coin[] = []): number => {
+        if (!wallet || !coins || coins.length === 0) return 0;
+
+        return Object.entries(wallet).reduce<number>((total, [symbol, entry]: [string, WalletEntry | USDTEntry[]]) => {
+            const coinData = coins.find(coin => coin.symbol.toUpperCase() === symbol.toUpperCase());
+            if (!coinData) return total
+
+            const currentPrice = coinData.market_data.current_price.usd;
+
+            if (Array.isArray(entry)) {
+                const coinQuantity = entry.reduce(
+                    (sub: number, item) => sub + (item.balance || 0),
+                    0
+                );
+                return total + (coinQuantity * currentPrice);
+            }
+
+            const coinQuantity = entry.balance || 0;
+            return total + (coinQuantity * currentPrice);
+        }, 0);
+    }
+
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    };
 
   return (
     <div className="md:max-w-[70%] mx-auto p-2 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
@@ -278,7 +342,7 @@ const AdminUsers = () => {
                   <div className="space-y-3 mb-6">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 text-sm">Balance</span>
-                      <span className="text-white font-semibold text-lg">${user.balance}</span>
+                      <span className="text-white font-semibold text-lg">${formatCurrency(user.wallet ? getTotalBalance(user.wallet, coins) : (user.balance || 0))}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 text-sm">Join Date</span>

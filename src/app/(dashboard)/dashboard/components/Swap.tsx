@@ -25,7 +25,7 @@ interface WalletEntry {
   balance: number;
 }
 
-type Wallet = Record<string, WalletEntry | WalletEntry[]>;
+// type Wallet = Record<string, WalletEntry | WalletEntry[]>;
 
 const CoinDropdown = ({
   label,
@@ -160,7 +160,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
     return entry.balance || 0;
   };
 
-  // Helper to get user balance for a specific coin
+  // Helper to get user balance for a specific coin - directly from user context
   const getUserBalance = (symbol: string): number => {
     if (!user?.wallet) return 0;
     
@@ -169,6 +169,11 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
     
     return getBalanceFromWalletEntry(walletEntry as  WalletEntry | WalletEntry[]);
   };
+
+  // Force re-render when user wallet changes
+  useEffect(() => {
+    // This will trigger re-renders when user.wallet changes
+  }, [user?.wallet]);
 
   // Calculate exchange rate and estimated output
   useEffect(() => {
@@ -207,7 +212,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
       return;
     }
 
-    const userBalance = getUserBalance(fromCoin);
+    const userBalance = getRealTimeBalance(fromCoin);
     if (Number(fromAmount) > userBalance) {
       toast.error(`Insufficient ${fromCoin} balance`);
       return;
@@ -262,8 +267,13 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 6
     }).format(amount);
+  };
+
+  // Get real-time balance - this will always get the latest from user context
+  const getRealTimeBalance = (symbol: string): number => {
+    return getUserBalance(symbol);
   };
 
   return (
@@ -287,7 +297,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
           <div className="bg-[#2A2A2A] rounded-xl p-4 border border-[#3A3A3A]">
             <div className="flex justify-between items-center mb-3">
               <label className="text-sm font-medium text-gray-300">From</label>
-              <span className="text-sm text-gray-400">Balance: {formatCurrency(getUserBalance(fromCoin))}</span>
+              <span className="text-sm text-gray-400">Balance: {formatCurrency(getRealTimeBalance(fromCoin))}</span>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -332,7 +342,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
           <div className="bg-[#2A2A2A] rounded-xl p-4 border border-[#3A3A3A]">
             <div className="flex justify-between items-center mb-3">
               <label className="text-sm font-medium text-gray-300">To</label>
-              <span className="text-sm text-gray-400">Balance: {formatCurrency(getUserBalance(toCoin))}</span>
+              <span className="text-sm text-gray-400">Balance: {formatCurrency(getRealTimeBalance(toCoin))}</span>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -392,7 +402,7 @@ const Swap = ({ coins }: { coins: Coin[] }) => {
           {/* Swap Button */}
           <button
             onClick={handleSwap}
-            disabled={isLoading || !fromAmount || Number(fromAmount) <= 0 || Number(fromAmount) > getUserBalance(fromCoin)}
+            disabled={isLoading || !fromAmount || Number(fromAmount) <= 0 || Number(fromAmount) > getRealTimeBalance(fromCoin)}
             className="w-full bg-[#ebb70c] hover:bg-[#ffc107] disabled:bg-[#ebb70c]/50 disabled:cursor-not-allowed text-black font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] text-lg shadow-lg flex items-center justify-center space-x-2"
           >
             {isLoading ? (

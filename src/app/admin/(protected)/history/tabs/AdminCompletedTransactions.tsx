@@ -67,9 +67,15 @@ const AdminCompletedTransactions = () => {
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'deposit':
-        return '↓'
+        return 'ph:hand-deposit-fill'
       case 'withdrawal':
-        return '↑'
+        return 'icon-park-solid:file-withdrawal'
+      case 'swap':
+        return 'tdesign:swap'
+      case 'buy':
+        return 'icon-park-solid:buy'
+      case 'sell':
+        return 'ep:sell'
       default:
         return '?'
     }

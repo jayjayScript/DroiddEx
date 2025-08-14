@@ -111,9 +111,98 @@ export default function UserDetailPage() {
   const [editValues, setEditValues] = useState<EditValues>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const router = useRouter()
+  const [lastClick, setLastClick] = useState<Date | null>(null);
+  const [timeAgo, setTimeAgo] = useState("Never Clicked");
+  const [botDuration, setBotDuration] = useState("Not activated");
+  const router = useRouter();
+
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+
+    const minutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if(minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    return `${days} day${days !== 1 ? 's' : ''} ago`;
+  }
+
+  // Function to calculate bot active duration
+  const calculateBotDuration = () => {
+    if (!client?.ActivateBot) return "Not activated";
+    
+    const storageKey = `botActivatedAt_${client.id}`;
+    const storedTime = localStorage.getItem(storageKey);
+    
+    if (!storedTime) return "Just activated";
+    
+    const activatedAt = new Date(storedTime);
+    const now = new Date();
+    const diffMs = now.getTime() - activatedAt.getTime();
+    
+    const seconds = Math.floor(diffMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days}d ${hours % 24}h ${minutes % 60}m`;
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+    return `${seconds}s`;
+  };
 
   useEffect(() => {
+      const interval = setInterval(() => {
+        if (lastClick) {
+          setTimeAgo(formatTimeAgo(lastClick));
+        }
+      }, 1000)
+
+      return () => clearInterval(interval);
+  }, [lastClick]);
+
+  // Update bot duration every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBotDuration(calculateBotDuration());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [client?.ActivateBot, client?.id]);
+
+    // Load last click timestamp from localStorage on mount (and when client changes)
+    useEffect(() => {
+      if (!client?.id) return;
+      try {
+        const storageKey = `lastClick_${client.id}`;
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          const date = new Date(stored);
+          setLastClick(date);
+          setTimeAgo(formatTimeAgo(date));
+        }
+      } catch (e) {
+            console.error("Error loading last click time from localStorage:", e);
+      }
+    }, [client?.id]);
+
+    // Persist last click time in localStorage and update "time ago"
+    const handleClick = () => {
+      const now = new Date();
+      setLastClick(now);
+      setTimeAgo("Just now");
+      try {
+        const storageKey = client?.id ? `lastClick_${client.id}` : "lastClick";
+        localStorage.setItem(storageKey, now.toISOString());
+      } catch (e) {
+            console.error(e)
+      }
+    };
+
+    useEffect(() => {
     let isMounted = true;
 
     const fetchCoins = async () => {
@@ -810,9 +899,23 @@ const saveEdit = async (field: string) => {
             onClick={async () => {
               setSaving(true);
               try {
-                await updateUser(client.email, { ActivateBot: !client.ActivateBot });
-                setUser({ ...client, ActivateBot: !client.ActivateBot });
-                toast.success(`Bot ${!client.ActivateBot ? "activated" : "deactivated"} successfully.`);
+                const newActivateBot = !client.ActivateBot;
+                await updateUser(client.email, { ActivateBot: newActivateBot });
+                setUser({ ...client, ActivateBot: newActivateBot });
+                
+                // Track bot activation time in localStorage
+                const storageKey = `botActivatedAt_${client.id}`;
+                if (newActivateBot) {
+                  // Bot is being activated - store the current time
+                  const now = new Date();
+                  localStorage.setItem(storageKey, now.toISOString());
+                } else {
+                  // Bot is being deactivated - remove the stored time
+                  localStorage.removeItem(storageKey);
+                }
+                
+                toast.success(`Bot ${newActivateBot ? "activated" : "deactivated"} successfully.`);
+                handleClick();
               } catch (e) {
                 toast.error("Failed to toggle bot activation.");
                 console.error(e)
@@ -824,6 +927,12 @@ const saveEdit = async (field: string) => {
             {client.ActivateBot ? "Deactivate Bot" : "Activate Bot"}
           </button>
         </div>
+          <div>
+            <p className="mt-2">Last clicked: {timeAgo}</p>
+            <p className="mt-2 text-gray-400">Bot active for: 
+              <span className="text-white ml-1 font-medium">{botDuration}</span>
+            </p>
+          </div>
 
         {/* Coin Holdings Section */}
         <div className="space-y-3 flex flex-col gap-4">
