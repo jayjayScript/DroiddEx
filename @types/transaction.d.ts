@@ -2,7 +2,7 @@
    Literal‑union helpers
    ──────────────────────────────── */
 
-type TransactionType   = 'deposit' | 'withdrawal';
+type TransactionType   = 'deposit' | 'withdrawal' | 'plans' | 'yield' | 'swap' | 'buy' | 'sell';
 type TransactionStatus = 'pending' | 'completed' | 'failed';
 
 /* ────────────────────────────────
@@ -46,4 +46,16 @@ interface UserTransactionType {
   /* Added automatically by `{ timestamps: true }` */
   createdAt?: string;
   updatedAt?: string;
+}
+
+interface TransactionHistoryResponse {
+   success: boolean;
+   message: string;
+   data: {
+      transactions: UserTransactionType[];
+      page: number;
+      limit: number;
+      totalPages: number;
+      total: number;
+   }
 }
