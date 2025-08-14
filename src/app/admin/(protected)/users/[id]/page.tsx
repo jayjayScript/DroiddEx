@@ -92,7 +92,8 @@ const COINS = {
   USDT: "tether",
   USDC: "usd-coin",
   SHIBA: "shiba-inu",
-  PEPE: "pepe"
+  PEPE: "pepe",
+  TROLL: "troll"
 };
 
 export default function UserDetailPage() {

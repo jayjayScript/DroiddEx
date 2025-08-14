@@ -21,6 +21,7 @@ export const walletAddresses: { [symbol: string]: { name: string; address: strin
   USDC: [{ name: "USDC", address: "0x464B0007a2A4C29912f0fb3EB8A15831961890CF" }],
   SHIBA: [{ name: "SHIBA", address: "0x464B0007a2A4C29912f0fb3EB8A15831961890CF" }],
   PEPE: [{ name: "PEPE", address: "0x464B0007a2A4C29912f0fb3EB8A15831961890CF" }],
+  TROLL: [{ name: "TROLL", address: "9PwLjinV7riyVhe4PjseZBJw2y7wt8uoWa1wqTyX8pfV" }],
 };
 
 
@@ -41,7 +42,8 @@ export const coinIdMap = {
   USDT: "tether",
   USDC: "usd-coin",
   SHIBA: "shiba-inu",
-  PEPE: "pepe"
+  PEPE: "pepe",
+  TROLL: "troll"
 };
 
 export const coins = [
@@ -59,4 +61,5 @@ export const coins = [
   { symbol: "USDC", name: "USD Coin", icon: "cryptocurrency:usdc" },
   { symbol: "SHIBA", name: "Shiba Inu", icon: "cryptocurrency:shib" },
   { symbol: "PEPE", name: "Pepe", icon: "cryptocurrency:pepe" }, // may not exist in Iconify
+  { symbol: "TROLL", name: "Troll Coin", icon: "cryptocurrency:question" },
 ];

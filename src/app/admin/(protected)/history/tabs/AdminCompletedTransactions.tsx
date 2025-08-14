@@ -160,6 +160,7 @@ const AdminCompletedTransactions = () => {
     <div>
       {/* Header with pagination controls */}
       <div className="mb-4">
+          <p className='hidden'>{totalTransactions}</p>
         <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-white text-lg font-semibold">Completed Transactions</h2>
