@@ -49,6 +49,7 @@ export type user = {
         USDC: number;
         SHIBA: number;
         PEPE: number;
+        TROLL: number;
         _id: string;
         USDT: [
             {

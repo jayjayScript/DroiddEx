@@ -181,7 +181,7 @@ const UserPendingTransactions = () => {
               <div className="flex-1">
                 <h3 className="text-[#ebb70c] font-medium text-sm">Processing Status</h3>
                 <p className="text-gray-300 text-sm mt-1">
-                  Your transactions are being reviewed and will be processed within 24 hours. You'll receive an email confirmation once completed.
+                  Your transactions are being reviewed and will be processed within 24 hours. You&apos;ll receive an email confirmation once completed.
                 </p>
               </div>
             </div>

@@ -124,6 +124,7 @@ const coinMeta = {
   SHIBA: { name: "Shiba Inu", icon: "token-branded:shib", networks: ["ERC20"] },
   PEPE: { name: "Pepe", icon: "token-branded:pepes", networks: ["ERC20"] },
   XRP: { name: "XRP", icon: "cryptocurrency-color:xrp", networks: ["XRP"] },
+  TROLL: { name: "TROLL", icon: "cryptocurrency-color:troll", networks: ["TROLL"] }
 };
 
 const Receive = () => {

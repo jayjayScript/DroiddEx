@@ -173,6 +173,7 @@ const AdminPendingTransactions = () => {
 
   return (
     <div>
+        <p className={`hidden`}>{totalTransactions}</p>
       {/* Header with pagination controls */}
       <div className="mb-4">
         <div className="flex justify-between items-center mb-4">
