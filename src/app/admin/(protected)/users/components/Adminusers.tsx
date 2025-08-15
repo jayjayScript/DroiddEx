@@ -455,7 +455,7 @@ const AdminUsers = () => {
                     <button
                       className="flex-1 p-2 rounded-lg transition-colors duration-200 hover:bg-opacity-80 flex items-center justify-center space-x-1"
                       style={{ backgroundColor: '#ebb70c', color: '#1a1a1a' }}
-                      onClick={() => handleViewUser(user.id.toString())}
+                      onClick={() => handleViewUser(user.email)}
                       title="View User">
                       <Eye className="w-4 h-4" />
                       <span className="text-sm font-medium">View</span>

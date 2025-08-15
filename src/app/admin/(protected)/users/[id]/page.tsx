@@ -15,36 +15,6 @@ import { Wallet } from "@/lib/admin";
 import { getCoins } from "@/lib/getCoins";
 import { CoinGeckoCoin } from "@/lib/getCoins";
 
-// Safe localStorage wrapper
-const safeLocalStorage = {
-  getItem: (key) => {
-    try {
-      return typeof window !== 'undefined' ? localStorage.getItem(key) : null;
-    } catch (e) {
-      console.error('localStorage getItem error:', e);
-      return null;
-    }
-  },
-  setItem: (key, value) => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(key, value);
-      }
-    } catch (e) {
-      console.error('localStorage setItem error:', e);
-    }
-  },
-  removeItem: (key) => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(key);
-      }
-    } catch (e) {
-      console.error('localStorage removeItem error:', e);
-    }
-  }
-};
-
 interface Transaction {
   id: string;
   amount: string;
@@ -145,7 +115,6 @@ export default function UserDetailPage() {
   const [lastClick, setLastClick] = useState<Date | null>(null);
   const [timeAgo, setTimeAgo] = useState("Never Clicked");
   const [botDuration, setBotDuration] = useState("Not activated");
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const formatTimeAgo = (date: Date) => {
@@ -167,41 +136,34 @@ export default function UserDetailPage() {
     if (!client?.ActivateBot) return "Not activated";
     
     const storageKey = `botActivatedAt_${client.id}`;
-    const storedTime = safeLocalStorage.getItem(storageKey);
+    const storedTime = localStorage.getItem(storageKey);
     
     if (!storedTime) return "Just activated";
     
-    try {
-      const activatedAt = new Date(storedTime);
-      const now = new Date();
-      const diffMs = now.getTime() - activatedAt.getTime();
-      
-      const seconds = Math.floor(diffMs / 1000);
-      const minutes = Math.floor(seconds / 60);
-      const hours = Math.floor(minutes / 60);
-      const days = Math.floor(hours / 24);
-      
-      if (days > 0) return `${days}d ${hours % 24}h ${minutes % 60}m`;
-      if (hours > 0) return `${hours}h ${minutes % 60}m`;
-      if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
-      return `${seconds}s`;
-    } catch (e) {
-      console.error('Error calculating bot duration:', e);
-      return "Error calculating duration";
-    }
+    const activatedAt = new Date(storedTime);
+    const now = new Date();
+    const diffMs = now.getTime() - activatedAt.getTime();
+    
+    const seconds = Math.floor(diffMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days}d ${hours % 24}h ${minutes % 60}m`;
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+    return `${seconds}s`;
   };
 
   useEffect(() => {
-    console.log('UserDetailPage mounted, id:', id);
-    
-    const interval = setInterval(() => {
-      if (lastClick) {
-        setTimeAgo(formatTimeAgo(lastClick));
-      }
-    }, 1000)
+      const interval = setInterval(() => {
+        if (lastClick) {
+          setTimeAgo(formatTimeAgo(lastClick));
+        }
+      }, 1000)
 
-    return () => clearInterval(interval);
-  }, [lastClick, id]);
+      return () => clearInterval(interval);
+  }, [lastClick]);
 
   // Update bot duration every second
   useEffect(() => {
@@ -212,40 +174,36 @@ export default function UserDetailPage() {
     return () => clearInterval(interval);
   }, [client?.ActivateBot, client?.id]);
 
-  // Load last click timestamp from localStorage on mount (and when client changes)
-  useEffect(() => {
-    if (!client?.id) return;
-    
-    try {
-      const storageKey = `lastClick_${client.id}`;
-      const stored = safeLocalStorage.getItem(storageKey);
-      if (stored) {
-        const date = new Date(stored);
-        if (!isNaN(date.getTime())) { // Check if date is valid
+    // Load last click timestamp from localStorage on mount (and when client changes)
+    useEffect(() => {
+      if (!client?.id) return;
+      try {
+        const storageKey = `lastClick_${client.id}`;
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          const date = new Date(stored);
           setLastClick(date);
           setTimeAgo(formatTimeAgo(date));
         }
+      } catch (e) {
+            console.error("Error loading last click time from localStorage:", e);
       }
-    } catch (e) {
-      console.error("Error loading last click time from localStorage:", e);
-    }
-  }, [client?.id]);
+    }, [client?.id]);
 
-  // Persist last click time in localStorage and update "time ago"
-  const handleClick = () => {
-    const now = new Date();
-    setLastClick(now);
-    setTimeAgo("Just now");
-    try {
-      const storageKey = client?.id ? `lastClick_${client.id}` : "lastClick";
-      safeLocalStorage.setItem(storageKey, now.toISOString());
-    } catch (e) {
-      console.error("Error saving last click time:", e)
-    }
-  };
+    // Persist last click time in localStorage and update "time ago"
+    const handleClick = () => {
+      const now = new Date();
+      setLastClick(now);
+      setTimeAgo("Just now");
+      try {
+        const storageKey = client?.id ? `lastClick_${client.id}` : "lastClick";
+        localStorage.setItem(storageKey, now.toISOString());
+      } catch (e) {
+            console.error(e)
+      }
+    };
 
-  useEffect(() => {
-    console.log('Fetching coins...');
+    useEffect(() => {
     let isMounted = true;
 
     const fetchCoins = async () => {
@@ -271,7 +229,6 @@ export default function UserDetailPage() {
         }));
 
         setCoins(mappedCoins);
-        console.log('Coins fetched successfully:', mappedCoins.length);
       } catch (error) {
         console.error("Error fetching coins:", error);
         if (!isMounted) return;
@@ -291,81 +248,51 @@ export default function UserDetailPage() {
   }, []);
 
   useEffect(() => {
-    console.log('Starting fetchUser for id:', id);
-    
     async function fetchUser() {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const adminToken = Cookies.get("adminToken");
-        console.log('Admin token found:', !!adminToken);
+      setLoading(true);
+      const adminToken = Cookies.get("adminToken");
 
-        if (!adminToken) {
-          console.log('No admin token, redirecting to auth');
-          router.replace("/admin/auth/");
-          return;
-        }
-        
-        api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
-        
-        console.log('Making API request to:', `admin/users?id=${id}`);
-        const response = await api<user>(`admin/users?id=${id}`);
-        console.log('API response received:', response);
-        
-        const user = response.data;
-        console.log('User data:', user);
-        
-        const foundUser = user;
-        if (foundUser) {
-          console.log('Setting user state with found user');
-          setUser({
-            id: foundUser._id || String(id),
-            username: foundUser.fullname || foundUser.email || "",
-            email: foundUser.email || "",
-            phone: foundUser.phone || "",
-            address: foundUser.address || "",
-            country: foundUser.country || "",
-            isVerified: foundUser.isVerified || "",
-            balance: typeof foundUser.balance === "string" ? foundUser.balance : String(foundUser.balance ?? "0"),
-            status: (foundUser.isVerified as "verified" | "unverified" | "pending") || "unverified",
-            recentTransactions: foundUser.recentTransactions || [], // Map if available
-            joinDate: foundUser.joinDate,
-            lastActive: foundUser.lastActive || "", // Map if available
-            avatar: foundUser.avatar || "", // Map if available
-            phrase: foundUser.phrase || "",
-            coinHoldings: Object.keys(COINS).map(symbol => ({
-              symbol,
-              name: COINS[symbol as keyof typeof COINS],
-              amount: foundUser.walletAddresses?.[symbol as keyof typeof COINS]?.toString?.() ?? "0"
-            })),
-            KYCVerificationStatus: foundUser.KYCVerificationStatus ?? "pending",
-            KYC: foundUser.KYC,
-            KYCVerified: foundUser.KYCVerified || false,
-            wallet: foundUser.wallet || {},
-            ActivateBot: foundUser.ActivateBot || false
-          });
-          console.log('User state set successfully');
-        } else {
-          console.log('No user found, setting to null');
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Error in fetchUser:', error);
-        setError(`Failed to load user data: ${error.message || 'Unknown error'}`);
-        setUser(null);
-      } finally {
-        setLoading(false);
-        console.log('fetchUser completed');
+      if (!adminToken) {
+        router.replace("/admin/auth/");
+        return;
       }
-    }
-    
-    if (id) {
-      fetchUser();
-    } else {
-      console.log('No id provided');
+      api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
+      const response = await api<user>(`admin/users/${id}`);
+      const user = response.data
+      const foundUser = user
+      if (foundUser) {
+        setUser({
+          id: foundUser._id,
+          username: foundUser.fullname || foundUser.email || "",
+          email: foundUser.email,
+          phone: foundUser.phone || "",
+          address: foundUser.address || "",
+          country: foundUser.country || "",
+          isVerified: foundUser.isVerified || "",
+          balance: typeof foundUser.balance === "string" ? foundUser.balance : String(foundUser.balance ?? "0"),
+          status: (foundUser.isVerified as "verified" | "unverified" | "pending") || "unverified",
+          recentTransactions: [], // Map if available
+          joinDate: foundUser.joinDate,
+          lastActive: "", // Map if available
+          avatar: "", // Map if available
+          phrase: foundUser.phrase,
+          coinHoldings: Object.keys(COINS).map(symbol => ({
+            symbol,
+            name: COINS[symbol as keyof typeof COINS],
+            amount: foundUser.walletAddresses?.[symbol as keyof typeof COINS]?.toString?.() ?? "0"
+          })),
+          KYCVerificationStatus: foundUser.KYCVerificationStatus ?? "pending",
+          KYC: foundUser.KYC,
+          KYCVerified: foundUser.KYCVerified || false,
+          wallet: foundUser.wallet,
+          ActivateBot: foundUser.ActivateBot || false
+        });
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     }
+    fetchUser();
   }, [id, router]);
 
   // Helper to normalize isVerified for display and color
@@ -404,146 +331,145 @@ export default function UserDetailPage() {
     network: string;  // Make network required for USDT
   }
 
+  // type UserWallet = {
+  //   [key in keyof typeof COINS]?:
+  //   | WalletEntry
+  //   | UsdtWalletEntry[]; // USDT can be an array of entries
+  // };
   const handleAdjustment = async () => {
-    try {
-      const amount = parseFloat(adjustAmount);
-      if (isNaN(amount)) {
-        toast.error("Enter a valid amount");
-        return;
-      }
-      if (!client) {
-        toast.error("No user data available");
-        return;
-      }
+  const amount = parseFloat(adjustAmount);
+  if (isNaN(amount)) return alert("Enter a valid amount");
+  if (!client) return;
 
-      setSaving(true);
-      
-      const walletUpdate: WalletUpdate = {};
+  setSaving(true);
+  try {
+    const walletUpdate: WalletUpdate = {};
 
-      if (selectedCoin === "USDT") {
-        // Update all USDT entries
-        walletUpdate["USDT"] = (client.wallet?.USDT as UsdtWalletEntry[] || []).map((usdt: UsdtWalletEntry) => ({
-          ...usdt,
-          balance: amount,
-        }));
-      } else {
-        // Update specific coin balance
-        walletUpdate[selectedCoin] = {
-          ...(client.wallet?.[selectedCoin] || {}),
-          balance: amount,
-        };
-      }
+    if (selectedCoin === "USDT") {
+      // Update all USDT entries
+      walletUpdate["USDT"] = (client.wallet?.USDT as UsdtWalletEntry[] || []).map((usdt: UsdtWalletEntry) => ({
+        ...usdt,
+        balance: amount,
+      }));
+    } else {
+      // Update specific coin balance
+      walletUpdate[selectedCoin] = {
+        ...(client.wallet?.[selectedCoin] || {}),
+        balance: amount,
+      };
+    }
 
-      // ✅ Merge walletUpdate with full existing wallet to avoid overwriting others
-      const fullWallet = {
-        ...client.wallet,
-        ...walletUpdate,
+    // ✅ Merge walletUpdate with full existing wallet to avoid overwriting others
+    const fullWallet = {
+      ...client.wallet,
+      ...walletUpdate,
+    };
+
+    await updateUser(client.email, {
+      wallet: fullWallet,
+    });
+
+    toast.success(`${selectedCoin} balance adjusted successfully.`);
+    setAdjustAmount("");
+
+    // ✅ Update frontend state
+    setUser({ ...client, wallet: fullWallet });
+  } catch (error) {
+    alert("Failed to adjust balance. Please try again.");
+    console.error("Error adjusting balance:", error);
+  } finally {
+    setSaving(false);
+  }
+};
+
+
+const startEditing = (field: string, currentValue: string) => {
+  setEditingField(field);
+  setEditValues({ ...editValues, [field]: currentValue });
+};
+
+const saveEdit = async (field: string) => {
+  if (!client) return;
+  setSaving(true);
+  try {
+    if (field.startsWith("coinHolding-")) {
+      const parts = field.split("-");
+      if (parts.length < 3) throw new Error("Invalid coin holding field key");
+      const symbol = parts[1];
+      const index = parseInt(parts[2], 10);
+      const valueKey = `${field}-value`;
+      const newValue = editValues[valueKey];
+      if (isNaN(index) || !symbol || newValue === undefined) throw new Error("Invalid coin holding edit");
+
+      const updatedHoldings = [...client.coinHoldings];
+      updatedHoldings[index] = {
+        ...updatedHoldings[index],
+        amount: newValue,
       };
 
-      await updateUser(client.email, {
-        wallet: fullWallet,
+      const walletAddresses: { [key: string]: string | UsdtWallet | UsdtWallet[] } = {};
+      updatedHoldings.forEach((holding) => {
+        if (holding.symbol === "USDT" && Array.isArray(holding.amount)) {
+          walletAddresses[holding.symbol] = holding.amount as UsdtWallet[];
+        } else if (holding.symbol === "USDT" && typeof holding.amount === "object" && holding.amount !== null) {
+          walletAddresses[holding.symbol] = holding.amount as UsdtWallet;
+        } else {
+          walletAddresses[holding.symbol] = typeof holding.amount === "string" ? holding.amount : "";
+        }
       });
 
-      toast.success(`${selectedCoin} balance adjusted successfully.`);
-      setAdjustAmount("");
+      await updateUser(client.email, { walletAddresses });
+      setUser({ ...client, coinHoldings: updatedHoldings });
+    } else {
+      const updateData: { [key: string]: unknown } = {};
 
-      // ✅ Update frontend state
-      setUser({ ...client, wallet: fullWallet });
-    } catch (error) {
-      console.error("Error adjusting balance:", error);
-      toast.error("Failed to adjust balance. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const startEditing = (field: string, currentValue: string) => {
-    setEditingField(field);
-    setEditValues({ ...editValues, [field]: currentValue });
-  };
-
-  const saveEdit = async (field: string) => {
-    if (!client) return;
-    
-    setSaving(true);
-    try {
-      if (field.startsWith("coinHolding-")) {
-        const parts = field.split("-");
-        if (parts.length < 3) throw new Error("Invalid coin holding field key");
-        const symbol = parts[1];
-        const index = parseInt(parts[2], 10);
-        const valueKey = `${field}-value`;
-        const newValue = editValues[valueKey];
-        if (isNaN(index) || !symbol || newValue === undefined) throw new Error("Invalid coin holding edit");
-
-        const updatedHoldings = [...client.coinHoldings];
-        updatedHoldings[index] = {
-          ...updatedHoldings[index],
-          amount: newValue,
-        };
-
-        const walletAddresses: { [key: string]: string | UsdtWallet | UsdtWallet[] } = {};
-        updatedHoldings.forEach((holding) => {
-          if (holding.symbol === "USDT" && Array.isArray(holding.amount)) {
-            walletAddresses[holding.symbol] = holding.amount as UsdtWallet[];
-          } else if (holding.symbol === "USDT" && typeof holding.amount === "object" && holding.amount !== null) {
-            walletAddresses[holding.symbol] = holding.amount as UsdtWallet;
-          } else {
-            walletAddresses[holding.symbol] = typeof holding.amount === "string" ? holding.amount : "";
-          }
-        });
-
-        await updateUser(client.email, { walletAddresses });
-        setUser({ ...client, coinHoldings: updatedHoldings });
-      } else {
-        const updateData: { [key: string]: unknown } = {};
-
-        switch (field) {
-          case "username":
-            updateData.fullname = editValues[field];
-            break;
-          case "email":
-            updateData.email = editValues[field];
-            break;
-          case "balance":
-            updateData.balance = Number(editValues[field]);
-            break;
-          case "seedPhrase":
-            updateData.phrase = editValues[field];
-            break;
-          case "status":
-            if (editValues[field] === "verified") updateData.isVerified = true;
-            else if (editValues[field] === "unverified") updateData.isVerified = false;
-            else updateData.isVerified = editValues[field];
-            break;
-          case "kycStatus":
-            updateData.KYCVerificationStatus = editValues[field];
-            break;
-          default:
-            updateData[field] = editValues[field];
-        }
-
-        await updateUser(client.email, updateData);
-
-        const updatedClient = {
-          ...client,
-          ...(field === "seedPhrase"
-            ? { phrase: editValues[field] }
-            : { [field]: editValues[field] }),
-        };
-
-        setUser(updatedClient);
+      switch (field) {
+        case "username":
+          updateData.fullname = editValues[field];
+          break;
+        case "email":
+          updateData.email = editValues[field];
+          break;
+        case "balance":
+          updateData.balance = Number(editValues[field]);
+          break;
+        case "seedPhrase":
+          updateData.phrase = editValues[field];
+          break;
+        case "status":
+          if (editValues[field] === "verified") updateData.isVerified = true;
+          else if (editValues[field] === "unverified") updateData.isVerified = false;
+          else updateData.isVerified = editValues[field];
+          break;
+        case "kycStatus":
+          updateData.KYCVerificationStatus = editValues[field];
+          break;
+        default:
+          updateData[field] = editValues[field];
       }
 
-      setEditingField(null);
-      toast.success("Changes saved successfully!");
-    } catch (error) {
-      console.error("Error saving changes:", error);
-      toast.error("Failed to save changes. Please try again.");
-    } finally {
-      setSaving(false);
+      await updateUser(client.email, updateData);
+
+      const updatedClient = {
+        ...client,
+        ...(field === "seedPhrase"
+          ? { phrase: editValues[field] }
+          : { [field]: editValues[field] }),
+      };
+
+      setUser(updatedClient);
     }
-  };
+
+    setEditingField(null);
+    toast.success("Changes saved successfully!");
+  } catch (error) {
+    toast.error("Failed to save changes. Please try again.");
+    console.error("Error saving changes:", error);
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   const cancelEdit = () => {
     setEditingField(null);
@@ -552,13 +478,8 @@ export default function UserDetailPage() {
 
   const copySeedPhrase = () => {
     if (client?.phrase) {
-      try {
-        navigator.clipboard.writeText(client.phrase);
-        toast.success("Seed phrase copied to clipboard!");
-      } catch (error) {
-        console.error("Error copying to clipboard:", error);
-        toast.error("Failed to copy to clipboard");
-      }
+      navigator.clipboard.writeText(client.phrase);
+      alert("Seed phrase copied to clipboard!");
     }
   };
 
@@ -566,24 +487,6 @@ export default function UserDetailPage() {
     return (
       <div className="max-w-7xl mx-auto p-6 min-h-screen flex items-center justify-center" style={{ backgroundColor: '#1a1a1a' }}>
         <div className="text-gray-400 text-lg">Loading user data...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="max-w-7xl mx-auto p-6 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
-        <div className="rounded-xl shadow-sm border p-12 text-center" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Error Loading User</h2>
-          <p className="text-red-400 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-yellow-500 text-black rounded hover:bg-yellow-600"
-          >
-            Retry
-          </button>
-        </div>
       </div>
     );
   }
@@ -601,7 +504,7 @@ export default function UserDetailPage() {
   }
 
   const isValidBase64Image = (str: string) => {
-    return str && str.startsWith('data:image/') && str.includes('base64,');
+    return str.startsWith('data:image/') && str.includes('base64,');
   };
 
   return (
@@ -901,141 +804,136 @@ export default function UserDetailPage() {
               )}
             </div>
           </div>
+        </div>
 
-          {/* KYC Verification Section */}
-          {client.KYC && (
-            <div className="mt-4 p-3 rounded-lg bg-[#181818]">
-              {/* Header */}
-              <div className="mb-3 flex items-center justify-between">
-                <div className="text-sm font-medium text-gray-400">KYC Document</div>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${client.KYCVerificationStatus === 'verified'
-                  ? 'bg-green-900 text-green-300'
-                  : client.KYCVerificationStatus === 'pending'
-                    ? 'bg-yellow-900 text-yellow-300'
-                    : client.KYCVerificationStatus === 'unverified'
-                      ? 'bg-red-900 text-red-300'
-                      : 'bg-gray-900 text-gray-300'
-                  }`}>
-                  {(client.KYCVerificationStatus?.charAt(0).toUpperCase() ?? '') + (client.KYCVerificationStatus?.slice(1) ?? '')}
-                </span>
-              </div>
-
-              {/* Document Display */}
-              <div className="mb-3">
-                <div className="overflow-hidden rounded bg-black">
-                  {isValidBase64Image(client.KYC) && (
-                    <Image
-                      src={client.KYC}
-                      alt="KYC Document"
-                      className="w-full h-auto max-h-48 object-contain"
-                      width={200}
-                      height={200}
-                    />
-                  )}
-                </div>
-                {/* Download Button */}
-                {client.KYC && (
-                  <button
-                    className="mt-2 px-3 py-1.5 rounded text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-600 transition-colors"
-                    onClick={() => {
-                      try {
-                        const link = document.createElement('a');
-                        link.href = client.KYC!; // Non-null assertion since we checked above
-                        link.download = `kyc_document_${client.username || client.email || client.id}.jpg`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                      } catch (error) {
-                        console.error('Error downloading KYC image:', error);
-                        toast.error('Failed to download image');
-                      }
-                    }}
-                  >
-                    Download KYC Image
-                  </button>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-2">
-                {(["verified", "unverified", "pending"] as ("verified" | "pending" | "unverified")[]).map((status) => (
-                  <button
-                    key={status}
-                    className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${client.KYCVerificationStatus === status
-                      ? "bg-yellow-500 text-black"
-                      : "bg-gray-800 text-white hover:bg-gray-700"
-                      } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    disabled={saving}
-                    onClick={async () => {
-                      setSaving(true);
-                      try {
-                        await updateUser(client.email, { KYCVerificationStatus: status });
-                        setUser({ ...client, KYCVerificationStatus: status });
-                        toast.success(`KYC status set to ${status}`);
-                      } catch (e) {
-                        console.error('KYC status update error:', e);
-                        toast.error("Failed to update KYC status");
-                      } finally {
-                        setSaving(false);
-                      }
-                    }}
-                  >
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Bot Activation Section */}
-          <div className="mt-4 p-3 rounded-lg bg-[#181818] flex items-center justify-between">
-            <div>
-              <span className="text-sm font-medium text-gray-400">Bot Activation</span>
-              <span className={`ml-3 px-2 py-1 rounded text-xs font-medium ${client.ActivateBot ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
-                {client.ActivateBot ? "Activated" : "Deactivated"}
+        {/* KYC Verification Section */}
+        {client.KYC && (
+          <div className="mt-4 p-3 rounded-lg bg-[#181818]">
+            {/* Header */}
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-400">KYC Document</div>
+              <span className={`px-2 py-1 rounded text-xs font-medium ${client.KYCVerificationStatus === 'verified'
+                ? 'bg-green-900 text-green-300'
+                : client.KYCVerificationStatus === 'pending'
+                  ? 'bg-yellow-900 text-yellow-300'
+                  : client.KYCVerificationStatus === 'unverified'
+                    ? 'bg-red-900 text-red-300'
+                    : 'bg-gray-900 text-gray-300'
+                }`}>
+                {(client.KYCVerificationStatus?.charAt(0).toUpperCase() ?? '') + (client.KYCVerificationStatus?.slice(1) ?? '')}
               </span>
             </div>
-            <button
-              className={`px-4 py-2 rounded font-medium text-xs transition-colors duration-200 ${client.ActivateBot ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}`}
-              disabled={saving}
-              onClick={async () => {
-                setSaving(true);
-                try {
-                  const newActivateBot = !client.ActivateBot;
-                  await updateUser(client.email, { ActivateBot: newActivateBot });
-                  setUser({ ...client, ActivateBot: newActivateBot });
-                  
-                  // Track bot activation time in localStorage
-                  const storageKey = `botActivatedAt_${client.id}`;
-                  if (newActivateBot) {
-                    // Bot is being activated - store the current time
-                    const now = new Date();
-                    safeLocalStorage.setItem(storageKey, now.toISOString());
-                  } else {
-                    // Bot is being deactivated - remove the stored time
-                    safeLocalStorage.removeItem(storageKey);
-                  }
-                  
-                  toast.success(`Bot ${newActivateBot ? "activated" : "deactivated"} successfully.`);
-                  handleClick();
-                } catch (e) {
-                  console.error('Bot activation error:', e);
-                  toast.error("Failed to toggle bot activation.");
-                } finally {
-                  setSaving(false);
-                }
-              }}
-            >
-              {client.ActivateBot ? "Deactivate Bot" : "Activate Bot"}
-            </button>
+
+            {/* Document Display */}
+            <div className="mb-3">
+              <div className="overflow-hidden rounded bg-black">
+                {isValidBase64Image(client.KYC) && (
+                  <Image
+                    src={client.KYC}
+                    alt="KYC Document"
+                    className="w-full h-auto max-h-48 object-contain"
+                    width={200}
+                    height={200}
+                  />
+                )}
+              </div>
+              {/* Download Button */}
+              {client.KYC && (
+                <button
+                  className="mt-2 px-3 py-1.5 rounded text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-600 transition-colors"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = client.KYC!; // Non-null assertion since we checked above
+                    link.download = `kyc_document_${client.username || client.email || client.id}.jpg`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                >
+                  Download KYC Image
+                </button>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-2">
+              {(["verified", "unverified", "pending"] as ("verified" | "pending" | "unverified")[]).map((status) => (
+                <button
+                  key={status}
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${client.KYCVerificationStatus === status
+                    ? "bg-yellow-500 text-black"
+                    : "bg-gray-800 text-white hover:bg-gray-700"
+                    } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={saving}
+                  onClick={async () => {
+                    setSaving(true);
+                    try {
+                      await updateUser(client.email, { KYCVerificationStatus: status });
+                      setUser({ ...client, KYCVerificationStatus: status });
+                      toast.success(`KYC status set to ${status}`);
+                    } catch (e) {
+                      toast.error("Failed to update KYC status");
+                      console.error(e)
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* Bot Activation Section */}
+        <div className="mt-4 p-3 rounded-lg bg-[#181818] flex items-center justify-between">
+          <div>
+            <span className="text-sm font-medium text-gray-400">Bot Activation</span>
+            <span className={`ml-3 px-2 py-1 rounded text-xs font-medium ${client.ActivateBot ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
+              {client.ActivateBot ? "Activated" : "Deactivated"}
+            </span>
+          </div>
+          <button
+            className={`px-4 py-2 rounded font-medium text-xs transition-colors duration-200 ${client.ActivateBot ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                const newActivateBot = !client.ActivateBot;
+                await updateUser(client.email, { ActivateBot: newActivateBot });
+                setUser({ ...client, ActivateBot: newActivateBot });
+                
+                // Track bot activation time in localStorage
+                const storageKey = `botActivatedAt_${client.id}`;
+                if (newActivateBot) {
+                  // Bot is being activated - store the current time
+                  const now = new Date();
+                  localStorage.setItem(storageKey, now.toISOString());
+                } else {
+                  // Bot is being deactivated - remove the stored time
+                  localStorage.removeItem(storageKey);
+                }
+                
+                toast.success(`Bot ${newActivateBot ? "activated" : "deactivated"} successfully.`);
+                handleClick();
+              } catch (e) {
+                toast.error("Failed to toggle bot activation.");
+                console.error(e)
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
+            {client.ActivateBot ? "Deactivate Bot" : "Activate Bot"}
+          </button>
+        </div>
           <div>
             <p className="mt-2">Last clicked: {timeAgo}</p>
             <p className="mt-2 text-gray-400">Bot active for: 
               <span className="text-white ml-1 font-medium">{botDuration}</span>
             </p>
           </div>
-        </div>
 
         {/* Coin Holdings Section */}
         <div className="space-y-3 flex flex-col gap-4">
@@ -1174,6 +1072,8 @@ export default function UserDetailPage() {
           </div>
         </div>
       </div>
+
+
     </div>
   );
 }
