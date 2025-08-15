@@ -511,7 +511,7 @@ const saveEdit = async (field: string) => {
     <div className="md:max-w-[70%] mx-auto p-2 sm:p-2 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
       {/* Header */}
       <div className="flex items-center space-x-4 mb-6">
-        <Link href="/admin/users" className="p-2 rounded-lg transition-colors duration-200"
+        <Link href="/" className="p-2 rounded-lg transition-colors duration-200"
           style={{ backgroundColor: '#2a2a2a' }}>
           <ArrowLeft className="w-5 h-5 text-gray-400" />
         </Link>
