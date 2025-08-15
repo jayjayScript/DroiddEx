@@ -256,9 +256,9 @@ export default function UserDetailPage() {
         return;
       }
       api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
-      const response = await api<user[]>('admin/users/');
-      const allUsers = response.data
-      const foundUser = allUsers.find(u => u._id === id);
+      const response = await api<user>(`admin/users?id=${id}`);
+      const user = response.data
+      const foundUser = user
       if (foundUser) {
         setUser({
           id: foundUser._id,

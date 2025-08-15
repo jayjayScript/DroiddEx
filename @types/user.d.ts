@@ -129,3 +129,9 @@ type UserResponse = {
   total: number
   totalPages: number
 }
+
+type TotalUserResponse = {
+  success: boolean
+  message: string
+  data: UserResponse
+}

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react';
-import { Search, Users, Eye, DollarSign, UserCheck, UserX, Filter, Edit, Trash2 } from 'lucide-react';
+import { Search, Users, Eye, DollarSign, UserCheck, UserX, Filter, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { user, Wallet, USDTEntry } from '@/lib/admin';
 // import {Coin} from '@/app/(dashboard)/dashboard/components/Wallet';
@@ -19,6 +19,13 @@ const AdminUsers = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: string; email: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [usersPerPage] = useState(10); // You can make this configurable
 
   interface User {
     fullname?: string;
@@ -33,7 +40,7 @@ const AdminUsers = () => {
   }
 
   const [users, setUsers] = useState<User[]>([])
-    const [coins, setCoins] = useState<Coin[]>([]);
+  const [coins, setCoins] = useState<Coin[]>([]);
   const router = useRouter();
 
   interface HandleViewUser {
@@ -63,7 +70,16 @@ const AdminUsers = () => {
 
       // Remove user from local state using the ID for filtering
       setUsers(users.filter(user => user.id !== userToDelete.id));
+      setTotalUsers(prev => prev - 1);
       toast.success("User deleted successfully.");
+
+      // If current page becomes empty and it's not the first page, go to previous page
+      if (users.length === 1 && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      } else {
+        // Refresh current page to get updated data
+        fetchUsers(currentPage);
+      }
 
     } catch (error) {
       console.error("Error deleting user:", error);
@@ -86,34 +102,66 @@ const AdminUsers = () => {
     setUserToDelete(null);
   };
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const adminToken = Cookies.get("adminToken");
+  const fetchUsers = async (page: number = 1) => {
+    const adminToken = Cookies.get("adminToken");
 
-      if (!adminToken) {
-        router.replace("/admin/auth/");
-        return;
-      }
-      try {
-        api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
-        const users = await api<user[]>('admin/users/')
-        const getusers = users.data
-        const usersList = getusers?.map(user => ({
-          fullname: user.fullname,
-          email: user.email,
-          balance: user.balance,
-          wallet: user.wallet,
-          status: user.isVerified ? 'verified' : 'unverified',
-          joinDate: user.joinDate,
-          id: user._id,
-        }));
-        setUsers(usersList);
-      } catch (error) {
-        toast.error('Failed to get users')
-        console.log(error)
-      }
-    };
-    fetchUsers();
+    if (!adminToken) {
+      router.replace("/admin/auth/");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
+      
+      // Add pagination parameters to the API call
+      const response = await api<TotalUserResponse>(`admin/users/?page=${page}&limit=${usersPerPage}`)
+      
+      const userData = response.data.data;
+      const getusers = userData.users as any;
+      
+      const usersList = getusers?.map((user: any) => ({
+        fullname: user.fullname,
+        email: user.email,
+        balance: user.balance ?? 0,
+        wallet: user.wallet,
+        status: user.isVerified ? 'verified' : 'unverified',
+        joinDate: user.joinDate,
+        id: user._id,
+      }));
+      
+      setUsers(usersList);
+      setCurrentPage(userData.page);
+      setTotalPages(userData.totalPages);
+      setTotalUsers(userData.total);
+    } catch (error) {
+      toast.error('Failed to get users')
+      console.log(error)
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+      fetchUsers(page);
+    }
+  };
+
+  // Handle search with debounce effect
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page when searching
+      fetchUsers(1);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(delayedSearch);
+  }, [search, statusFilter]);
+
+  useEffect(() => {
+    fetchUsers(currentPage);
   }, [router]);
 
   useEffect(() => {
@@ -142,14 +190,6 @@ const AdminUsers = () => {
       }
       fetchCoins();
   }, [])
-
-
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = (user.fullname ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
 
   // Helper to normalize status/isVerified for display and color
   const getNormalizedStatus = (status: string | boolean | undefined) => {
@@ -198,34 +238,70 @@ const AdminUsers = () => {
     return 'U';
   };
 
-    const getTotalBalance = (wallet: Wallet, coins: Coin[] = []): number => {
-        if (!wallet || !coins || coins.length === 0) return 0;
+  const getTotalBalance = (wallet: Wallet, coins: Coin[] = []): number => {
+      if (!wallet || !coins || coins.length === 0) return 0;
 
-        return Object.entries(wallet).reduce<number>((total, [symbol, entry]: [string, WalletEntry | USDTEntry[]]) => {
-            const coinData = coins.find(coin => coin.symbol.toUpperCase() === symbol.toUpperCase());
-            if (!coinData) return total
+      return Object.entries(wallet).reduce<number>((total, [symbol, entry]: [string, WalletEntry | USDTEntry[]]) => {
+          const coinData = coins.find(coin => coin.symbol.toUpperCase() === symbol.toUpperCase());
+          if (!coinData) return total
 
-            const currentPrice = coinData.market_data.current_price.usd;
+          const currentPrice = coinData.market_data.current_price.usd;
 
-            if (Array.isArray(entry)) {
-                const coinQuantity = entry.reduce(
-                    (sub: number, item) => sub + (item.balance || 0),
-                    0
-                );
-                return total + (coinQuantity * currentPrice);
-            }
+          if (Array.isArray(entry)) {
+              const coinQuantity = entry.reduce(
+                  (sub: number, item) => sub + (item.balance || 0),
+                  0
+              );
+              return total + (coinQuantity * currentPrice);
+          }
 
-            const coinQuantity = entry.balance || 0;
-            return total + (coinQuantity * currentPrice);
-        }, 0);
+          const coinQuantity = entry.balance || 0;
+          return total + (coinQuantity * currentPrice);
+      }, 0);
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
+
+  // Generate page numbers for pagination
+  const generatePageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      }
     }
-
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(amount);
-    };
+    
+    return pages;
+  };
 
   return (
     <div className="md:max-w-[70%] mx-auto p-2 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
@@ -280,7 +356,7 @@ const AdminUsers = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Total Users</p>
-                  <p className="text-2xl font-bold text-white">{users.length}</p>
+                  <p className="text-2xl font-bold text-white">{totalUsers}</p>
                 </div>
                 <Users className="w-8 h-8" style={{ color: '#ebb70c' }} />
               </div>
@@ -312,9 +388,13 @@ const AdminUsers = () => {
 
         {/* Users Grid */}
         <div className="p-6">
-          {filteredUsers.length > 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
+            </div>
+          ) : users.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredUsers.map((user) => (
+              {users.map((user) => (
                 <div key={user.id}
                   className="p-4 rounded-lg border hover:shadow-lg transition-all duration-200"
                   style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
@@ -395,23 +475,85 @@ const AdminUsers = () => {
           )}
         </div>
 
-        {/* Footer */}
-        {filteredUsers.length > 0 && (
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t" style={{ borderColor: '#3a3a3a' }}>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              {/* Page Info */}
+              <div className="text-sm text-gray-400">
+                Showing {((currentPage - 1) * usersPerPage) + 1} to {Math.min(currentPage * usersPerPage, totalUsers)} of {totalUsers} users
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center space-x-2">
+                {/* Previous Button */}
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || isLoading}
+                  className="p-2 rounded-lg border transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"
+                  style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-400" />
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex space-x-1">
+                  {generatePageNumbers().map((page, index) => (
+                    <React.Fragment key={index}>
+                      {page === '...' ? (
+                        <span className="px-3 py-2 text-gray-400">...</span>
+                      ) : (
+                        <button
+                          onClick={() => handlePageChange(page as number)}
+                          disabled={isLoading}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:cursor-not-allowed ${
+                            currentPage === page
+                              ? 'text-black'
+                              : 'text-gray-400 hover:bg-gray-700'
+                          }`}
+                          style={{
+                            backgroundColor: currentPage === page ? '#ebb70c' : '#1a1a1a',
+                            borderColor: '#3a3a3a'
+                          }}
+                        >
+                          {page}
+                        </button>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages || isLoading}
+                  className="p-2 rounded-lg border transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"
+                  style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}
+                >
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer Stats */}
+        {users.length > 0 && (
           <div className="px-6 py-4 border-t rounded-b-xl"
             style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}>
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2 text-sm">
               <span className="text-gray-400">
-                Showing {filteredUsers.length} of {users.length} users
+                Page {currentPage} of {totalPages}
               </span>
               <div className="flex space-x-4">
                 <span className="text-green-400">
-                  Verified: {filteredUsers.filter(u => u.status === 'verified').length}
+                  Verified: {users.filter(u => u.status === 'verified').length}
                 </span>
                 <span className="text-yellow-400">
-                  Unverified: {filteredUsers.filter(u => u.status === 'unverified').length}
+                  Unverified: {users.filter(u => u.status === 'unverified').length}
                 </span>
                 <span className="text-red-400">
-                  Suspended: {filteredUsers.filter(u => u.status === 'suspended').length}
+                  Suspended: {users.filter(u => u.status === 'suspended').length}
                 </span>
               </div>
             </div>
