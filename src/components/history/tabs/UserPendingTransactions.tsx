@@ -5,6 +5,7 @@ import Link from 'next/link'
 import React, { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import Cookies from "js-cookie";
+import {Icon} from "@iconify/react";
 
 const UserPendingTransactions = () => {
   const [expandedTransaction, setExpandedTransaction] = useState<number | null>(null)
@@ -215,7 +216,7 @@ const UserPendingTransactions = () => {
                       onClick={() => type === 'deposit' && image && toggleAccordion(index)}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[#ebb70c] text-lg font-bold bg-[#ebb70c]/10`}>
-                        {getTransactionIcon(type)}
+                          <Icon icon={getTransactionIcon(type)} height={24} width={24}/>
                       </div>
 
                       <div className='flex-1'>

@@ -210,7 +210,7 @@ const AdminCompletedTransactions = () => {
                       onClick={() => type === 'deposit' && image && toggleAccordion(index)}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[#ebb70c] text-lg font-bold`}>
-                        {getTransactionIcon(type)}
+                          <Icon icon={getTransactionIcon(type)} height={24} width={24}/>
                       </div>
 
                       <div className='flex-1'>

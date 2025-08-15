@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Users, Eye, DollarSign, UserCheck, UserX, Filter, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { user, Wallet, USDTEntry } from '@/lib/admin';
+import { Wallet, USDTEntry } from '@/lib/admin';
 // import {Coin} from '@/app/(dashboard)/dashboard/components/Wallet';
 import {Coin} from "@/app/(dashboard)/dashboard/components/Wallet";
 import toast from 'react-hot-toast';
@@ -37,6 +37,26 @@ const AdminUsers = () => {
     id: string | number;
     username?: string;
     wallet?: Wallet;
+  }
+
+  // Types for Admin API response
+  interface AdminApiUser {
+    _id: string;
+    fullname?: string;
+    email: string;
+    balance?: number;
+    wallet?: Wallet;
+    isVerified: boolean;
+    joinDate: string;
+  }
+
+  interface TotalUserResponse {
+    data: {
+      users: AdminApiUser[];
+      page: number;
+      totalPages: number;
+      total: number;
+    };
   }
 
   const [users, setUsers] = useState<User[]>([])
@@ -118,9 +138,9 @@ const AdminUsers = () => {
       const response = await api<TotalUserResponse>(`admin/users/?page=${page}&limit=${usersPerPage}`)
       
       const userData = response.data.data;
-      const getusers = userData.users as any;
+      const getusers: AdminApiUser[] = userData.users;
       
-      const usersList = getusers?.map((user: any) => ({
+      const usersList: User[] = getusers?.map((user: AdminApiUser) => ({
         fullname: user.fullname,
         email: user.email,
         balance: user.balance ?? 0,
