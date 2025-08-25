@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react';
-import { Search, Users, Eye, DollarSign, UserCheck, UserX, Filter, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Users, Eye, DollarSign, UserCheck, UserX, Filter, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Wallet, USDTEntry } from '@/lib/admin';
 // import {Coin} from '@/app/(dashboard)/dashboard/components/Wallet';
@@ -19,13 +19,7 @@ const AdminUsers = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: string; email: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalUsers, setTotalUsers] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [usersPerPage] = useState(10); // You can make this configurable
 
   interface User {
     fullname?: string;
@@ -50,16 +44,14 @@ const AdminUsers = () => {
     joinDate: string;
   }
 
-  interface TotalUserResponse {
-    data: {
-      users: AdminApiUser[];
-      page: number;
-      totalPages: number;
-      total: number;
-    };
+  interface UsersResponse {
+    success: boolean;
+    message: string;
+    data: AdminApiUser[];
   }
 
   const [users, setUsers] = useState<User[]>([])
+  const [allUsers, setAllUsers] = useState<User[]>([]) // Store all users for filtering
   const [coins, setCoins] = useState<Coin[]>([]);
   const router = useRouter();
 
@@ -88,18 +80,10 @@ const AdminUsers = () => {
       const response = await deleteUser(userToDelete.email);
       console.log('Delete response:', response);
 
-      // Remove user from local state using the ID for filtering
+      // Remove user from both local states using the ID for filtering
       setUsers(users.filter(user => user.id !== userToDelete.id));
-      setTotalUsers(prev => prev - 1);
+      setAllUsers(allUsers.filter(user => user.id !== userToDelete.id));
       toast.success("User deleted successfully.");
-
-      // If current page becomes empty and it's not the first page, go to previous page
-      if (users.length === 1 && currentPage > 1) {
-        setCurrentPage(prev => prev - 1);
-      } else {
-        // Refresh current page to get updated data
-        fetchUsers(currentPage);
-      }
 
     } catch (error) {
       console.error("Error deleting user:", error);
@@ -122,7 +106,7 @@ const AdminUsers = () => {
     setUserToDelete(null);
   };
 
-  const fetchUsers = async (page: number = 1) => {
+  const fetchUsers = async () => {
     const adminToken = Cookies.get("adminToken");
 
     if (!adminToken) {
@@ -134,26 +118,26 @@ const AdminUsers = () => {
     try {
       api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
       
-      // Add pagination parameters to the API call
-      const response = await api<TotalUserResponse>(`admin/users/?page=${page}&limit=${usersPerPage}`)
+      const response = await api<UsersResponse>(`admin/users/`)
       
-      const userData = response.data.data;
-      const getusers: AdminApiUser[] = userData.users;
-      
-      const usersList: User[] = getusers?.map((user: AdminApiUser) => ({
-        fullname: user.fullname,
-        email: user.email,
-        balance: user.balance ?? 0,
-        wallet: user.wallet,
-        status: user.isVerified ? 'verified' : 'unverified',
-        joinDate: user.joinDate,
-        id: user._id,
-      }));
-      
-      setUsers(usersList);
-      setCurrentPage(userData.page);
-      setTotalPages(userData.totalPages);
-      setTotalUsers(userData.total);
+      if (response.data.success) {
+        const getusers: AdminApiUser[] = response.data.data;
+        
+        const usersList: User[] = getusers?.map((user: AdminApiUser) => ({
+          fullname: user.fullname,
+          email: user.email,
+          balance: user.balance ?? 0,
+          wallet: user.wallet,
+          status: user.isVerified ? 'verified' : 'unverified',
+          joinDate: user.joinDate,
+          id: user._id,
+        }));
+        
+        setAllUsers(usersList);
+        setUsers(usersList);
+      } else {
+        toast.error('Failed to get users: ' + response.data.message);
+      }
     } catch (error) {
       toast.error('Failed to get users')
       console.log(error)
@@ -162,26 +146,33 @@ const AdminUsers = () => {
     }
   };
 
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages && page !== currentPage) {
-      setCurrentPage(page);
-      fetchUsers(page);
+  // Filter users based on search and status
+  const filterUsers = () => {
+    let filtered = [...allUsers];
+
+    // Filter by search term
+    if (search.trim()) {
+      filtered = filtered.filter(user =>
+        user.email.toLowerCase().includes(search.toLowerCase()) ||
+        (user.fullname && user.fullname.toLowerCase().includes(search.toLowerCase()))
+      );
     }
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(user => getNormalizedStatus(user.status) === statusFilter);
+    }
+
+    setUsers(filtered);
   };
 
-  // Handle search with debounce effect
+  // Handle search and filter changes
   useEffect(() => {
-    const delayedSearch = setTimeout(() => {
-      setCurrentPage(1); // Reset to first page when searching
-      fetchUsers(1);
-    }, 500); // 500ms delay
-
-    return () => clearTimeout(delayedSearch);
-  }, [search, statusFilter]);
+    filterUsers();
+  }, [search, statusFilter, allUsers]);
 
   useEffect(() => {
-    fetchUsers(currentPage);
+    fetchUsers();
   }, [router]);
 
   useEffect(() => {
@@ -287,42 +278,6 @@ const AdminUsers = () => {
     }).format(amount);
   };
 
-  // Generate page numbers for pagination
-  const generatePageNumbers = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-    
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) {
-          pages.push(i);
-        }
-        pages.push('...');
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1);
-        pages.push('...');
-        for (let i = totalPages - 3; i <= totalPages; i++) {
-          pages.push(i);
-        }
-      } else {
-        pages.push(1);
-        pages.push('...');
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-          pages.push(i);
-        }
-        pages.push('...');
-        pages.push(totalPages);
-      }
-    }
-    
-    return pages;
-  };
-
   return (
     <div className="md:max-w-[70%] mx-auto p-2 min-h-screen" style={{ backgroundColor: '#1a1a1a' }}>
       <div className="rounded-xl shadow-sm border" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
@@ -376,7 +331,7 @@ const AdminUsers = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Total Users</p>
-                  <p className="text-2xl font-bold text-white">{totalUsers}</p>
+                  <p className="text-2xl font-bold text-white">{allUsers.length}</p>
                 </div>
                 <Users className="w-8 h-8" style={{ color: '#ebb70c' }} />
               </div>
@@ -386,7 +341,7 @@ const AdminUsers = () => {
                 <div>
                   <p className="text-gray-400 text-sm">Verified Users</p>
                   <p className="text-2xl font-bold text-green-400">
-                    {users.filter(u => u.status === 'verified').length}
+                    {allUsers.filter(u => u.status === 'verified').length}
                   </p>
                 </div>
                 <UserCheck className="w-8 h-8 text-green-400" />
@@ -397,7 +352,7 @@ const AdminUsers = () => {
                 <div>
                   <p className="text-gray-400 text-sm">Suspended</p>
                   <p className="text-2xl font-bold text-red-400">
-                    {users.filter(u => u.status === 'suspended').length}
+                    {allUsers.filter(u => u.status === 'suspended').length}
                   </p>
                 </div>
                 <UserX className="w-8 h-8 text-red-400" />
@@ -495,85 +450,23 @@ const AdminUsers = () => {
           )}
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t" style={{ borderColor: '#3a3a3a' }}>
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              {/* Page Info */}
-              <div className="text-sm text-gray-400">
-                Showing {((currentPage - 1) * usersPerPage) + 1} to {Math.min(currentPage * usersPerPage, totalUsers)} of {totalUsers} users
-              </div>
-
-              {/* Pagination Controls */}
-              <div className="flex items-center space-x-2">
-                {/* Previous Button */}
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1 || isLoading}
-                  className="p-2 rounded-lg border transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"
-                  style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}
-                >
-                  <ChevronLeft className="w-4 h-4 text-gray-400" />
-                </button>
-
-                {/* Page Numbers */}
-                <div className="flex space-x-1">
-                  {generatePageNumbers().map((page, index) => (
-                    <React.Fragment key={index}>
-                      {page === '...' ? (
-                        <span className="px-3 py-2 text-gray-400">...</span>
-                      ) : (
-                        <button
-                          onClick={() => handlePageChange(page as number)}
-                          disabled={isLoading}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:cursor-not-allowed ${
-                            currentPage === page
-                              ? 'text-black'
-                              : 'text-gray-400 hover:bg-gray-700'
-                          }`}
-                          style={{
-                            backgroundColor: currentPage === page ? '#ebb70c' : '#1a1a1a',
-                            borderColor: '#3a3a3a'
-                          }}
-                        >
-                          {page}
-                        </button>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-
-                {/* Next Button */}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages || isLoading}
-                  className="p-2 rounded-lg border transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"
-                  style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}
-                >
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Footer Stats */}
         {users.length > 0 && (
           <div className="px-6 py-4 border-t rounded-b-xl"
             style={{ backgroundColor: '#1a1a1a', borderColor: '#3a3a3a' }}>
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2 text-sm">
               <span className="text-gray-400">
-                Page {currentPage} of {totalPages}
+                Showing {users.length} of {allUsers.length} users
               </span>
               <div className="flex space-x-4">
                 <span className="text-green-400">
-                  Verified: {users.filter(u => u.status === 'verified').length}
+                  Verified: {allUsers.filter(u => u.status === 'verified').length}
                 </span>
                 <span className="text-yellow-400">
-                  Unverified: {users.filter(u => u.status === 'unverified').length}
+                  Unverified: {allUsers.filter(u => u.status === 'unverified').length}
                 </span>
                 <span className="text-red-400">
-                  Suspended: {users.filter(u => u.status === 'suspended').length}
+                  Suspended: {allUsers.filter(u => u.status === 'suspended').length}
                 </span>
               </div>
             </div>
