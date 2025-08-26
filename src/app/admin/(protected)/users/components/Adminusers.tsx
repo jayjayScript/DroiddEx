@@ -118,7 +118,7 @@ const AdminUsers = () => {
     try {
       api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
       
-      const response = await api<UsersResponse>(`admin/users/`)
+      const response = await api<UsersResponse>(`admin/users?page=1&limit=50`)
       
       if (response.data.success) {
         const getusers: AdminApiUser[] = response.data.data;
