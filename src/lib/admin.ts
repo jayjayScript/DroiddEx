@@ -76,7 +76,7 @@ export async function getAllUsers(): Promise<user[]> {
     try {
         const adminToken = Cookies.get('adminToken')
         if (!adminToken) throw new Error("Admin Token missing")
-        const users = await api('admin/users/profiles', {
+        const users = await api('admin/users?page=1&limit=50', {
             headers: {
                 Authorization: `Bearer ${adminToken}`
             }
