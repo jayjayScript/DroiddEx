@@ -10,6 +10,7 @@ import { getCoins } from "@/lib/getCoins";
 import { CoinGeckoCoin } from "@/lib/getCoins";
 import { getUserProfile } from "@/lib/auth";
 import { useMemo } from "react";
+import Image from "next/image";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -35,6 +36,7 @@ export interface Coin {
     };
     price_change_percentage_24h: number;
   };
+  thumb: string; // Add this line to fix the error
 }
 
 interface UserProfile {
@@ -158,6 +160,7 @@ const Wallet = () => {
     USDC: "cryptocurrency-color:usdc",
     SHIB: "token-branded:shib",
     PEPE: "token-branded:pepes",
+    TROLL: ""
   };
 
   useEffect(() => {
@@ -273,6 +276,7 @@ const Wallet = () => {
             },
             price_change_percentage_24h: coin.price_change_percentage_24h,
           },
+          thumb: coin.thumb
         }));
 
         setCoins(mappedCoins);
@@ -575,7 +579,33 @@ const Wallet = () => {
                       className="flex justify-between bg-[#0000003C] p-2 py-4 mb-[6px] rounded-lg"
                     >
                       <div className="flex items-center gap-2">
-                        <Icon icon={iconName} width="32" height="32" />
+                        {iconName && iconName !== "" ? (
+                          <Icon icon={iconName} width="32" height="32" />
+                        ) : coin.thumb ? (
+                          <Image
+                            src={coin.thumb}
+                            alt={coin.name}
+                            width="32"
+                            height="32"
+                            className="rounded-full"
+                            onError={(e) => {
+                              // Replace with letter avatar if image fails
+                              const letterAvatar = document.createElement('div');
+                              letterAvatar.className = 'w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center';
+                              letterAvatar.innerHTML = `<span class="text-white font-bold text-sm">${coin.symbol.charAt(0)}</span>`;
+                              if (e.currentTarget.parentNode) {
+                                e.currentTarget.parentNode.replaceChild(letterAvatar, e.currentTarget);
+                              }
+                            }}
+                          />
+                        ) : (
+                          // Letter avatar fallback
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">
+                              {coin.symbol.charAt(0)}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-1">
                             <div className="text-[13px] font-semibold">
@@ -647,7 +677,7 @@ const Wallet = () => {
 
         {activePage === "sell" && (
           <div>
-            <SellPage coins={coins}/>
+            <SellPage coins={coins} />
           </div>
         )}
       </div>

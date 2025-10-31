@@ -192,6 +192,7 @@ const AdminUsers = () => {
                       },
                       price_change_percentage_24h: coin.price_change_percentage_24h,
                   },
+                  thumb: coin.thumb
               }));
               setCoins(mappedCoins)
           } catch (e) {

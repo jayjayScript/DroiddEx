@@ -43,7 +43,7 @@ export const coinIdMap = {
   USDC: "usd-coin",
   SHIBA: "shiba-inu",
   PEPE: "pepe",
-  TROLL: "troll"
+  TROLL: "troll-2"
 };
 
 export const coins = [
@@ -61,5 +61,5 @@ export const coins = [
   { symbol: "USDC", name: "USD Coin", icon: "cryptocurrency:usdc" },
   { symbol: "SHIBA", name: "Shiba Inu", icon: "cryptocurrency:shib" },
   { symbol: "PEPE", name: "Pepe", icon: "cryptocurrency:pepe" }, // may not exist in Iconify
-  { symbol: "TROLL", name: "Troll Coin", icon: "cryptocurrency:question" },
+  { symbol: "TROLL", name: "Troll", icon: "cryptocurrency:question" },
 ];

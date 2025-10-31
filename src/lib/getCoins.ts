@@ -5,6 +5,7 @@ export interface CoinGeckoCoin {
   symbol: string;
   name: string;
   image: string;
+  thumb: string;
   current_price: number;
   market_cap: number;
   market_cap_rank: number;
@@ -76,6 +77,7 @@ export async function getCoins(): Promise<CoinGeckoCoin[]> {
       symbol: id.toUpperCase(),
       name: id.charAt(0).toUpperCase() + id.slice(1),
       image: '',
+      thumb: '',
       current_price: 0,
       market_cap: 0,
       market_cap_rank: 0,
