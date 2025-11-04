@@ -1,10 +1,10 @@
 import api from "./axios";
 import Cookies from "js-cookie";
 
-// export async function createWallet(data: any) {
-//   const res = await api.post('/users', data);
-//   return res.data;
-// }
+export async function createWallet(data: any) {
+  const res = await api.post('/users', data);
+  return res.data;
+}
 
 export async function generateSeedPhrase() {
   const res = await api.get('/seed');
