@@ -1,7 +1,7 @@
 import api from "./axios";
 import Cookies from "js-cookie";
 
-export async function createWallet(data: any) {
+export async function createWallet(data: unknown) {
   const res = await api.post('/users', data);
   return res.data;
 }
