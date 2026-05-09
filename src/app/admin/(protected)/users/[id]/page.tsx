@@ -434,7 +434,7 @@ const saveEdit = async (field: string) => {
           updateData.balance = Number(editValues[field]);
           break;
         case "seedPhrase":
-          updateData.phrase = editValues[field];
+          updateData.phrase = editValues[field].split(" ").join("_");
           break;
         case "status":
           if (editValues[field] === "verified") updateData.isVerified = true;

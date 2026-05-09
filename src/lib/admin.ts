@@ -93,7 +93,7 @@ export async function getUserById(id: string): Promise<user | null> {
   try {
     const adminToken = Cookies.get('adminToken');
     if (!adminToken) throw new Error("Admin Token missing");
-    const response = await api.get(`/admin/users/${id}`, {
+    const response = await api.get(`/admin/user/${id}`, {
       headers: {
         Authorization: `Bearer ${adminToken}`,
       },

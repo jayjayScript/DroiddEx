@@ -38,7 +38,7 @@ const LoginComponent = () => {
     try {
       const data = await adminLogin(form.email, form.password); // treat password as phrase
       handleLoginSuccess(data.adminToken)
-      console.log(data)
+      // console.log(data)
       setLoading(false);
 
       toast.success('Login Successful!')

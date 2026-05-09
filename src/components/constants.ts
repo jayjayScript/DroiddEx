@@ -19,6 +19,11 @@ export const navLinks = [
         name: "Settings",
         url: "/settings",
         icon: "ri:settings-3-fill",
+    },
+    {
+        name: "Copy Trading",
+        url: "/copy-trading",
+        icon: "mdi:account-switch",
     }
 ]
 
@@ -26,6 +31,7 @@ export const navLinks = [
 export const adminNavLinks = [
   { name: "Overview", url: "/admin", icon: "mdi:view-dashboard" },
   { name: "Users", url: "/admin/users", icon: "mdi:account-group" },
+  { name: "Copy Trading", url: "/admin/copy-trades", icon: "mdi:account-switch" },
   { name: "Transactions", url: "/admin/transactions", icon: "mdi:swap-horizontal-bold" },
   { name: "Settings", url: "/admin/settings", icon: "mdi:cog-outline" },
 ];

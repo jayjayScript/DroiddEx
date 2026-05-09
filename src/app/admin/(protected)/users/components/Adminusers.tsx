@@ -45,9 +45,10 @@ const AdminUsers = () => {
   }
 
   interface UsersResponse {
-    success: boolean;
-    message: string;
-    data: AdminApiUser[];
+    success?: boolean;
+    message?: string;
+    data?: AdminApiUser[];
+    users?: AdminApiUser[];
   }
 
   const [users, setUsers] = useState<User[]>([])
@@ -118,29 +119,56 @@ const AdminUsers = () => {
     try {
       api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
       
-      const response = await api<UsersResponse>(`admin/users?page=1&limit=50`)
+      const response = await api.get<UsersResponse | AdminApiUser[]>(`admin/users?page=1&limit=50`)
       
-      if (response.data.success) {
-        const getusers: AdminApiUser[] = response.data.data;
-        
-        const usersList: User[] = getusers?.map((user: AdminApiUser) => ({
-          fullname: user.fullname,
-          email: user.email,
-          balance: user.balance ?? 0,
-          wallet: user.wallet,
-          status: user.isVerified ? 'verified' : 'unverified',
-          joinDate: user.joinDate,
-          id: user._id,
-        }));
-        
-        setAllUsers(usersList);
-        setUsers(usersList);
-      } else {
-        toast.error('Failed to get users: ' + response.data.message);
+      let getusers: AdminApiUser[] = [];
+      let responseData = response.data;
+      
+      // Failsafe in case Axios didn't parse the JSON
+      if (typeof responseData === 'string') {
+        try { responseData = JSON.parse(responseData); } catch(e) { console.error("Parse error:", e); }
       }
-    } catch (error) {
-      toast.error('Failed to get users')
-      console.log(error)
+      
+      console.log("API Response Data:", responseData);
+      
+      if (Array.isArray(responseData)) {
+        getusers = responseData;
+      } else if (responseData && Array.isArray(responseData.data)) {
+        getusers = responseData.data;
+      } else if (responseData && Array.isArray(responseData.users)) {
+        getusers = responseData.users;
+      } else if (
+        responseData && 
+        (responseData as unknown as { data?: { users?: AdminApiUser[] } }).data && 
+        Array.isArray((responseData as unknown as { data?: { users?: AdminApiUser[] } }).data?.users)
+      ) {
+        getusers = (responseData as unknown as { data: { users: AdminApiUser[] } }).data.users; // sometimes nested as data.users
+      } else {
+        console.error("Unknown response format:", responseData);
+        toast.error("Failed to parse users data format");
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log(`Found ${getusers.length} users to map.`);
+      
+      const usersList: User[] = getusers?.map((user: AdminApiUser) => ({
+        fullname: user.fullname || 'Unknown',
+        email: user.email || '',
+        balance: user.balance ?? 0,
+        wallet: user.wallet,
+        status: user.isVerified ? 'verified' : 'unverified',
+        joinDate: user.joinDate || new Date().toISOString(),
+        id: user._id || Math.random().toString(),
+      })) || [];
+      
+      console.log("Successfully mapped users.");
+      setAllUsers(usersList);
+      setUsers(usersList);
+    } catch (error: unknown) {
+      const e = error as { response?: { data?: { message?: string } }, message?: string };
+      toast.error(e?.response?.data?.message || e?.message || 'Failed to get users');
+      console.error("Fetch Users Error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +181,7 @@ const AdminUsers = () => {
     // Filter by search term
     if (search.trim()) {
       filtered = filtered.filter(user =>
-        user.email.toLowerCase().includes(search.toLowerCase()) ||
+        (user.email && user.email.toLowerCase().includes(search.toLowerCase())) ||
         (user.fullname && user.fullname.toLowerCase().includes(search.toLowerCase()))
       );
     }
