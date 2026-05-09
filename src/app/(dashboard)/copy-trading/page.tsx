@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import CopyTradeCard, { CopyTradeType } from './components/CopyTradeCard';
 import FundWalletModal from './components/FundWalletModal';
@@ -86,6 +86,18 @@ const CopyTradingPage = () => {
   // Trade States
   const [availableTrades, setAvailableTrades] = useState<CopyTradeType[]>(INITIAL_AVAILABLE_TRADES);
   const [copiedTrades, setCopiedTrades] = useState<CopyTradeType[]>([]);
+
+  // Sync deployed traders from Admin (localStorage)
+  useEffect(() => {
+    const savedTraders = localStorage.getItem('admin_copy_traders');
+    if (savedTraders) {
+      try {
+        setAvailableTrades(JSON.parse(savedTraders));
+      } catch (e) {
+        console.error('Failed to parse deployed traders', e);
+      }
+    }
+  }, []);
   
   // Modal State
   const [isFundModalOpen, setIsFundModalOpen] = useState(false);
