@@ -1,103 +1,24 @@
 "use client"
-import React, { useState} from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import CopyTradeCard, { CopyTradeType } from './components/CopyTradeCard';
 import FundWalletModal from './components/FundWalletModal';
 import ConfirmPaymentModal from './components/ConfirmPaymentModal';
 import WithdrawWalletModal from './components/WithdrawWalletModal';
-// import { useUserContext } from '@/store/userContext';
-
-// Helper to generate mock trade history
-// const generateMockHistory = (winProb: number, pnlRange: number): TradeDetail[] => {
-//   return Array.from({ length: 10 }).map(() => {
-//     const isWin = Math.random() < winProb;
-//     const magnitude = (Math.random() * pnlRange) + 0.5; 
-//     const pnl = isWin ? magnitude : -magnitude;
-//     return { isWin, pnl };
-//   });
-// };
-
-const INITIAL_AVAILABLE_TRADES: CopyTradeType[] = [
-  {
-    id: 't1',
-    traderName: 'CryptoWhale_99',
-    countryCode: 'us',
-    coinSymbol: 'BTC',
-    coinIcon: 'cryptocurrency-color:btc',
-    leverage: 50,
-    price: 500,
-    last10Trades: [
-      { isWin: true, pnl: 12.5 }, { isWin: true, pnl: 8.2 }, { isWin: true, pnl: 15.0 },
-      { isWin: false, pnl: -5.4 }, { isWin: true, pnl: 6.7 }, { isWin: true, pnl: 14.1 },
-      { isWin: false, pnl: -3.2 }, { isWin: true, pnl: 9.8 }, { isWin: true, pnl: 11.0 }, { isWin: true, pnl: 7.5 }
-    ]
-  },
-  {
-    id: 't2',
-    traderName: 'Alpha_Trader',
-    countryCode: 'gb',
-    coinSymbol: 'ETH',
-    coinIcon: 'cryptocurrency-color:eth',
-    leverage: 25,
-    price: 300,
-    last10Trades: [
-      { isWin: true, pnl: 8.5 }, { isWin: false, pnl: -12.2 }, { isWin: true, pnl: 19.0 },
-      { isWin: true, pnl: 5.4 }, { isWin: false, pnl: -8.7 }, { isWin: true, pnl: 11.1 },
-      { isWin: true, pnl: 4.2 }, { isWin: true, pnl: 9.8 }, { isWin: false, pnl: -11.0 }, { isWin: true, pnl: 17.5 }
-    ]
-  },
-  {
-    id: 't3',
-    traderName: 'SolanaKing',
-    countryCode: 'ng',
-    coinSymbol: 'SOL',
-    coinIcon: 'cryptocurrency-color:sol',
-    leverage: 10,
-    price: 150,
-    last10Trades: [
-      { isWin: false, pnl: -6.5 }, { isWin: true, pnl: 8.2 }, { isWin: true, pnl: 5.0 },
-      { isWin: true, pnl: 9.4 }, { isWin: true, pnl: 6.7 }, { isWin: false, pnl: -4.1 },
-      { isWin: true, pnl: 3.2 }, { isWin: true, pnl: 9.8 }, { isWin: true, pnl: 1.0 }, { isWin: false, pnl: -7.5 }
-    ]
-  },
-  {
-    id: 't4',
-    traderName: 'DogeMaster',
-    countryCode: 'kr',
-    coinSymbol: 'DOGE',
-    coinIcon: 'cryptocurrency-color:doge',
-    leverage: 5,
-    price: 50,
-    last10Trades: [
-      { isWin: true, pnl: 22.5 }, { isWin: false, pnl: -18.2 }, { isWin: false, pnl: -15.0 },
-      { isWin: true, pnl: 25.4 }, { isWin: false, pnl: -26.7 }, { isWin: true, pnl: 14.1 },
-      { isWin: true, pnl: 13.2 }, { isWin: false, pnl: -19.8 }, { isWin: true, pnl: 11.0 }, { isWin: true, pnl: 27.5 }
-    ]
-  }
-];
+import { getAllTrades, getUserTradingDetails, depositCopyWallet, withdrawCopyWallet, executeCopyTrade, liquidateTrade } from '@/lib/copyTrades';
+import api from '@/lib/axios';
+import Cookies from 'js-cookie';
+import toast from 'react-hot-toast';
 
 const CopyTradingPage = () => {
-  // const { user } = useUserContext();
-  
   // Isolated Wallet States
   const [copyWalletBalance, setCopyWalletBalance] = useState<number>(0);
-  const [mainWalletBalance, setMainWalletBalance] = useState<number>(15000); // Mock WEB4 Balance
+  const [mainWalletBalance, setMainWalletBalance] = useState<number>(0);
   
   // Trade States
-  const [availableTrades] = useState<CopyTradeType[]>(INITIAL_AVAILABLE_TRADES);
+  const [availableTrades, setAvailableTrades] = useState<CopyTradeType[]>([]);
   const [copiedTrades, setCopiedTrades] = useState<CopyTradeType[]>([]);
-
-  // Sync deployed traders from Admin (localStorage)
-  // useEffect(() => {
-  //   const savedTraders = localStorage.getItem('admin_copy_traders');
-  //   if (savedTraders) {
-  //     try {
-  //       setAvailableTrades(JSON.parse(savedTraders));
-  //     } catch (e) {
-  //       console.error('Failed to parse deployed traders', e);
-  //     }
-  //   }
-  // }, []);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Modal State
   const [isFundModalOpen, setIsFundModalOpen] = useState(false);
@@ -106,38 +27,71 @@ const CopyTradingPage = () => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<CopyTradeType | null>(null);
 
-  // Live Update Simulation - Removed as requested, admin will handle updates manually
-  // In a real app, this would be handled via a WebSocket or periodic API polling
-
-
-  const handleDeposit = (amount: number) => {
-    const newTotalBalance = copyWalletBalance + amount;
-    
-    // Deduct from Main Wallet
-    setMainWalletBalance(prev => prev - amount);
-
-    if (pendingTrade && newTotalBalance >= pendingTrade.price) {
-      // Execute copy
-      const activeTrade = {
-        ...pendingTrade,
-        id: `${pendingTrade.id}-active-${Math.random().toString(36).substr(2, 9)}`,
-        isActive: true,
-        pnl: 0,
-      };
-      setCopiedTrades(prev => [activeTrade, ...prev]);
-      setCopyWalletBalance(newTotalBalance - pendingTrade.price);
-      setPendingTrade(null);
-    } else {
-      setCopyWalletBalance(newTotalBalance);
+  const loadData = async () => {
+    try {
+      const token = Cookies.get('token');
+      const headers = { headers: { Authorization: `Bearer ${token}` } };
+      const [allTrades, userDetails, profileRes] = await Promise.all([
+        getAllTrades(),
+        getUserTradingDetails(),
+        api.get('/profile', headers).catch(() => null)
+      ]);
+      setAvailableTrades(allTrades);
+      if (userDetails) {
+        setCopyWalletBalance(userDetails.balance);
+        setCopiedTrades(userDetails.activeTrades);
+      }
+      if (profileRes?.data?.wallet?.USDT) {
+        const usdtBalance = profileRes.data.wallet.USDT.reduce(
+          (acc: number, curr: { balance: number }) => acc + curr.balance, 0
+        );
+        setMainWalletBalance(usdtBalance);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsFundModalOpen(false);
   };
 
-  const handleWithdraw = (amount: number) => {
-    setCopyWalletBalance(prev => prev - amount);
-    setMainWalletBalance(prev => prev + amount);
-    setIsWithdrawModalOpen(false);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+
+
+  const handleDeposit = async (amount: number) => {
+    const toastId = toast.loading('Depositing to Copy Wallet...');
+    try {
+      await depositCopyWallet(amount);
+      toast.success('Deposit successful!', { id: toastId });
+      
+      const newTotalBalance = copyWalletBalance + amount;
+      setMainWalletBalance(prev => prev - amount);
+      setCopyWalletBalance(newTotalBalance);
+
+      if (pendingTrade && newTotalBalance >= pendingTrade.price) {
+        await handleConfirmPaymentDirect(pendingTrade);
+      }
+      setIsFundModalOpen(false);
+    } catch (error) {
+      const e = error as { response?: { data?: { message?: string } } };
+      toast.error(e?.response?.data?.message || 'Deposit failed', { id: toastId });
+    }
+  };
+
+  const handleWithdraw = async (amount: number) => {
+    const toastId = toast.loading('Withdrawing from Copy Wallet...');
+    try {
+      await withdrawCopyWallet(amount);
+      toast.success('Withdrawal successful!', { id: toastId });
+      setCopyWalletBalance(prev => prev - amount);
+      setMainWalletBalance(prev => prev + amount);
+      setIsWithdrawModalOpen(false);
+    } catch (error) {
+      const e = error as { response?: { data?: { message?: string } } };
+      toast.error(e?.response?.data?.message || 'Withdrawal failed', { id: toastId });
+    }
   };
 
   const handleCopyTrade = (trade: CopyTradeType) => {
@@ -145,7 +99,20 @@ const CopyTradingPage = () => {
     setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmPayment = () => {
+  const handleConfirmPaymentDirect = async (tradeToCopy: CopyTradeType) => {
+    const toastId = toast.loading(`Copying ${tradeToCopy.traderName}...`);
+    try {
+      await executeCopyTrade(tradeToCopy.id);
+      toast.success(`Successfully copied ${tradeToCopy.traderName}!`, { id: toastId });
+      setPendingTrade(null);
+      await loadData(); // refresh everything
+    } catch (error) {
+      const e = error as { response?: { data?: { message?: string } } };
+      toast.error(e?.response?.data?.message || 'Failed to copy trade', { id: toastId });
+    }
+  };
+
+  const handleConfirmPayment = async () => {
     if (!selectedTrade) return;
 
     if (copyWalletBalance < selectedTrade.price) {
@@ -155,28 +122,30 @@ const CopyTradingPage = () => {
       return;
     }
 
-    setCopyWalletBalance(prev => prev - selectedTrade.price);
-
-    const activeTrade = {
-      ...selectedTrade,
-      id: `${selectedTrade.id}-active-${Math.random().toString(36).substr(2, 9)}`,
-      isActive: true,
-      pnl: 0,
-    };
-
-    setCopiedTrades(prev => [activeTrade, ...prev]);
     setIsConfirmModalOpen(false);
+    await handleConfirmPaymentDirect(selectedTrade);
     setSelectedTrade(null);
   };
 
-  const handleLiquidate = (trade: CopyTradeType) => {
-    const finalAmount = trade.price + (trade.pnl || 0);
-    setCopyWalletBalance(prev => prev + finalAmount);
-
-    setCopiedTrades(prev => prev.filter(t => t.id !== trade.id));
-    // Traders now stay in availableTrades, so no need to add back
+  const handleLiquidate = async (trade: CopyTradeType) => {
+    const toastId = toast.loading(`Liquidating ${trade.traderName}...`);
+    try {
+      await liquidateTrade(trade.id);
+      toast.success('Trade liquidated successfully!', { id: toastId });
+      await loadData();
+    } catch (error) {
+      const e = error as { response?: { data?: { message?: string } } };
+      toast.error(e?.response?.data?.message || 'Failed to liquidate', { id: toastId });
+    }
   };
-
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a]">
+        <Icon icon="eos-icons:three-dots-loading" className="w-16 h-16 text-[#ebb70c]" />
+        <p className="text-[#666] text-sm mt-4 tracking-widest uppercase font-bold">Loading Traders...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen text-white p-4 pb-20 font-sans">
