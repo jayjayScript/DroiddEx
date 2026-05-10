@@ -24,7 +24,18 @@ const LoginComponent = () => {
 
   function handleLoginSuccess(token: string) {
     Cookies.set('adminToken', token, {
-      expires: 7, // days
+      expires: 7,
+      secure: true,
+      sameSite: 'lax',
+    });
+    // Required by middleware to grant access to /admin routes
+    Cookies.set('token', token, {
+      expires: 7,
+      secure: true,
+      sameSite: 'lax',
+    });
+    Cookies.set('role', 'admin', {
+      expires: 7,
       secure: true,
       sameSite: 'lax',
     });
