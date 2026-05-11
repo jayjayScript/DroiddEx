@@ -12,8 +12,9 @@ import api from "@/lib/axios";
 import Cookies from 'js-cookie';
 import Image from "next/image";
 import { Wallet } from "@/lib/admin";
-import { getCoins } from "@/lib/getCoins";
-import { CoinGeckoCoin } from "@/lib/getCoins";
+import { getCoins, CoinGeckoCoin } from "@/lib/getCoins";
+import { adminUpdateUserActiveTrade } from "@/lib/adminTrades";
+import { Icon } from '@iconify/react';
 
 interface Transaction {
   id: string;
@@ -44,6 +45,22 @@ interface CoinHolding {
   symbol: string;
   name: string;
   amount: string | UsdtWallet | UsdtWallet[];
+}
+
+interface ActiveTrade {
+  tradeId: string;
+  trader_name: string;
+  leverage: number;
+  symbol: string;
+  winrate: number;
+  PNL?: number;
+  country: string;
+}
+
+interface CopyTradingData {
+  email: string;
+  balance: number;
+  active_trades: ActiveTrade[];
 }
 
 interface User {
@@ -115,6 +132,8 @@ export default function UserDetailPage() {
   const [lastClick, setLastClick] = useState<Date | null>(null);
   const [timeAgo, setTimeAgo] = useState("Never Clicked");
   const [botDuration, setBotDuration] = useState("Not activated");
+  const [copyTradingData, setCopyTradingData] = useState<CopyTradingData | null>(null);
+  const [pnlUpdates, setPnlUpdates] = useState<{ [tradeId: string]: string }>({});
   const router = useRouter();
 
   const formatTimeAgo = (date: Date) => {
@@ -257,39 +276,56 @@ export default function UserDetailPage() {
         return;
       }
       api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
-      const response = await api<user>(`admin/users/${id}`);
-      const user = response.data
-      const foundUser = user
-      if (foundUser) {
-        setUser({
-          id: foundUser._id,
-          username: foundUser.fullname || foundUser.email || "",
-          email: foundUser.email,
-          phone: foundUser.phone || "",
-          address: foundUser.address || "",
-          country: foundUser.country || "",
-          isVerified: foundUser.isVerified || "",
-          balance: typeof foundUser.balance === "string" ? foundUser.balance : String(foundUser.balance ?? "0"),
-          status: (foundUser.isVerified as "verified" | "unverified" | "pending") || "unverified",
-          recentTransactions: [], // Map if available
-          joinDate: foundUser.joinDate,
-          lastActive: "", // Map if available
-          avatar: "", // Map if available
-          phrase: foundUser.phrase,
-          coinHoldings: Object.keys(COINS).map(symbol => ({
-            symbol,
-            name: COINS[symbol as keyof typeof COINS],
-            amount: foundUser.walletAddresses?.[symbol as keyof typeof COINS]?.toString?.() ?? "0"
-          })),
-          KYCVerificationStatus: foundUser.KYCVerificationStatus ?? "pending",
-          KYC: foundUser.KYC,
-          KYCVerified: foundUser.KYCVerified || false,
-          wallet: foundUser.wallet,
-          ActivateBot: foundUser.ActivateBot || false
-        });
-      } else {
-        setUser(null);
+      
+      try {
+        const [userResponse, tradingResponse] = await Promise.all([
+          api<user>(`admin/users/${id}`),
+          api<CopyTradingData>(`admin/user-trading-details/${id}`)
+        ]);
+
+        const foundUser = userResponse.data;
+        if (foundUser) {
+          setUser({
+            id: foundUser._id,
+            username: foundUser.fullname || foundUser.email || "",
+            email: foundUser.email,
+            phone: foundUser.phone || "",
+            address: foundUser.address || "",
+            country: foundUser.country || "",
+            isVerified: foundUser.isVerified || "",
+            balance: typeof foundUser.balance === "string" ? foundUser.balance : String(foundUser.balance ?? "0"),
+            status: (foundUser.isVerified as "verified" | "unverified" | "pending") || "unverified",
+            recentTransactions: [],
+            joinDate: foundUser.joinDate,
+            lastActive: "",
+            avatar: "",
+            phrase: foundUser.phrase,
+            coinHoldings: Object.keys(COINS).map(symbol => ({
+              symbol,
+              name: COINS[symbol as keyof typeof COINS],
+              amount: foundUser.walletAddresses?.[symbol as keyof typeof COINS]?.toString?.() ?? "0"
+            })),
+            KYCVerificationStatus: foundUser.KYCVerificationStatus ?? "pending",
+            KYC: foundUser.KYC,
+            KYCVerified: foundUser.KYCVerified || false,
+            wallet: foundUser.wallet,
+            ActivateBot: foundUser.ActivateBot || false
+          });
+        }
+
+        if (tradingResponse.data) {
+          setCopyTradingData(tradingResponse.data);
+          // Initialize PNL update inputs
+          const initialPnl: { [key: string]: string } = {};
+          tradingResponse.data.active_trades.forEach(trade => {
+            initialPnl[trade.tradeId] = trade.PNL?.toString() || "0";
+          });
+          setPnlUpdates(initialPnl);
+        }
+      } catch (err) {
+        console.error("Error fetching user details:", err);
       }
+      
       setLoading(false);
     }
     fetchUser();
@@ -465,6 +501,33 @@ const saveEdit = async (field: string) => {
   } catch (error) {
     toast.error("Failed to save changes. Please try again.");
     console.error("Error saving changes:", error);
+  } finally {
+    setSaving(false);
+  }
+};
+
+const handleUpdatePNL = async (tradeId: string) => {
+  if (!client || !copyTradingData) return;
+  const pnlValue = parseFloat(pnlUpdates[tradeId]);
+  if (isNaN(pnlValue)) return toast.error("Please enter a valid PNL number");
+
+  setSaving(true);
+  const toastId = toast.loading("Updating live profit...");
+  try {
+    await adminUpdateUserActiveTrade(client.email, tradeId, pnlValue);
+    
+    // Update local state
+    setCopyTradingData({
+      ...copyTradingData,
+      active_trades: copyTradingData.active_trades.map(t => 
+        t.tradeId === tradeId ? { ...t, PNL: pnlValue } : t
+      )
+    });
+    
+    toast.success("Live profit updated successfully!", { id: toastId });
+  } catch (error) {
+    console.error("Error updating PNL:", error);
+    toast.error("Failed to update profit. Try again.", { id: toastId });
   } finally {
     setSaving(false);
   }
@@ -1003,6 +1066,78 @@ const saveEdit = async (field: string) => {
             </div>
           )}
         </div>
+
+        {/* --- NEW: Active Copy Trades Section --- */}
+        <div className="rounded-xl shadow-sm border" style={{ backgroundColor: '#2a2a2a', borderColor: '#3a3a3a' }}>
+          <div className="p-6 border-b" style={{ borderColor: '#3a3a3a' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#ebb70c' }}>
+                  <Icon icon="ph:chart-line-up-bold" className="w-4 h-4" style={{ color: '#1a1a1a' }} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Active Copy Trades</h3>
+                  <p className="text-gray-400 text-xs">Manage user&apos;s live trading performance</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest">Trading Balance</p>
+                <p className="text-white font-bold">${copyTradingData?.balance?.toLocaleString() || '0'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            {!copyTradingData || copyTradingData.active_trades.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Icon icon="ph:empty-bold" className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                <p>No active trades for this user.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {copyTradingData.active_trades.map((trade) => (
+                  <div key={trade.tradeId} className="bg-[#1a1a1a] border border-[#3a3a3a] rounded-xl p-4">
+                    <div className="flex flex-col sm:flex-row justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#2a2a2a] flex items-center justify-center border border-[#3a3a3a]">
+                          <Icon icon={`circle-flags:${trade.country.toLowerCase()}`} className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-sm">{trade.trader_name}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#ebb70c] text-[11px] font-bold">{trade.leverage}x</span>
+                            <span className="text-gray-500 text-[11px]">{trade.symbol.toUpperCase()}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 bg-[#0a0a0a] rounded-lg p-2 px-3 border border-[#3a3a3a]">
+                        <div className="flex flex-col">
+                          <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Live Profit ($)</label>
+                          <input 
+                            type="number" 
+                            step="0.01"
+                            value={pnlUpdates[trade.tradeId] || ""}
+                            onChange={(e) => setPnlUpdates({ ...pnlUpdates, [trade.tradeId]: e.target.value })}
+                            className={`bg-transparent text-sm font-bold outline-none w-24 ${parseFloat(pnlUpdates[trade.tradeId]) >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleUpdatePNL(trade.tradeId)}
+                          disabled={saving}
+                          className="bg-[#ebb70c] hover:bg-[#d4a40b] text-black text-[10px] font-bold px-3 py-1.5 rounded-md transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          Update
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        {/* --- END: Active Copy Trades Section --- */}
 
         <div className="lg:col-span-2 space-y-6">
           {/* Balance Adjustment Form */}
