@@ -6,8 +6,13 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const role = request.cookies.get('role')?.value;
 
-  // Protect all /admin routes EXCEPT the login page itself
-  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/auth')) {
+  // Explicitly allow the admin auth page
+  if (pathname.startsWith('/admin/auth')) {
+    return NextResponse.next();
+  }
+
+  // Protect all other /admin routes
+  if (pathname.startsWith('/admin')) {
     if (!token || role !== 'admin') {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/auth';
@@ -18,7 +23,6 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// 👇 Add this at the bottom of middleware.ts
 export const config = {
   matcher: ['/admin/:path*'],
 };
