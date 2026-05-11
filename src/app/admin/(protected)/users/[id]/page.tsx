@@ -278,11 +278,7 @@ export default function UserDetailPage() {
       api.defaults.headers.common["Authorization"] = `Bearer ${adminToken}`;
       
       try {
-        const [userResponse, tradingResponse] = await Promise.all([
-          api<user>(`admin/users/${id}`),
-          api<CopyTradingData>(`admin/user-trading-details/${id}`)
-        ]);
-
+        const userResponse = await api<user>(`admin/users/${id}`);
         const foundUser = userResponse.data;
         if (foundUser) {
           setUser({
@@ -312,7 +308,13 @@ export default function UserDetailPage() {
             ActivateBot: foundUser.ActivateBot || false
           });
         }
+      } catch (err) {
+        console.error("Error fetching user profile:", err);
+        toast.error("Failed to load user profile");
+      }
 
+      try {
+        const tradingResponse = await api<CopyTradingData>(`admin/user-trading-details/${id}`);
         if (tradingResponse.data) {
           setCopyTradingData(tradingResponse.data);
           // Initialize PNL update inputs
@@ -323,7 +325,8 @@ export default function UserDetailPage() {
           setPnlUpdates(initialPnl);
         }
       } catch (err) {
-        console.error("Error fetching user details:", err);
+        console.error("Error fetching trading details:", err);
+        // We don't toast here because it's normal for some users to not have trading accounts
       }
       
       setLoading(false);
