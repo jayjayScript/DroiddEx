@@ -528,9 +528,10 @@ const handleUpdatePNL = async (tradeId: string) => {
     });
     
     toast.success("Live profit updated successfully!", { id: toastId });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating PNL:", error);
-    toast.error("Failed to update profit. Try again.", { id: toastId });
+    const message = error.response?.data?.message || "Failed to update profit. Try again.";
+    toast.error(message, { id: toastId });
   } finally {
     setSaving(false);
   }
