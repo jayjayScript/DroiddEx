@@ -6,10 +6,11 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const role = request.cookies.get('role')?.value;
 
-  if (pathname.startsWith('/admin')) {
+  // Protect all /admin routes EXCEPT the login page itself
+  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/auth')) {
     if (!token || role !== 'admin') {
       const url = request.nextUrl.clone();
-      url.pathname = '/unauthorized';
+      url.pathname = '/admin/auth';
       return NextResponse.redirect(url);
     }
   }
