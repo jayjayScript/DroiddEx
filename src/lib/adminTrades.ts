@@ -104,11 +104,11 @@ export const adminDeleteTrade = async (tradeId: string) => {
   return res.data;
 };
 
-/** Update a user's active trade PNL */
-export const adminUpdateUserActiveTrade = async (email: string, tradeId: string, PNL: number) => {
+/** Update a user's active trade (PNL, winrate, etc.) */
+export const adminUpdateUserActiveTrade = async (email: string, tradeId: string, updates: { PNL?: number, winrate?: number }) => {
   const res = await api.patch(
     `/admin/update-user-active-trades?email=${email}&tradeId=${tradeId}`,
-    { PNL },
+    updates,
     getAdminHeaders()
   );
   return res.data;

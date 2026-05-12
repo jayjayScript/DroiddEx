@@ -134,6 +134,7 @@ export default function UserDetailPage() {
   const [botDuration, setBotDuration] = useState("Not activated");
   const [copyTradingData, setCopyTradingData] = useState<CopyTradingData | null>(null);
   const [pnlUpdates, setPnlUpdates] = useState<{ [tradeId: string]: string }>({});
+  const [winrateUpdates, setWinrateUpdates] = useState<{ [tradeId: string]: string }>({});
   const router = useRouter();
 
   const formatTimeAgo = (date: Date) => {
@@ -317,12 +318,15 @@ export default function UserDetailPage() {
         const tradingResponse = await api<CopyTradingData>(`admin/user-trading-details/${id}`);
         if (tradingResponse.data) {
           setCopyTradingData(tradingResponse.data);
-          // Initialize PNL update inputs
+          // Initialize PNL and Winrate update inputs
           const initialPnl: { [key: string]: string } = {};
+          const initialWinrate: { [key: string]: string } = {};
           tradingResponse.data.active_trades.forEach(trade => {
             initialPnl[trade.tradeId] = trade.PNL?.toString() || "0";
+            initialWinrate[trade.tradeId] = trade.winrate?.toString() || "0";
           });
           setPnlUpdates(initialPnl);
+          setWinrateUpdates(initialWinrate);
         }
       } catch (err) {
         console.error("Error fetching trading details:", err);
@@ -517,7 +521,7 @@ const handleUpdatePNL = async (tradeId: string) => {
   setSaving(true);
   const toastId = toast.loading("Updating live profit...");
   try {
-    await adminUpdateUserActiveTrade(client.email, tradeId, pnlValue);
+    await adminUpdateUserActiveTrade(client.email, tradeId, { PNL: pnlValue });
     
     // Update local state
     setCopyTradingData({
@@ -531,6 +535,34 @@ const handleUpdatePNL = async (tradeId: string) => {
   } catch (error: any) {
     console.error("Error updating PNL:", error);
     const message = error.response?.data?.message || "Failed to update profit. Try again.";
+    toast.error(message, { id: toastId });
+  } finally {
+    setSaving(false);
+  }
+};
+
+const handleUpdateWinRate = async (tradeId: string) => {
+  if (!client || !copyTradingData) return;
+  const winrateValue = parseFloat(winrateUpdates[tradeId]);
+  if (isNaN(winrateValue)) return toast.error("Please enter a valid win rate");
+
+  setSaving(true);
+  const toastId = toast.loading("Updating win rate...");
+  try {
+    await adminUpdateUserActiveTrade(client.email, tradeId, { winrate: winrateValue });
+    
+    // Update local state
+    setCopyTradingData({
+      ...copyTradingData,
+      active_trades: copyTradingData.active_trades.map(t => 
+        t.tradeId === tradeId ? { ...t, winrate: winrateValue } : t
+      )
+    });
+    
+    toast.success("Win rate updated successfully!", { id: toastId });
+  } catch (error: any) {
+    console.error("Error updating win rate:", error);
+    const message = error.response?.data?.message || "Failed to update win rate. Try again.";
     toast.error(message, { id: toastId });
   } finally {
     setSaving(false);
@@ -1115,24 +1147,48 @@ const handleUpdatePNL = async (tradeId: string) => {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 bg-[#0a0a0a] rounded-lg p-2 px-3 border border-[#3a3a3a]">
-                        <div className="flex flex-col">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex flex-col bg-[#0a0a0a] rounded-lg p-2 px-3 border border-[#3a3a3a]">
                           <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Live Profit ($)</label>
-                          <input 
-                            type="number" 
-                            step="0.01"
-                            value={pnlUpdates[trade.tradeId] || ""}
-                            onChange={(e) => setPnlUpdates({ ...pnlUpdates, [trade.tradeId]: e.target.value })}
-                            className={`bg-transparent text-sm font-bold outline-none w-24 ${parseFloat(pnlUpdates[trade.tradeId]) >= 0 ? 'text-green-400' : 'text-red-400'}`}
-                          />
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              value={pnlUpdates[trade.tradeId] || ""}
+                              onChange={(e) => setPnlUpdates({ ...pnlUpdates, [trade.tradeId]: e.target.value })}
+                              className={`bg-transparent text-sm font-bold outline-none w-20 ${parseFloat(pnlUpdates[trade.tradeId]) >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                            />
+                            <button
+                              onClick={() => handleUpdatePNL(trade.tradeId)}
+                              disabled={saving}
+                              className="bg-[#ebb70c] hover:bg-[#d4a40b] text-black text-[9px] font-bold px-2 py-1 rounded transition-all active:scale-95 disabled:opacity-50"
+                            >
+                              Update
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => handleUpdatePNL(trade.tradeId)}
-                          disabled={saving}
-                          className="bg-[#ebb70c] hover:bg-[#d4a40b] text-black text-[10px] font-bold px-3 py-1.5 rounded-md transition-all active:scale-95 disabled:opacity-50"
-                        >
-                          Update
-                        </button>
+
+                        <div className="flex flex-col bg-[#0a0a0a] rounded-lg p-2 px-3 border border-[#3a3a3a]">
+                          <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Win Rate (%)</label>
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="number" 
+                              step="1"
+                              max="100"
+                              min="0"
+                              value={winrateUpdates[trade.tradeId] || ""}
+                              onChange={(e) => setWinrateUpdates({ ...winrateUpdates, [trade.tradeId]: e.target.value })}
+                              className="bg-transparent text-sm font-bold outline-none w-20 text-[#ebb70c]"
+                            />
+                            <button
+                              onClick={() => handleUpdateWinRate(trade.tradeId)}
+                              disabled={saving}
+                              className="bg-[#ebb70c] hover:bg-[#d4a40b] text-black text-[9px] font-bold px-2 py-1 rounded transition-all active:scale-95 disabled:opacity-50"
+                            >
+                              Update
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

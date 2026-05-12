@@ -16,6 +16,7 @@ export interface CopyTradeType {
   price: number;
   last10Trades: TradeDetail[];
   pnl?: number;
+  winrate?: number;
   isActive?: boolean;
 }
 
@@ -39,7 +40,7 @@ const CopyTradeCard = ({ trade, onAction, actionLoading }: CopyTradeCardProps) =
   // Calculate win rate
   const wins = trade.last10Trades.filter(t => t.isWin).length;
   const total = trade.last10Trades.length;
-  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+  const winRate = trade.winrate !== undefined ? trade.winrate : (total > 0 ? Math.round((wins / total) * 100) : 0);
   
   // Find max absolute pnl for scaling the mini-bars
   // const maxAbsPnl = Math.max(...trade.last10Trades.map(t => Math.abs(t.pnl)), 1);

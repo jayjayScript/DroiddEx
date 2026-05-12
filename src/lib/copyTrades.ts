@@ -13,6 +13,7 @@ interface BackendTrade {
   symbol?: string;
   leverage: number;
   trade_price: number;
+  winrate?: number;
   last_10_trades?: number[];
 }
 
@@ -23,6 +24,7 @@ interface BackendActiveTrade {
   symbol?: string;
   leverage: number;
   PNL?: number;
+  winrate?: number;
 }
 
 // ------------------------------------------------------------------
@@ -72,6 +74,7 @@ export const getAllTrades = async (limit = 50, page = 1): Promise<CopyTradeType[
         coinIcon: getCoinIcon(t.symbol || ''),
         leverage: t.leverage,
         price: t.trade_price,
+        winrate: t.winrate,
         last10Trades
       };
     });
@@ -97,6 +100,7 @@ export const getUserTradingDetails = async () => {
       leverage: t.leverage,
       price: t.PNL || 0, // Using price field for PNL display dynamically
       pnl: t.PNL || 0,
+      winrate: t.winrate,
       isActive: true,
       last10Trades: [] // Not tracked tightly on active trades
     }));
