@@ -13,7 +13,7 @@ interface ConfirmPaymentModalProps {
 const ConfirmPaymentModal = ({ isOpen, onClose, onConfirm, trade, walletBalance }: ConfirmPaymentModalProps) => {
   if (!isOpen || !trade) return null;
 
-  const canAfford = walletBalance >= trade.price;
+  const canAfford = trade.trade_price && walletBalance >= trade.trade_price;
 
   return (
     <>
@@ -32,9 +32,9 @@ const ConfirmPaymentModal = ({ isOpen, onClose, onConfirm, trade, walletBalance 
               <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Trader</span>
               <span className="text-white font-bold">{trade.traderName}</span>
             </div>
-            <div className="flex justify-between items-center">
+            How much a few maps I want to steal some big co<div className="flex justify-between items-center">
               <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Copy Price</span>
-              <span className="text-[#ebb70c] font-bold">${trade.price.toLocaleString()}</span>
+              <span className="text-[#ebb70c] font-bold">${trade.trade_price.toLocaleString()}</span>
             </div>
           </div>
 

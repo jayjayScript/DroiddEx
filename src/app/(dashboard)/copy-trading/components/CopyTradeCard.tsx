@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Icon } from '@iconify/react';
 
 export interface TradeDetail {
@@ -13,7 +13,8 @@ export interface CopyTradeType {
   coinSymbol: string;
   coinIcon: string;
   leverage: number;
-  price: number;
+  trade_price?: number;
+  trade_percentage?: number;
   last10Trades: TradeDetail[];
   pnl?: number;
   winrate?: number;
@@ -37,6 +38,10 @@ const getCoinColor = (symbol: string) => {
 };
 
 const CopyTradeCard = ({ trade, onAction, actionLoading }: CopyTradeCardProps) => {
+
+  useEffect(() => {
+    console.log(trade)
+  }, [trade])
   // Calculate win rate
   const wins = trade.last10Trades.filter(t => t.isWin).length;
   const total = trade.last10Trades.length;
@@ -131,10 +136,15 @@ const CopyTradeCard = ({ trade, onAction, actionLoading }: CopyTradeCardProps) =
               {trade.pnl >= 0 ? '+' : '-'}${Math.abs(trade.pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
-        ) : (
+        ) : trade.trade_price ? (
           <div>
             <div className="text-[#555] text-[10px] sm:text-[11px] font-bold tracking-wider mb-0.5 sm:mb-1 uppercase">Copy Price</div>
-            <div className="text-white font-bold text-lg sm:text-xl">${trade.price.toLocaleString()}</div>
+            <div className="text-white font-bold text-lg sm:text-xl">${trade.trade_price.toLocaleString()}</div>
+          </div>
+        ) : trade.trade_percentage && (
+          <div>
+            <div className="text-[#555] text-[10px] sm:text-[11px] font-bold tracking-wider mb-0.5 sm:mb-1 uppercase">Trade Percent</div>
+            <div className="text-white font-bold text-lg sm:text-xl">${trade.trade_percentage.toLocaleString()}</div>
           </div>
         )}
         
