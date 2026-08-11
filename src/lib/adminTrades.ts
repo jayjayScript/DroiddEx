@@ -11,8 +11,8 @@ interface BackendTrade {
   trader_name: string;
   country?: string;
   symbol?: string;
-  leverage: number;
-  trade_price: number;
+  leverage: number; 
+  trade_percentage: number;
   winrate?: number;
   last_10_trades?: number[];
 }
@@ -49,7 +49,7 @@ export const mapBackendTradeToFrontend = (t: BackendTrade): CopyTradeType => {
     coinSymbol: (t.symbol || '').toUpperCase(),
     coinIcon: getCoinIcon(t.symbol || ''),
     leverage: t.leverage,
-    price: t.trade_price,
+    price: t.trade_percentage,
     last10Trades,
   };
 };
@@ -76,7 +76,7 @@ export const adminCreateTrade = async (body: {
   country: string;
   symbol: string;
   leverage: number;
-  trade_price: number;
+  trade_percentage: number;
   winrate: number;
   last_10_trades: number[];
 }) => {
@@ -90,7 +90,7 @@ export const adminUpdateTrade = async (tradeId: string, body: {
   country?: string;
   symbol?: string;
   leverage?: number;
-  trade_price?: number;
+  trade_percentage?: number;
   winrate?: number;
   last_10_trades?: number[];
 }) => {

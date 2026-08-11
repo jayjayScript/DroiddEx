@@ -51,5 +51,12 @@ export const getUserProfile = async () => {
 
 export async function adminLogin(email: string, password: string) {
   const res = await api.post('/admin/auth/login', { email, password });
+
+  Cookies.set('adminToken', res.data.token, {
+    expires: 1, // days
+    // secure: true,     // uncomment in production (HTTPS)
+    // sameSite: 'strict'
+  });
+
   return res.data;
 }

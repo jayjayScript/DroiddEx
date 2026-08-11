@@ -21,7 +21,7 @@ const defaultForm = (): FormData => ({
   countryCode: 'us',
   coinSymbol: 'BTC',
   leverage: 50,
-  price: 500,
+  price: 10,
   last10Trades: Array.from({ length: 10 }).map(() => ({ isWin: true, pnl: 10 })),
 });
 
@@ -99,7 +99,7 @@ const AdminCopyTrades = () => {
       country: formData.countryCode,
       symbol: formData.coinSymbol.toUpperCase(),
       leverage: formData.leverage,
-      trade_price: formData.price,
+      trade_percentage: formData.price,
       winrate,
       last_10_trades,
     };
@@ -311,7 +311,7 @@ const AdminCopyTrades = () => {
                         className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ebb70c] transition-all" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Copy Price ($)</label>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Copy Price (%)</label>
                       <input required type="number" value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) })}
                         className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ebb70c] transition-all" />

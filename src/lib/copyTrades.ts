@@ -12,7 +12,7 @@ interface BackendTrade {
   country?: string;
   symbol?: string;
   leverage: number;
-  trade_price: number;
+  trade_percentage: number;
   winrate?: number;
   last_10_trades?: number[];
 }
@@ -73,7 +73,7 @@ export const getAllTrades = async (limit = 50, page = 1): Promise<CopyTradeType[
         coinSymbol: (t.symbol || '').toUpperCase(),
         coinIcon: getCoinIcon(t.symbol || ''),
         leverage: t.leverage,
-        price: t.trade_price,
+        price: t.trade_percentage,
         winrate: t.winrate,
         last10Trades
       };
