@@ -56,7 +56,7 @@ const AdminCopyTrades = () => {
       countryCode: trader.countryCode,
       coinSymbol: trader.coinSymbol,
       leverage: trader.leverage,
-      price: trader.price,
+      price: trader.price ?? trader.trade_percentage ?? 0,
       last10Trades: [...trader.last10Trades],
     });
     setIsModalOpen(true);
@@ -159,9 +159,9 @@ const AdminCopyTrades = () => {
             </p>
           </div>
           <div className="bg-[#111] border border-[#222] p-5 rounded-2xl">
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Avg. Price</p>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Avg. Trade Percent</p>
             <p className="text-2xl font-bold text-[#00ff55]">
-              ${traders.length > 0 ? Math.round(traders.reduce((a, b) => a + b.price, 0) / traders.length) : 0}
+              {traders.length > 0 ? Math.round(traders.reduce((a, b) => a + (b.price ?? b.trade_percentage ?? 0), 0) / traders.length) : 0}%
             </p>
           </div>
         </div>
@@ -187,7 +187,7 @@ const AdminCopyTrades = () => {
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Trader</th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Coin</th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Leverage</th>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Copy Price</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Trade Percent</th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Win Rate</th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                 </tr>
@@ -218,7 +218,7 @@ const AdminCopyTrades = () => {
                           </span>
                         </td>
                         <td className="p-4 font-bold text-[#ebb70c]">{trader.leverage}x</td>
-                        <td className="p-4 font-bold text-white">${trader.price.toLocaleString()}</td>
+                        <td className="p-4 font-bold text-white">{(trader.price ?? trader.trade_percentage ?? 0).toLocaleString()}%</td>
                         <td className="p-4">
                           <div className="flex items-center gap-2">
                             <div className={`text-xs font-bold ${winRate >= 50 ? 'text-[#00ff55]' : 'text-red-500'}`}>{winRate}%</div>
@@ -311,7 +311,7 @@ const AdminCopyTrades = () => {
                         className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ebb70c] transition-all" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Copy Price (%)</label>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Trade Percentage (%)</label>
                       <input required type="number" value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) })}
                         className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ebb70c] transition-all" />

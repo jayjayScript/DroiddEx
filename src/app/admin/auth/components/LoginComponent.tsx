@@ -22,7 +22,8 @@ const LoginComponent = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  function handleLoginSuccess(token: string) {
+  function handleLoginSuccess(token?: string) {
+    if (!token || token === 'undefined') return;
     Cookies.set('adminToken', token, {
       expires: 7,
       secure: true,
@@ -48,7 +49,8 @@ const LoginComponent = () => {
 
     try {
       const data = await adminLogin(form.email, form.password); // treat password as phrase
-      handleLoginSuccess(data.adminToken)
+      const token = data?.token || data?.adminToken;
+      handleLoginSuccess(token);
       // console.log(data)
       setLoading(false);
 

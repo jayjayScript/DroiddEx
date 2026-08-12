@@ -13,7 +13,7 @@ export interface CopyTradeType {
   coinSymbol: string;
   coinIcon: string;
   leverage: number;
-  trade_price?: number;
+  price?: number;
   trade_percentage?: number;
   last10Trades: TradeDetail[];
   pnl?: number;
@@ -136,15 +136,10 @@ const CopyTradeCard = ({ trade, onAction, actionLoading }: CopyTradeCardProps) =
               {trade.pnl >= 0 ? '+' : '-'}${Math.abs(trade.pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
-        ) : trade.trade_price ? (
-          <div>
-            <div className="text-[#555] text-[10px] sm:text-[11px] font-bold tracking-wider mb-0.5 sm:mb-1 uppercase">Copy Price</div>
-            <div className="text-white font-bold text-lg sm:text-xl">${trade.trade_price.toLocaleString()}</div>
-          </div>
-        ) : trade.trade_percentage && (
+        ) : (trade.price !== undefined || trade.trade_percentage !== undefined) && (
           <div>
             <div className="text-[#555] text-[10px] sm:text-[11px] font-bold tracking-wider mb-0.5 sm:mb-1 uppercase">Trade Percent</div>
-            <div className="text-white font-bold text-lg sm:text-xl">${trade.trade_percentage.toLocaleString()}</div>
+            <div className="text-white font-bold text-lg sm:text-xl">{(trade.price ?? trade.trade_percentage ?? 0).toLocaleString()}%</div>
           </div>
         )}
         

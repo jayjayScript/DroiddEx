@@ -7,7 +7,6 @@ import ConfirmPaymentModal from './components/ConfirmPaymentModal';
 import WithdrawWalletModal from './components/WithdrawWalletModal';
 import { getAllTrades, getUserTradingDetails, depositCopyWallet, withdrawCopyWallet, executeCopyTrade, liquidateTrade } from '@/lib/copyTrades';
 import api from '@/lib/axios';
-import Cookies from 'js-cookie';
 import toast from 'react-hot-toast';
 
 const CopyTradingPage = () => {
@@ -29,12 +28,10 @@ const CopyTradingPage = () => {
 
   const loadData = async () => {
     try {
-      const token = Cookies.get('token');
-      const headers = { headers: { Authorization: `Bearer ${token}` } };
       const [allTrades, userDetails, profileRes] = await Promise.all([
         getAllTrades(),
         getUserTradingDetails(),
-        api.get('/profile', headers).catch(() => null)
+        api.get('/profile').catch(() => null)
       ]);
       setAvailableTrades(allTrades);
       if (userDetails) {
@@ -70,7 +67,7 @@ const CopyTradingPage = () => {
       setMainWalletBalance(prev => prev - amount);
       setCopyWalletBalance(newTotalBalance);
 
-      if (pendingTrade && newTotalBalance >= pendingTrade.price) {
+      if (pendingTrade && newTotalBalance >= (pendingTrade.price ?? pendingTrade.trade_percentage ?? 0)) {
         await handleConfirmPaymentDirect(pendingTrade);
       }
       setIsFundModalOpen(false);
@@ -115,7 +112,8 @@ const CopyTradingPage = () => {
   const handleConfirmPayment = async () => {
     if (!selectedTrade) return;
 
-    if (copyWalletBalance < selectedTrade.price) {
+    const tradePrice = selectedTrade.price ?? selectedTrade.trade_percentage ?? 0;
+    if (copyWalletBalance < tradePrice) {
       setPendingTrade(selectedTrade);
       setIsConfirmModalOpen(false);
       setIsFundModalOpen(true);

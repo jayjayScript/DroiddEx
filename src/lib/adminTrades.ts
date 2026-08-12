@@ -21,9 +21,13 @@ interface BackendTrade {
 // Helper
 // ------------------------------------------------------------------
 
-const getAdminHeaders = () => ({
-  headers: { Authorization: `Bearer ${Cookies.get('adminToken')}` },
-});
+const getAdminHeaders = () => {
+  const token = Cookies.get('adminToken') || Cookies.get('token');
+  if (!token || token === 'undefined') return {};
+  return {
+    headers: { Authorization: `Bearer ${token}` },
+  };
+};
 
 const getCoinIcon = (symbol: string) => {
   const s = symbol.toUpperCase();
@@ -50,6 +54,7 @@ export const mapBackendTradeToFrontend = (t: BackendTrade): CopyTradeType => {
     coinIcon: getCoinIcon(t.symbol || ''),
     leverage: t.leverage,
     price: t.trade_percentage,
+    trade_percentage: t.trade_percentage,
     last10Trades,
   };
 };

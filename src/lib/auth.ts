@@ -26,7 +26,7 @@ export async function loginWithSeed(email: string, phrase: string) {
 
 export const getUserProfile = async () => {
   const token = Cookies.get('token');
-  if (!token) throw new Error('No token');
+  if (!token) return null;
 
   try {
     const res = await api('/profile', {
@@ -34,10 +34,10 @@ export const getUserProfile = async () => {
         Authorization: `Bearer ${token}`,
       },
     });
-    return res.data
+    return res.data;
   } catch (e) {
-    console.warn(e)
-    throw new Error('Failed to fetch profile');
+    console.warn('Failed to fetch profile', e);
+    return null;
   }
 };
 
@@ -51,12 +51,13 @@ export const getUserProfile = async () => {
 
 export async function adminLogin(email: string, password: string) {
   const res = await api.post('/admin/auth/login', { email, password });
+  const token = res.data?.token || res.data?.adminToken;
 
-  Cookies.set('adminToken', res.data.token, {
-    expires: 1, // days
-    // secure: true,     // uncomment in production (HTTPS)
-    // sameSite: 'strict'
-  });
+  if (token) {
+    Cookies.set('adminToken', token, {
+      expires: 1, // days
+    });
+  }
 
   return res.data;
 }

@@ -1,5 +1,4 @@
 import api from './axios';
-import Cookies from 'js-cookie';
 import { CopyTradeType, TradeDetail } from '@/app/(dashboard)/copy-trading/components/CopyTradeCard';
 
 // ------------------------------------------------------------------
@@ -31,10 +30,6 @@ interface BackendActiveTrade {
 // Helper functions
 // ------------------------------------------------------------------
 
-const getAuthHeaders = () => ({
-  headers: { Authorization: `Bearer ${Cookies.get('token')}` },
-});
-
 const getCoinIcon = (symbol: string) => {
   const s = symbol.toUpperCase();
   if (s === 'BTC') return 'cryptocurrency:btc';
@@ -51,12 +46,12 @@ const getCoinIcon = (symbol: string) => {
 };
 
 // ------------------------------------------------------------------
-// API Calls
+// API Calls — Authorization header is injected automatically by axios interceptor
 // ------------------------------------------------------------------
 
 export const getAllTrades = async (limit = 50, page = 1): Promise<CopyTradeType[]> => {
   try {
-    const res = await api.get(`/copy-trading/all-trades?limit=${limit}&page=${page}`, getAuthHeaders());
+    const res = await api.get(`/copy-trading/all-trades?limit=${limit}&page=${page}`);
     
     // Map backend Trade structure to frontend CopyTradeType
     const trades = res.data.trades || [];
@@ -74,6 +69,7 @@ export const getAllTrades = async (limit = 50, page = 1): Promise<CopyTradeType[
         coinIcon: getCoinIcon(t.symbol || ''),
         leverage: t.leverage,
         price: t.trade_percentage,
+        trade_percentage: t.trade_percentage,
         winrate: t.winrate,
         last10Trades
       };
@@ -86,7 +82,7 @@ export const getAllTrades = async (limit = 50, page = 1): Promise<CopyTradeType[
 
 export const getUserTradingDetails = async () => {
   try {
-    const res = await api.get(`/copy-trading/user-trading-details`, getAuthHeaders());
+    const res = await api.get(`/copy-trading/user-trading-details`);
     const data = res.data;
     if (!data) return null;
 
@@ -118,7 +114,7 @@ export const getUserTradingDetails = async () => {
 
 export const depositCopyWallet = async (amount: number) => {
   try {
-    const res = await api.post(`/copy-trading/deposit`, { amount }, getAuthHeaders());
+    const res = await api.post(`/copy-trading/deposit`, { amount });
     return res.data;
   } catch (error) {
     console.error('Failed to deposit into copy wallet', error);
@@ -128,7 +124,7 @@ export const depositCopyWallet = async (amount: number) => {
 
 export const withdrawCopyWallet = async (amount: number) => {
   try {
-    const res = await api.post(`/copy-trading/withdraw`, { amount }, getAuthHeaders());
+    const res = await api.post(`/copy-trading/withdraw`, { amount });
     return res.data;
   } catch (error) {
     console.error('Failed to withdraw from copy wallet', error);
@@ -138,7 +134,7 @@ export const withdrawCopyWallet = async (amount: number) => {
 
 export const executeCopyTrade = async (tradeId: string) => {
   try {
-    const res = await api.post(`/copy-trading/copy-trade`, { tradeId }, getAuthHeaders());
+    const res = await api.post(`/copy-trading/copy-trade`, { tradeId });
     return res.data;
   } catch (error) {
     console.error('Failed to execute copy trade', error);
@@ -148,7 +144,7 @@ export const executeCopyTrade = async (tradeId: string) => {
 
 export const liquidateTrade = async (tradeId: string) => {
   try {
-    const res = await api.post(`/copy-trading/liquidate`, { tradeId }, getAuthHeaders());
+    const res = await api.post(`/copy-trading/liquidate`, { tradeId });
     return res.data;
   } catch (error) {
     console.error('Failed to liquidate trade', error);

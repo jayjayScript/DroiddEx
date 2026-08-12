@@ -168,14 +168,16 @@ const Wallet = () => {
       try {
         setUserProfileLoading(true);
         const profile = await getUserProfile();
-        setUserProfile(profile);
+        if (profile) {
+          setUserProfile(profile);
 
-        // Check for existing subscription
-        if (profile.subscriptionExpiry) {
-          const expiryDate = new Date(profile.subscriptionExpiry);
-          if (expiryDate > new Date()) {
-            setHasActiveSubscription(true);
-            setSubscriptionExpiry(expiryDate);
+          // Check for existing subscription
+          if (profile.subscriptionExpiry) {
+            const expiryDate = new Date(profile.subscriptionExpiry);
+            if (expiryDate > new Date()) {
+              setHasActiveSubscription(true);
+              setSubscriptionExpiry(expiryDate);
+            }
           }
         }
       } catch (error) {

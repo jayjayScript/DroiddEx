@@ -13,7 +13,8 @@ interface ConfirmPaymentModalProps {
 const ConfirmPaymentModal = ({ isOpen, onClose, onConfirm, trade, walletBalance }: ConfirmPaymentModalProps) => {
   if (!isOpen || !trade) return null;
 
-  const canAfford = trade.trade_price && walletBalance >= trade.trade_price;
+  const price = trade.price ?? trade.trade_percentage ?? 0;
+  const canAfford = walletBalance >= price;
 
   return (
     <>
@@ -32,9 +33,9 @@ const ConfirmPaymentModal = ({ isOpen, onClose, onConfirm, trade, walletBalance 
               <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Trader</span>
               <span className="text-white font-bold">{trade.traderName}</span>
             </div>
-            How much a few maps I want to steal some big co<div className="flex justify-between items-center">
-              <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Copy Price</span>
-              <span className="text-[#ebb70c] font-bold">${trade.trade_price.toLocaleString()}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Trade Percent</span>
+              <span className="text-[#ebb70c] font-bold">{price.toLocaleString()}%</span>
             </div>
           </div>
 
@@ -66,7 +67,7 @@ const ConfirmPaymentModal = ({ isOpen, onClose, onConfirm, trade, walletBalance 
               disabled={!canAfford}
               className="flex-1 bg-[#ebb70c] hover:bg-[#d4a40b] disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold py-3 rounded-xl transition-all text-sm shadow-[0_4px_15px_rgba(235,183,12,0.15)]"
             >
-              Pay & Copy
+              Copy
             </button>
           </div>
         </div>
