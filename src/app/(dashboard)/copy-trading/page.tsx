@@ -55,7 +55,9 @@ const CopyTradingPage = () => {
     loadData();
   }, []);
 
-
+  const handleBalanceRefresh = (newBalance: number) => {
+    setMainWalletBalance(newBalance);
+  };
 
   const handleDeposit = async (amount: number) => {
     const toastId = toast.loading('Depositing to Copy Wallet...');
@@ -172,14 +174,14 @@ const CopyTradingPage = () => {
           <div className="grid grid-cols-2 gap-4 border-t border-[#222] pt-6">
             <button 
               onClick={() => setIsFundModalOpen(true)}
-              className="bg-[#ebb70cc6] hover:bg-[#d4a40b] text-[#111] font-bold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-[13px] shadow-[0_4px_15px_rgba(235,183,12,0.15)] active:scale-95"
+              className="bg-[#ebb70cc6] hover:bg-[#d4a40b] text-[#111] font-bold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-[13px] shadow-[0_4px_15px_rgba(235,183,12,0.2)]"
             >
               <Icon icon="ph:lightning-fill" className="w-4 h-4" />
               Deposit
             </button>
             <button 
               onClick={() => setIsWithdrawModalOpen(true)}
-              className="bg-[#1a1a1a] border border-[#333] hover:border-[#444] text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-[13px] active:scale-95"
+              className="bg-[#1a1a1a] border border-[#333] hover:border-[#444] text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-[13px]"
             >
               <Icon icon="ph:bank-fill" className="w-4 h-4 text-[#ebb70c]" />
               Withdrawal
@@ -254,6 +256,7 @@ const CopyTradingPage = () => {
           onClose={() => setIsFundModalOpen(false)}
           onDeposit={handleDeposit}
           mainWalletBalance={mainWalletBalance}
+          onBalanceRefresh={handleBalanceRefresh}
         />
 
         <WithdrawWalletModal 
