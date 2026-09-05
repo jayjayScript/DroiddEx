@@ -1,17 +1,47 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import api from '@/lib/axios';
 
 interface FundWalletModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDeposit: (amount: number, source: 'external' | 'main_wallet') => void;
   mainWalletBalance: number;
+  onBalanceRefresh?: (newBalance: number) => void;
 }
 
-const FundWalletModal = ({ isOpen, onClose, onDeposit, mainWalletBalance }: FundWalletModalProps) => {
+const FundWalletModal = ({ isOpen, onClose, onDeposit, mainWalletBalance, onBalanceRefresh }: FundWalletModalProps) => {
   const [amount, setAmount] = useState('');
-  
+  const [currentBalance, setCurrentBalance] = useState(mainWalletBalance);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Refresh balance when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      refreshBalance();
+    }
+  }, [isOpen]);
+
+  const refreshBalance = async () => {
+    setIsRefreshing(true);
+    try {
+      const profileRes = await api.get('/profile');
+      if (profileRes?.data?.wallet?.USDT) {
+        const usdtBalance = profileRes.data.wallet.USDT.reduce(
+          (acc: number, curr: { balance: number }) => acc + curr.balance, 0
+        );
+        setCurrentBalance(usdtBalance);
+        onBalanceRefresh?.(usdtBalance);
+      }
+    } catch (error) {
+      console.error('Failed to refresh balance:', error);
+      setCurrentBalance(mainWalletBalance);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const handleDeposit = () => {
@@ -41,9 +71,19 @@ const FundWalletModal = ({ isOpen, onClose, onDeposit, mainWalletBalance }: Fund
               <span className="text-gray-400 text-[11px] font-bold uppercase tracking-wider">From</span>
               <span className="text-white font-bold text-sm">WEB4 Wallet</span>
             </div>
-            <p className="text-[#ebb70c] text-right font-bold text-xs">
-              Available: ${mainWalletBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
+            <div className="flex justify-between items-center">
+              <p className="text-[#ebb70c] font-bold text-xs">
+                Available: ${currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </p>
+              <button
+                onClick={refreshBalance}
+                disabled={isRefreshing}
+                className="text-[#ebb70c] hover:text-[#d4a40b] text-xs disabled:opacity-50 transition-colors"
+                title="Refresh balance"
+              >
+                <Icon icon="ph:arrows-clockwise" className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
 
           <div>
@@ -57,15 +97,15 @@ const FundWalletModal = ({ isOpen, onClose, onDeposit, mainWalletBalance }: Fund
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full pl-8 pr-4 py-3 bg-[#000] border border-[#333] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-[#ebb70c] transition-colors text-[15px] font-bold"
+                className="w-full pl-8 pr-4 py-3 bg-[#000] border border-[#333] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-[#ebb70c] transition-colors text-[15px]"
               />
             </div>
           </div>
 
           <button
             onClick={handleDeposit}
-            disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > mainWalletBalance}
-            className="w-full bg-[#ebb70c] hover:bg-[#d4a50b] disabled:opacity-30 disabled:cursor-not-allowed text-black font-bold py-3.5 rounded-xl transition-all duration-200 mt-2 text-[14px] shadow-[0_4px_15px_rgba(235,183,12,0.15)] active:scale-95"
+            disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > currentBalance}
+            className="w-full bg-[#ebb70c] hover:bg-[#d4a50b] disabled:opacity-30 disabled:cursor-not-allowed text-black font-bold py-3.5 rounded-xl transition-all duration-200 mt-2 text-[14px]"
           >
             Transfer Funds
           </button>
