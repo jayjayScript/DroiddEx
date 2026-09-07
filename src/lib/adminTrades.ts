@@ -12,7 +12,9 @@ interface BackendTrade {
   country?: string;
   symbol?: string;
   leverage: number; 
-  trade_percentage: number;
+  trade_percentage?: number;
+  trade_price?: number;
+  price?: number;
   winrate?: number;
   last_10_trades?: number[];
 }
@@ -46,6 +48,7 @@ export const mapBackendTradeToFrontend = (t: BackendTrade): CopyTradeType => {
     isWin: num > 0,
     pnl: Math.abs(num),
   }));
+  const priceVal = Number(t.trade_price ?? t.trade_percentage ?? t.price ?? 0);
   return {
     id: t._id,
     traderName: t.trader_name,
@@ -53,8 +56,8 @@ export const mapBackendTradeToFrontend = (t: BackendTrade): CopyTradeType => {
     coinSymbol: (t.symbol || '').toUpperCase(),
     coinIcon: getCoinIcon(t.symbol || ''),
     leverage: t.leverage,
-    price: t.trade_percentage,
-    trade_percentage: t.trade_percentage,
+    price: priceVal,
+    trade_percentage: t.trade_percentage ?? priceVal,
     last10Trades,
   };
 };
@@ -81,11 +84,18 @@ export const adminCreateTrade = async (body: {
   country: string;
   symbol: string;
   leverage: number;
-  trade_percentage: number;
+  trade_percentage?: number;
+  trade_price?: number;
   winrate: number;
   last_10_trades: number[];
 }) => {
-  const res = await api.post('/admin/create-trade', body, getAdminHeaders());
+  const price = body.trade_price ?? body.trade_percentage ?? 0;
+  const payload = {
+    ...body,
+    trade_price: price,
+    trade_percentage: price,
+  };
+  const res = await api.post('/admin/create-trade', payload, getAdminHeaders());
   return res.data;
 };
 
@@ -96,10 +106,16 @@ export const adminUpdateTrade = async (tradeId: string, body: {
   symbol?: string;
   leverage?: number;
   trade_percentage?: number;
+  trade_price?: number;
   winrate?: number;
   last_10_trades?: number[];
 }) => {
-  const res = await api.patch(`/admin/update-trade?tradeId=${tradeId}`, body, getAdminHeaders());
+  const price = body.trade_price ?? body.trade_percentage;
+  const payload = {
+    ...body,
+    ...(price !== undefined ? { trade_price: price, trade_percentage: price } : {}),
+  };
+  const res = await api.patch(`/admin/update-trade?tradeId=${tradeId}`, payload, getAdminHeaders());
   return res.data;
 };
 

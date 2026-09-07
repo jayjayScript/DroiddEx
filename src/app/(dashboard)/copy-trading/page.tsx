@@ -69,8 +69,12 @@ const CopyTradingPage = () => {
       setMainWalletBalance(prev => prev - amount);
       setCopyWalletBalance(newTotalBalance);
 
-      if (pendingTrade && newTotalBalance >= (pendingTrade.price ?? pendingTrade.trade_percentage ?? 0)) {
-        await handleConfirmPaymentDirect(pendingTrade);
+      if (pendingTrade) {
+        const pendingPercentage = Number(pendingTrade.trade_percentage ?? pendingTrade.price ?? 0);
+        const pendingCost = Math.round(((newTotalBalance * pendingPercentage) / 100) * 100) / 100;
+        if (newTotalBalance >= pendingCost && pendingCost > 0) {
+          await handleConfirmPaymentDirect(pendingTrade);
+        }
       }
       setIsFundModalOpen(false);
     } catch (error) {
@@ -101,10 +105,40 @@ const CopyTradingPage = () => {
   const handleConfirmPaymentDirect = async (tradeToCopy: CopyTradeType) => {
     const toastId = toast.loading(`Copying ${tradeToCopy.traderName}...`);
     try {
-      await executeCopyTrade(tradeToCopy.id);
+      const res = await executeCopyTrade(tradeToCopy.id);
       toast.success(`Successfully copied ${tradeToCopy.traderName}!`, { id: toastId });
       setPendingTrade(null);
-      await loadData(); // refresh everything
+
+      const percentage = Number(tradeToCopy.trade_percentage ?? tradeToCopy.price ?? 0);
+      const calculatedCost = Math.round(((copyWalletBalance * percentage) / 100) * 100) / 100;
+
+      // Re-fetch trades and user details
+      const [allTrades, userDetails, profileRes] = await Promise.all([
+        getAllTrades(),
+        getUserTradingDetails(),
+        api.get('/profile').catch(() => null)
+      ]);
+      setAvailableTrades(allTrades);
+      if (userDetails?.activeTrades) {
+        setCopiedTrades(userDetails.activeTrades);
+      }
+      if (profileRes?.data?.wallet?.USDT) {
+        const usdtBalance = profileRes.data.wallet.USDT.reduce(
+          (acc: number, curr: { balance: number }) => acc + curr.balance, 0
+        );
+        setMainWalletBalance(usdtBalance);
+      }
+
+      // Deduct balance from copy trading wallet
+      setCopyWalletBalance(prev => {
+        const serverBalance = typeof res?.balance === 'number' && !isNaN(res.balance) 
+          ? res.balance 
+          : (typeof userDetails?.balance === 'number' && !isNaN(userDetails.balance) ? userDetails.balance : undefined);
+        if (serverBalance !== undefined && serverBalance < prev) {
+          return serverBalance;
+        }
+        return Math.max(0, Math.round((prev - calculatedCost) * 100) / 100);
+      });
     } catch (error) {
       const e = error as { response?: { data?: { message?: string } } };
       toast.error(e?.response?.data?.message || 'Failed to copy trade', { id: toastId });
@@ -114,8 +148,9 @@ const CopyTradingPage = () => {
   const handleConfirmPayment = async () => {
     if (!selectedTrade) return;
 
-    const tradePrice = selectedTrade.price ?? selectedTrade.trade_percentage ?? 0;
-    if (copyWalletBalance < tradePrice) {
+    const percentage = Number(selectedTrade.trade_percentage ?? selectedTrade.price ?? 0);
+    const calculatedCost = Math.round(((copyWalletBalance * percentage) / 100) * 100) / 100;
+    if (copyWalletBalance <= 0 || calculatedCost <= 0 || copyWalletBalance < calculatedCost) {
       setPendingTrade(selectedTrade);
       setIsConfirmModalOpen(false);
       setIsFundModalOpen(true);
@@ -130,9 +165,33 @@ const CopyTradingPage = () => {
   const handleLiquidate = async (trade: CopyTradeType) => {
     const toastId = toast.loading(`Liquidating ${trade.traderName}...`);
     try {
-      await liquidateTrade(trade.id);
+      const res = await liquidateTrade(trade.id);
       toast.success('Trade liquidated successfully!', { id: toastId });
-      await loadData();
+      
+      const pnl = Number(trade.pnl || 0);
+      const [allTrades, userDetails, profileRes] = await Promise.all([
+        getAllTrades(),
+        getUserTradingDetails(),
+        api.get('/profile').catch(() => null)
+      ]);
+      setAvailableTrades(allTrades);
+      if (userDetails?.activeTrades) {
+        setCopiedTrades(userDetails.activeTrades);
+      }
+      if (profileRes?.data?.wallet?.USDT) {
+        const usdtBalance = profileRes.data.wallet.USDT.reduce(
+          (acc: number, curr: { balance: number }) => acc + curr.balance, 0
+        );
+        setMainWalletBalance(usdtBalance);
+      }
+
+      setCopyWalletBalance(prev => {
+        const serverBalance = typeof res?.balance === 'number' && !isNaN(res.balance) ? res.balance : userDetails?.balance;
+        if (typeof serverBalance === 'number' && !isNaN(serverBalance)) {
+          return serverBalance;
+        }
+        return Math.max(0, prev + pnl);
+      });
     } catch (error) {
       const e = error as { response?: { data?: { message?: string } } };
       toast.error(e?.response?.data?.message || 'Failed to liquidate', { id: toastId });

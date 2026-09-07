@@ -63,6 +63,11 @@ const WithdrawWalletModal = ({ isOpen, onClose, onWithdraw, copyWalletBalance }:
             </div>
           </div>
 
+          <div className="flex justify-between items-center px-1 text-xs">
+            <span className="text-gray-400 font-medium">Withdrawal Fee</span>
+            <span className="text-[#00ff55] font-bold">0% (Free)</span>
+          </div>
+
           <button
             onClick={handleWithdraw}
             disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > copyWalletBalance}

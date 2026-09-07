@@ -100,6 +100,7 @@ const AdminCopyTrades = () => {
       symbol: formData.coinSymbol.toUpperCase(),
       leverage: formData.leverage,
       trade_percentage: formData.price,
+      trade_price: formData.price,
       winrate,
       last_10_trades,
     };

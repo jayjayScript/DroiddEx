@@ -13,8 +13,9 @@ interface ConfirmPaymentModalProps {
 const ConfirmPaymentModal = ({ isOpen, onClose, onConfirm, trade, walletBalance }: ConfirmPaymentModalProps) => {
   if (!isOpen || !trade) return null;
 
-  const price = trade.price ?? trade.trade_percentage ?? 0;
-  const canAfford = walletBalance >= price;
+  const percentage = Number(trade.trade_percentage ?? trade.price ?? 0);
+  const calculatedCost = Math.round(((walletBalance * percentage) / 100) * 100) / 100;
+  const canAfford = walletBalance > 0 && calculatedCost > 0 && walletBalance >= calculatedCost;
 
   return (
     <>
@@ -33,9 +34,13 @@ const ConfirmPaymentModal = ({ isOpen, onClose, onConfirm, trade, walletBalance 
               <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Trader</span>
               <span className="text-white font-bold">{trade.traderName}</span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-2">
               <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Trade Percent</span>
-              <span className="text-[#ebb70c] font-bold">{price.toLocaleString()}%</span>
+              <span className="text-[#ebb70c] font-bold">{percentage.toLocaleString()}%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Trade Cost</span>
+              <span className="text-white font-bold">${calculatedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
 
