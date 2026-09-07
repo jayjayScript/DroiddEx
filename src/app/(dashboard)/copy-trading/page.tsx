@@ -77,6 +77,7 @@ const CopyTradingPage = () => {
         }
       }
       setIsFundModalOpen(false);
+      await loadData();
     } catch (error) {
       const e = error as { response?: { data?: { message?: string } } };
       toast.error(e?.response?.data?.message || 'Deposit failed', { id: toastId });
@@ -88,9 +89,10 @@ const CopyTradingPage = () => {
     try {
       await withdrawCopyWallet(amount);
       toast.success('Withdrawal successful!', { id: toastId });
-      setCopyWalletBalance(prev => prev - amount);
+      setCopyWalletBalance(prev => Math.max(0, prev - amount));
       setMainWalletBalance(prev => prev + amount);
       setIsWithdrawModalOpen(false);
+      await loadData();
     } catch (error) {
       const e = error as { response?: { data?: { message?: string } } };
       toast.error(e?.response?.data?.message || 'Withdrawal failed', { id: toastId });

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import api from '@/lib/axios';
-import { useUserContext } from '@/store/userContext';
+// import { useUserContext } from '@/store/userContext';
 
 interface FundWalletModalProps {
   isOpen: boolean;
@@ -12,12 +12,22 @@ interface FundWalletModalProps {
   onBalanceRefresh?: (newBalance: number) => void;
 }
 
+interface USDTWalletEntry {
+  balance?: number | string;
+  [key: string]: unknown;
+}
+
 const FundWalletModal = ({ isOpen, onClose, onDeposit, mainWalletBalance, onBalanceRefresh }: FundWalletModalProps) => {
   const [amount, setAmount] = useState('');
   const [currentBalance, setCurrentBalance] = useState(mainWalletBalance);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useUserContext();
+  // const { user } = useUserContext();
+
+  // Sync balance when mainWalletBalance prop changes
+  useEffect(() => {
+    setCurrentBalance(mainWalletBalance);
+  }, [mainWalletBalance]);
 
   // Refresh balance when modal opens
   useEffect(() => {
@@ -26,7 +36,7 @@ const FundWalletModal = ({ isOpen, onClose, onDeposit, mainWalletBalance, onBala
     }
   }, [isOpen]);
 
-  const extractUSDTBalance = (wallet: any): number => {
+  const extractUSDTBalance = (wallet: Record<string, unknown> | null | undefined): number => {
     if (!wallet) return 0;
     
     try {
@@ -39,17 +49,17 @@ const FundWalletModal = ({ isOpen, onClose, onDeposit, mainWalletBalance, onBala
 
       // If USDT is an array of wallet entries
       if (Array.isArray(usdtData)) {
-        const balance = usdtData.reduce((acc: number, entry: any) => {
-          const entryBalance = entry?.balance || 0;
-          return acc + (typeof entryBalance === 'number' ? entryBalance : parseFloat(entryBalance) || 0);
+        const balance = (usdtData as USDTWalletEntry[]).reduce((acc: number, entry: USDTWalletEntry) => {
+          const entryBalance = entry?.balance ?? 0;
+          return acc + (typeof entryBalance === 'number' ? entryBalance : parseFloat(String(entryBalance)) || 0);
         }, 0);
         return balance;
       }
 
       // If USDT is a single object with balance property
-      if (typeof usdtData === 'object' && 'balance' in usdtData) {
-        const balance = usdtData.balance;
-        return typeof balance === 'number' ? balance : parseFloat(balance) || 0;
+      if (typeof usdtData === 'object' && usdtData !== null && 'balance' in usdtData) {
+        const balance = (usdtData as USDTWalletEntry).balance;
+        return typeof balance === 'number' ? balance : parseFloat(String(balance)) || 0;
       }
 
       // If USDT is just a number
@@ -69,66 +79,21 @@ const FundWalletModal = ({ isOpen, onClose, onDeposit, mainWalletBalance, onBala
     setIsRefreshing(true);
     setError(null);
     try {
-      console.log('🔄 Refreshing wallet balance...');
-      
-      // First, try to get balance from user context (fastest)
-      if (user?.wallet) {
-        console.log('📱 Attempting to extract balance from user context');
-        const contextBalance = extractUSDTBalance(user.wallet);
-        if (contextBalance > 0) {
-          console.log('✅ Found balance in user context:', contextBalance);
-          setCurrentBalance(contextBalance);
-          onBalanceRefresh?.(contextBalance);
-          setError(null);
-          setIsRefreshing(false);
-          return;
-        }
-      }
-
-      // If context balance is 0 or missing, fetch from API
-      console.log('🌐 Fetching profile from API...');
+      console.log('🌐 Fetching latest wallet balance from API...');
       const profileRes = await api.get('/profile');
       
-      console.log('API Response received:', profileRes.data);
-      
-      if (profileRes?.data) {
-        const wallet = profileRes.data.wallet;
-        
-        if (!wallet) {
-          console.warn('❌ No wallet data in profile response');
-          setError('Wallet data not found');
-          setCurrentBalance(0);
-          setIsRefreshing(false);
-          return;
-        }
-
-        console.log('💰 Full wallet structure:', wallet);
-
-        // Extract USDT balance with proper error handling
-        const usdtBalance = extractUSDTBalance(wallet);
-        
-        console.log('💵 Extracted USDT balance:', usdtBalance);
-        
-        if (usdtBalance > 0) {
-          setCurrentBalance(usdtBalance);
-          onBalanceRefresh?.(usdtBalance);
-          setError(null);
-          console.log('✅ Balance updated successfully');
-        } else {
-          setCurrentBalance(0);
-          setError('No USDT balance available - wallet appears empty');
-          console.warn('⚠️ USDT balance is 0 or invalid');
-        }
+      if (profileRes?.data?.wallet) {
+        const usdtBalance = extractUSDTBalance(profileRes.data.wallet);
+        setCurrentBalance(usdtBalance);
+        onBalanceRefresh?.(usdtBalance);
+        setError(null);
       } else {
-        console.warn('❌ No data in profile response');
-        setError('Unable to fetch balance data from server');
-        setCurrentBalance(0);
+        setCurrentBalance(mainWalletBalance);
       }
-    } catch (error: any) {
-      console.error('❌ Failed to refresh balance:', error);
-      console.error('Error details:', error?.response?.data || error?.message);
-      setError(`Failed to load balance: ${error?.response?.data?.message || error?.message || 'Unknown error'}`);
-      setCurrentBalance(0);
+    } catch (error) {
+      console.error('❌ Failed to refresh balance from API:', error);
+      // Fallback to prop balance
+      setCurrentBalance(mainWalletBalance);
     } finally {
       setIsRefreshing(false);
     }
