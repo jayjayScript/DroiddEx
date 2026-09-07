@@ -22,7 +22,6 @@ const CopyTradingPage = () => {
   // Modal State
   const [isFundModalOpen, setIsFundModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
-  const [pendingTrade, setPendingTrade] = useState<CopyTradeType | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<CopyTradeType | null>(null);
 
@@ -64,18 +63,8 @@ const CopyTradingPage = () => {
     try {
       await depositCopyWallet(amount);
       toast.success('Deposit successful!', { id: toastId });
-      
-      const newTotalBalance = copyWalletBalance + amount;
       setMainWalletBalance(prev => prev - amount);
-      setCopyWalletBalance(newTotalBalance);
-
-      if (pendingTrade) {
-        const pendingPercentage = Number(pendingTrade.trade_percentage ?? pendingTrade.price ?? 0);
-        const pendingCost = Math.round(((newTotalBalance * pendingPercentage) / 100) * 100) / 100;
-        if (newTotalBalance >= pendingCost && pendingCost > 0) {
-          await handleConfirmPaymentDirect(pendingTrade);
-        }
-      }
+      setCopyWalletBalance(prev => prev + amount);
       setIsFundModalOpen(false);
       await loadData();
     } catch (error) {
@@ -104,17 +93,22 @@ const CopyTradingPage = () => {
     setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmPaymentDirect = async (tradeToCopy: CopyTradeType) => {
-    const toastId = toast.loading(`Copying ${tradeToCopy.traderName}...`);
+  const handleConfirmPayment = async () => {
+    if (!selectedTrade) return;
+
+    // Require a funded copy wallet — no upfront deduction, just a gate to ensure the user has skin in the game
+    if (copyWalletBalance <= 0) {
+      setIsConfirmModalOpen(false);
+      setIsFundModalOpen(true);
+      return;
+    }
+
+    const toastId = toast.loading(`Copying ${selectedTrade.traderName}...`);
     try {
-      const res = await executeCopyTrade(tradeToCopy.id);
-      toast.success(`Successfully copied ${tradeToCopy.traderName}!`, { id: toastId });
-      setPendingTrade(null);
+      const res = await executeCopyTrade(selectedTrade.id);
+      toast.success(`Successfully copied ${selectedTrade.traderName}!`, { id: toastId });
 
-      const percentage = Number(tradeToCopy.trade_percentage ?? tradeToCopy.price ?? 0);
-      const calculatedCost = Math.round(((copyWalletBalance * percentage) / 100) * 100) / 100;
-
-      // Re-fetch trades and user details
+      // Refresh all data from server — balance is NOT deducted, just re-sync
       const [allTrades, userDetails, profileRes] = await Promise.all([
         getAllTrades(),
         getUserTradingDetails(),
@@ -124,6 +118,9 @@ const CopyTradingPage = () => {
       if (userDetails?.activeTrades) {
         setCopiedTrades(userDetails.activeTrades);
       }
+      if (userDetails?.balance !== undefined) {
+        setCopyWalletBalance(userDetails.balance);
+      }
       if (profileRes?.data?.wallet?.USDT) {
         const usdtBalance = profileRes.data.wallet.USDT.reduce(
           (acc: number, curr: { balance: number }) => acc + curr.balance, 0
@@ -131,37 +128,17 @@ const CopyTradingPage = () => {
         setMainWalletBalance(usdtBalance);
       }
 
-      // Deduct balance from copy trading wallet
-      setCopyWalletBalance(prev => {
-        const serverBalance = typeof res?.balance === 'number' && !isNaN(res.balance) 
-          ? res.balance 
-          : (typeof userDetails?.balance === 'number' && !isNaN(userDetails.balance) ? userDetails.balance : undefined);
-        if (serverBalance !== undefined && serverBalance < prev) {
-          return serverBalance;
-        }
-        return Math.max(0, Math.round((prev - calculatedCost) * 100) / 100);
-      });
+      // Sync balance from server response if available
+      if (typeof res?.balance === 'number' && !isNaN(res.balance)) {
+        setCopyWalletBalance(res.balance);
+      }
     } catch (error) {
       const e = error as { response?: { data?: { message?: string } } };
       toast.error(e?.response?.data?.message || 'Failed to copy trade', { id: toastId });
-    }
-  };
-
-  const handleConfirmPayment = async () => {
-    if (!selectedTrade) return;
-
-    const percentage = Number(selectedTrade.trade_percentage ?? selectedTrade.price ?? 0);
-    const calculatedCost = Math.round(((copyWalletBalance * percentage) / 100) * 100) / 100;
-    if (copyWalletBalance <= 0 || calculatedCost <= 0 || copyWalletBalance < calculatedCost) {
-      setPendingTrade(selectedTrade);
+    } finally {
       setIsConfirmModalOpen(false);
-      setIsFundModalOpen(true);
-      return;
+      setSelectedTrade(null);
     }
-
-    setIsConfirmModalOpen(false);
-    await handleConfirmPaymentDirect(selectedTrade);
-    setSelectedTrade(null);
   };
 
   const handleLiquidate = async (trade: CopyTradeType) => {

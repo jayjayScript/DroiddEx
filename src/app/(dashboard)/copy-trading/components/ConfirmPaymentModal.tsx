@@ -13,9 +13,7 @@ interface ConfirmPaymentModalProps {
 const ConfirmPaymentModal = ({ isOpen, onClose, onConfirm, trade, walletBalance }: ConfirmPaymentModalProps) => {
   if (!isOpen || !trade) return null;
 
-  const percentage = Number(trade.trade_percentage ?? trade.price ?? 0);
-  const calculatedCost = Math.round(((walletBalance * percentage) / 100) * 100) / 100;
-  const canAfford = walletBalance > 0 && calculatedCost > 0 && walletBalance >= calculatedCost;
+  const profitCommission = Number(trade.trade_percentage ?? trade.price ?? 0);
 
   return (
     <>
@@ -35,30 +33,28 @@ const ConfirmPaymentModal = ({ isOpen, onClose, onConfirm, trade, walletBalance 
               <span className="text-white font-bold">{trade.traderName}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Trade Percent</span>
-              <span className="text-[#ebb70c] font-bold">{percentage.toLocaleString()}%</span>
+              <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Symbol</span>
+              <span className="text-white font-bold">{trade.coinSymbol}/USDT</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Trade Cost</span>
-              <span className="text-white font-bold">${calculatedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Profit Commission</span>
+              <span className="text-[#ebb70c] font-bold">{profitCommission.toLocaleString()}%</span>
             </div>
           </div>
 
           <div className="flex justify-between items-center px-1">
-            <span className="text-gray-400 text-sm font-medium">Wallet Balance</span>
-            <span className={`font-bold ${canAfford ? 'text-white' : 'text-red-500'}`}>
+            <span className="text-gray-400 text-sm font-medium">Copy Wallet Balance</span>
+            <span className="text-white font-bold">
               ${walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </span>
           </div>
 
-          {!canAfford && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-3">
-              <Icon icon="ph:warning-circle-fill" className="text-red-500 w-5 h-5 mt-0.5" />
-              <p className="text-red-500 text-xs leading-relaxed">
-                Insufficient funds in your Copy Trading Wallet. Please deposit more funds to continue.
-              </p>
-            </div>
-          )}
+          <div className="bg-[#ebb70c]/10 border border-[#ebb70c]/20 rounded-lg p-3 flex items-start gap-3">
+            <Icon icon="ph:info-fill" className="text-[#ebb70c] w-5 h-5 mt-0.5 flex-shrink-0" />
+            <p className="text-[#ebb70c] text-xs leading-relaxed">
+              No funds are deducted when you copy a trade. The <strong>{profitCommission}% profit commission</strong> is only applied to your earnings when the trade is settled.
+            </p>
+          </div>
 
           <div className="flex gap-3 pt-2">
             <button
@@ -69,10 +65,9 @@ const ConfirmPaymentModal = ({ isOpen, onClose, onConfirm, trade, walletBalance 
             </button>
             <button
               onClick={onConfirm}
-              disabled={!canAfford}
-              className="flex-1 bg-[#ebb70c] hover:bg-[#d4a40b] disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold py-3 rounded-xl transition-all text-sm shadow-[0_4px_15px_rgba(235,183,12,0.15)]"
+              className="flex-1 bg-[#ebb70c] hover:bg-[#d4a40b] text-black font-bold py-3 rounded-xl transition-all text-sm shadow-[0_4px_15px_rgba(235,183,12,0.15)]"
             >
-              Copy
+              Copy Trade
             </button>
           </div>
         </div>
