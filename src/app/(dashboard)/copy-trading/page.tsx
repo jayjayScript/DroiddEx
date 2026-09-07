@@ -239,9 +239,9 @@ const CopyTradingPage = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {copiedTrades.map(trade => (
+              {copiedTrades.map((trade, index) => (
                 <CopyTradeCard 
-                  key={trade.id} 
+                  key={`${trade.id}-${index}`} 
                   trade={trade} 
                   onAction={handleLiquidate} 
                 />
