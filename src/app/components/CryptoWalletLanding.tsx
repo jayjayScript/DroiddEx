@@ -140,7 +140,6 @@ const CryptoWalletLanding = () => {
           "linear-gradient(135deg, #1a1a1a 0%, #000000 35%, #2a2a2a 70%, #0a0a0a 100%)",
       }}
     >
-      {/* Subtle Background Particles */}
       <div className="absolute inset-0 pointer-events-none z-0">
         {particles.map((particle) => (
           <div
@@ -158,7 +157,6 @@ const CryptoWalletLanding = () => {
           />
         ))}
 
-        {/* Subtle Gradient Overlay */}
         <div
           className="absolute inset-0 pointer-events-none opacity-30"
           style={{
@@ -167,7 +165,6 @@ const CryptoWalletLanding = () => {
         />
       </div>
 
-      {/* Main Content */}
       <div className="relative z-10">
         <div className="">
           <Script
@@ -177,11 +174,7 @@ const CryptoWalletLanding = () => {
             dangerouslySetInnerHTML={{
               __html: `
                       var _smartsupp = _smartsupp || {};
-                      _smartsupp.key = '56113d834ee77079ce13cf26d4ec4a4e5eac89da';
-                      _smartsupp.offsetX = 20; // Distance from right edge
-                      _smartsupp.offsetY = 80; // Distance from bottom edge
-                      _smartsupp.alignX = 'right'; // 'left' or 'right'
-                      _smartsupp.alignY = 'bottom'; // 'top' or 'bottom'
+                      _smartsupp.key = 'd8b973298b1db936d185278ed8d7910a63ef916f';
                       window.smartsupp||(function(d) {
                         var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
                         s=d.getElementsByTagName('script')[0];c=d.createElement('script');
@@ -199,7 +192,6 @@ const CryptoWalletLanding = () => {
             </a>
           </noscript>
         </div>
-        {/* Navigation */}
         <nav
           className="relative z-50 px-4 py-4 md:px-8 backdrop-blur-sm border-b border-white/5"
           style={{ backgroundColor: "rgba(26, 26, 26, 0.4)" }}
@@ -209,7 +201,6 @@ const CryptoWalletLanding = () => {
               <p className="font-semibold text-[#ebb70c] uppercase">Web4.0</p>
             </div>
 
-            {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
               {["Features", "Security", "Portfolio"].map((item) => (
                 <Link
@@ -247,7 +238,6 @@ const CryptoWalletLanding = () => {
               </Link>
             </div>
 
-            {/* Mobile Menu Button */}
             <button
               className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-all duration-300"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -263,7 +253,6 @@ const CryptoWalletLanding = () => {
             </button>
           </div>
 
-          {/* Mobile Menu */}
           {isMenuOpen && (
             <div
               className="md:hidden absolute top-full left-0 right-0 backdrop-blur-lg border-b border-white/10 p-6"
@@ -300,7 +289,6 @@ const CryptoWalletLanding = () => {
           )}
         </nav>
 
-        {/* Hero Section - Clean & Focused */}
         <div className="relative px-6 py-16 md:px-8 md:py-24">
           <div className="max-w-6xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
@@ -317,7 +305,6 @@ const CryptoWalletLanding = () => {
               wallet featuring quantum-resistant encryption and 24/7 trades
             </p>
 
-            {/* Email Signup */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 max-w-md mx-auto">
               <input
                 type="email"
@@ -352,7 +339,6 @@ const CryptoWalletLanding = () => {
               </a>
             </div>
 
-            {/* Stats Section */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
               <div className="text-center">
                 <div
@@ -400,7 +386,6 @@ const CryptoWalletLanding = () => {
           </div>
         </div>
 
-        {/* Features Section */}
         <div
           id="features"
           className="relative px-4 py-16 md:px-8"
@@ -463,7 +448,6 @@ const CryptoWalletLanding = () => {
           </div>
         </div>
 
-        {/* Live Crypto Prices */}
         <div id="portfolio" className="relative px-4 py-16 md:px-8">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
@@ -514,11 +498,12 @@ const CryptoWalletLanding = () => {
                     </div>
                   </div>
                   <div className="text-xl font-bold text-white mb-2">
-                    $
-                    {crypto.price.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    ${
+                      crypto.price.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })
+                    }
                   </div>
                   <div
                     className={`text-sm font-semibold px-2 py-1 rounded ${
@@ -536,7 +521,6 @@ const CryptoWalletLanding = () => {
           </div>
         </div>
 
-        {/* Security Section */}
         <div
           id="security"
           className="relative px-4 py-16 md:px-8"
@@ -651,7 +635,6 @@ const CryptoWalletLanding = () => {
           </div>
         </div>
 
-        {/* Trusted Partners */}
         <div
           className="py-12"
           style={{ backgroundColor: "rgba(10, 10, 10, 0.3)" }}
@@ -688,7 +671,6 @@ const CryptoWalletLanding = () => {
           </div>
         </div>
 
-        {/* Footer */}
         <footer
           className="px-4 py-12 md:px-8 border-t border-white/5"
           style={{ backgroundColor: "#0a0a0a" }}
